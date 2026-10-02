@@ -11,21 +11,25 @@ This repository implements the Tutor and Booking service boundary. The Tutor ser
 | Tutor | REST on port `4001` | Profiles, publication status, subjects, hourly rates | `tutor_db` |
 | Booking | gRPC on port `50052` | Availability slots and their booking references | `booking_db` |
 
-Both services can use one MongoDB instance, but each connects to its own database. A slot stores the tutor's ID as a string; Booking does not query the Tutor database. The shared [protobuf contract](proto/booking.proto) defines the calls between services.
+Both services use the same MongoDB Atlas cluster and connection URI, but each selects its own database with Mongoose's `dbName` option. A slot stores the tutor's ID as a string; Booking does not query the Tutor database. The shared [protobuf contract](proto/booking.proto) defines the calls between services.
 
 The wider Tutor Matcher architecture also includes payments, reviews, and notifications. Those capabilities are outside this repository's current API. In particular, `bookingId` is a reference on a slot; payment and booking lifecycle operations are not implemented here.
 
 ## Requirements
 
 - Node.js and npm
-- MongoDB available locally or through MongoDB Atlas
+- A MongoDB Atlas cluster, database user, and connection URI
 - A gRPC client such as Postman for calling Booking directly
 
-For a local MongoDB container:
+In Atlas, add your current IP address to the project's IP access list, create a database user with access to both databases, and copy the **Drivers** connection string. Replace the username and password in the URI. Percent-encode reserved characters in the password, such as `@` as `%40`.
 
-```bash
-docker run -d --name tutor-matcher-mongo -p 27017:27017 mongo:8
+Copy each service's `.env.example` to `.env`, then paste the **same full Atlas URI** after `MONGO_URI=` in both files. For example:
+
+```dotenv
+MONGO_URI=mongodb+srv://USERNAME:PASSWORD@CLUSTER_HOST/?retryWrites=true&w=majority
 ```
+
+The application selects `tutor_db` and `booking_db` separately, so you do not need to add a database name to the URI. Keep the real URI in `.env`; these files are ignored by Git.
 
 ## Run locally
 
@@ -43,15 +47,15 @@ npm install
 npm run dev
 ```
 
-Each service has an `.env.example` file. The defaults work with MongoDB at `mongodb://127.0.0.1:27017`. Copy the relevant example to `.env` to change a port, connection string, or Booking's gRPC address. Keep `tutor_db` and `booking_db` as separate database names in their respective `MONGO_URI` values.
+`MONGO_URI` is required for both services. The other values in `.env.example` can stay as provided. Startup logs show the selected database name after a successful connection.
 
 | Variable | Service | Default |
 | --- | --- | --- |
 | `PORT` | Tutor | `4001` |
-| `MONGO_URI` | Tutor | `mongodb://127.0.0.1:27017/tutor_db` |
+| `MONGO_URI` | Tutor | Your Atlas URI (required); connects to `tutor_db` |
 | `BOOKING_GRPC_URL` | Tutor | `127.0.0.1:50052` |
 | `GRPC_PORT` | Booking | `50052` |
-| `MONGO_URI` | Booking | `mongodb://127.0.0.1:27017/booking_db` |
+| `MONGO_URI` | Booking | The same Atlas URI (required); connects to `booking_db` |
 
 ## API
 

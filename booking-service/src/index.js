@@ -6,8 +6,9 @@ const mongoose = require('mongoose');
 const handlers = require('./availability.handlers');
 
 async function main() {
-  const mongoUri = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/booking_db';
-  await mongoose.connect(mongoUri);
+  const mongoUri = process.env.MONGO_URI?.trim();
+  if (!mongoUri) throw new Error('MONGO_URI is required. Add your MongoDB Atlas URI to booking-service/.env');
+  await mongoose.connect(mongoUri, { dbName: 'booking_db' });
   console.log(`[Booking] MongoDB connected: ${mongoose.connection.name}`);
 
   const protoPath = path.resolve(__dirname, '../../proto/booking.proto');

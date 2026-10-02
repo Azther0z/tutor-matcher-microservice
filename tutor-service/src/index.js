@@ -4,8 +4,9 @@ const mongoose = require('mongoose');
 const tutorRoutes = require('./tutor.routes');
 
 async function main() {
-  const mongoUri = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/tutor_db';
-  await mongoose.connect(mongoUri);
+  const mongoUri = process.env.MONGO_URI?.trim();
+  if (!mongoUri) throw new Error('MONGO_URI is required. Add your MongoDB Atlas URI to tutor-service/.env');
+  await mongoose.connect(mongoUri, { dbName: 'tutor_db' });
   console.log(`[Tutor] MongoDB connected: ${mongoose.connection.name}`);
 
   const app = express();
