@@ -1,0 +1,42 @@
+{
+  "info": {
+    "name": "Tutor Matcher REST demo",
+    "description": "Run requests in order. For Booking gRPC requests, import ../proto/booking.proto in Postman and follow the repository README.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://127.0.0.1:4001" },
+    { "key": "tutorId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "1. Create tutor",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"firstName\": \"Ada\",\n  \"lastName\": \"Lovelace\",\n  \"email\": \"ada.{{$timestamp}}@example.com\",\n  \"bio\": \"Math tutor\",\n  \"status\": \"PUBLISHED\",\n  \"subjects\": [\n    { \"name\": \"Mathematics\", \"description\": \"Algebra\", \"hourlyRate\": 500 }\n  ]\n}" },
+        "url": "{{baseUrl}}/tutors"
+      },
+      "event": [{ "listen": "test", "script": { "exec": ["pm.test('Created tutor', () => pm.response.to.have.status(201));", "if (pm.response.code === 201) pm.collectionVariables.set('tutorId', pm.response.json()._id);"] } }]
+    },
+    {
+      "name": "3. Get tutor with availability",
+      "request": { "method": "GET", "url": "{{baseUrl}}/tutors/{{tutorId}}" },
+      "event": [{ "listen": "test", "script": { "exec": ["pm.test('Profile returned', () => pm.response.to.have.status(200));", "pm.test('Availability included', () => pm.expect(pm.response.json()).to.have.property('availability'));"] } }]
+    },
+    {
+      "name": "5. Update tutor",
+      "request": {
+        "method": "PUT",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"bio\": \"Updated math tutor profile\"\n}" },
+        "url": "{{baseUrl}}/tutors/{{tutorId}}"
+      }
+    },
+    {
+      "name": "5. Delete tutor",
+      "request": { "method": "DELETE", "url": "{{baseUrl}}/tutors/{{tutorId}}" }
+    }
+  ]
+}
+
