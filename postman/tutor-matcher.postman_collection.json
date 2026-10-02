@@ -20,12 +20,12 @@
       "event": [{ "listen": "test", "script": { "exec": ["pm.test('Created tutor', () => pm.response.to.have.status(201));", "if (pm.response.code === 201) pm.collectionVariables.set('tutorId', pm.response.json()._id);"] } }]
     },
     {
-      "name": "3. Get tutor with availability",
+      "name": "2. Get tutor with availability",
       "request": { "method": "GET", "url": "{{baseUrl}}/tutors/{{tutorId}}" },
       "event": [{ "listen": "test", "script": { "exec": ["pm.test('Profile returned', () => pm.response.to.have.status(200));", "pm.test('Availability included', () => pm.expect(pm.response.json()).to.have.property('availability'));"] } }]
     },
     {
-      "name": "5. Update tutor",
+      "name": "3. Update tutor",
       "request": {
         "method": "PUT",
         "header": [{ "key": "Content-Type", "value": "application/json" }],
@@ -34,7 +34,7 @@
       }
     },
     {
-      "name": "5. Delete tutor",
+      "name": "4. Delete tutor",
       "request": { "method": "DELETE", "url": "{{baseUrl}}/tutors/{{tutorId}}" }
     }
   ]
