@@ -1,0 +1,45 @@
+syntax = "proto3";
+
+package booking;
+
+service BookingService {
+  rpc CreateSlot (CreateSlotRequest) returns (Slot);
+  rpc GetAvailability (GetAvailabilityRequest) returns (GetAvailabilityResponse);
+  rpc UpdateSlot (UpdateSlotRequest) returns (Slot);
+  rpc DeleteSlot (DeleteSlotRequest) returns (DeleteSlotResponse);
+}
+
+message Slot {
+  string id = 1;
+  string tutor_id = 2;
+  string started_at = 3; // ISO 8601 UTC
+  optional string booking_id = 4;
+}
+
+message CreateSlotRequest {
+  string tutor_id = 1;
+  string started_at = 2;
+}
+
+message GetAvailabilityRequest {
+  string tutor_id = 1;
+}
+
+message GetAvailabilityResponse {
+  repeated Slot slots = 1;
+}
+
+message UpdateSlotRequest {
+  string id = 1;
+  optional string started_at = 2;
+  optional string booking_id = 3; // empty string clears bookingId
+}
+
+message DeleteSlotRequest {
+  string id = 1;
+}
+
+message DeleteSlotResponse {
+  bool deleted = 1;
+}
+
