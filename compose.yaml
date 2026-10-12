@@ -53,7 +53,7 @@ services:
       context: .
       dockerfile: booking-service/Dockerfile
     environment:
-      MONGO_URI: mongodb://mongo:27017
+      MONGO_URI: ${MONGO_URI:-mongodb://mongo:27017}
       GRPC_PORT: 50052
       HTTP_PORT: 4004
       TUTOR_URL: http://tutor-service:4001
@@ -71,7 +71,7 @@ services:
       context: .
       dockerfile: tutor-service/Dockerfile
     environment:
-      MONGO_URI: mongodb://mongo:27017
+      MONGO_URI: ${MONGO_URI:-mongodb://mongo:27017}
       PORT: 4001
       BOOKING_GRPC_URL: booking-service:50052
     depends_on:
@@ -115,7 +115,7 @@ services:
       context: .
       dockerfile: notification-service/Dockerfile
     environment:
-      MONGO_URI: mongodb://mongo:27017
+      MONGO_URI: ${MONGO_URI:-mongodb://mongo:27017}
       RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
     depends_on:
       mongo:
