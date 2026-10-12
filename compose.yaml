@@ -76,6 +76,21 @@ services:
         condition: service_healthy
     restart: on-failure
 
+  wallet-service:
+    build:
+      context: .
+      dockerfile: wallet-service/Dockerfile
+    environment:
+      PORT: 4003
+      DATABASE_URL: postgres://tutor:tutor@postgres:5432/wallet_db
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    restart: on-failure
+
   notification-service:
     build:
       context: .
