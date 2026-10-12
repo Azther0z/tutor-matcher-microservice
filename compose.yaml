@@ -111,6 +111,26 @@ services:
         condition: service_healthy
     restart: on-failure
 
+  api-gateway:
+    build:
+      context: .
+      dockerfile: api-gateway/Dockerfile
+    ports:
+      - "127.0.0.1:8080:8080"
+    environment:
+      PORT: 8080
+      JWT_SECRET: ${JWT_SECRET:-dev-only-secret}
+      AUTH_URL: http://auth-service:4002
+      TUTOR_URL: http://tutor-service:4001
+      BOOKING_URL: http://booking-service:4004
+      WALLET_URL: http://wallet-service:4003
+    depends_on:
+      - auth-service
+      - tutor-service
+      - booking-service
+      - wallet-service
+    restart: on-failure
+
 volumes:
   mongo-data:
   postgres-data:
