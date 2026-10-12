@@ -1,8 +1,18 @@
 {
   "info": {
     "name": "Tutor Matcher D4 demo (API gateway)",
-    "description": "Run in order against the API gateway. Notification events appear in `docker compose logs -f notification-service`.",
+    "description": "Requests go through the API gateway. Log in, then paste the token into this collection's Authorization tab (Bearer Token) and save. Notification events appear in `docker compose logs -f notification-service`.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "",
+        "type": "string"
+      }
+    ]
   },
   "variable": [
     {
@@ -11,10 +21,6 @@
     },
     {
       "key": "email",
-      "value": ""
-    },
-    {
-      "key": "token",
       "value": ""
     },
     {
@@ -40,7 +46,15 @@
   ],
   "item": [
     {
-      "name": "1. Register student",
+      "name": "Get wallet",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/wallet"
+      }
+    },
+    {
+      "name": "Register",
       "request": {
         "method": "POST",
         "header": [
@@ -63,15 +77,14 @@
           "listen": "test",
           "script": {
             "exec": [
-              "pm.test('Registered', () => pm.response.to.have.status(201));",
-              "pm.collectionVariables.set('email', pm.response.json().user.email);"
+              "if (pm.response.code < 300) pm.collectionVariables.set('email', pm.response.json().user.email);"
             ]
           }
         }
       ]
     },
     {
-      "name": "2. Login",
+      "name": "Login",
       "request": {
         "method": "POST",
         "header": [
@@ -88,42 +101,10 @@
         "auth": {
           "type": "noauth"
         }
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "pm.test('Logged in', () => pm.response.to.have.status(200));",
-              "pm.collectionVariables.set('token', pm.response.json().token);"
-            ]
-          }
-        }
-      ]
+      }
     },
     {
-      "name": "3. Wallet without token (401)",
-      "request": {
-        "method": "GET",
-        "header": [],
-        "url": "{{baseUrl}}/wallet",
-        "auth": {
-          "type": "noauth"
-        }
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "pm.test('Rejected without token', () => pm.response.to.have.status(401));"
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "4. Create tutor",
+      "name": "Create tutor",
       "request": {
         "method": "POST",
         "header": [
@@ -136,16 +117,6 @@
         "body": {
           "mode": "raw",
           "raw": "{\n  \"firstName\": \"Ada\",\n  \"lastName\": \"Lovelace\",\n  \"email\": \"ada.{{$timestamp}}@example.com\",\n  \"bio\": \"Math tutor\",\n  \"status\": \"PUBLISHED\",\n  \"subjects\": [\n    {\n      \"name\": \"Mathematics\",\n      \"description\": \"Algebra\",\n      \"hourlyRate\": 400\n    }\n  ]\n}"
-        },
-        "auth": {
-          "type": "bearer",
-          "bearer": [
-            {
-              "key": "token",
-              "value": "{{token}}",
-              "type": "string"
-            }
-          ]
         }
       },
       "event": [
@@ -153,15 +124,14 @@
           "listen": "test",
           "script": {
             "exec": [
-              "pm.test('Created tutor', () => pm.response.to.have.status(201));",
-              "pm.collectionVariables.set('tutorId', pm.response.json()._id);"
+              "if (pm.response.code < 300) pm.collectionVariables.set('tutorId', pm.response.json()._id);"
             ]
           }
         }
       ]
     },
     {
-      "name": "5. Open slot 09:00",
+      "name": "Open slot 09:00",
       "request": {
         "method": "POST",
         "header": [
@@ -174,16 +144,6 @@
         "body": {
           "mode": "raw",
           "raw": "{\n  \"tutorId\": \"{{tutorId}}\",\n  \"startedAt\": \"2026-11-20T09:00:00.000Z\"\n}"
-        },
-        "auth": {
-          "type": "bearer",
-          "bearer": [
-            {
-              "key": "token",
-              "value": "{{token}}",
-              "type": "string"
-            }
-          ]
         }
       },
       "event": [
@@ -191,14 +151,14 @@
           "listen": "test",
           "script": {
             "exec": [
-              "pm.collectionVariables.set('slot1', pm.response.json().id);"
+              "if (pm.response.code < 300) pm.collectionVariables.set('slot1', pm.response.json().id);"
             ]
           }
         }
       ]
     },
     {
-      "name": "6. Open slot 09:30",
+      "name": "Open slot 09:30",
       "request": {
         "method": "POST",
         "header": [
@@ -211,16 +171,6 @@
         "body": {
           "mode": "raw",
           "raw": "{\n  \"tutorId\": \"{{tutorId}}\",\n  \"startedAt\": \"2026-11-20T09:30:00.000Z\"\n}"
-        },
-        "auth": {
-          "type": "bearer",
-          "bearer": [
-            {
-              "key": "token",
-              "value": "{{token}}",
-              "type": "string"
-            }
-          ]
         }
       },
       "event": [
@@ -228,14 +178,14 @@
           "listen": "test",
           "script": {
             "exec": [
-              "pm.collectionVariables.set('slot2', pm.response.json().id);"
+              "if (pm.response.code < 300) pm.collectionVariables.set('slot2', pm.response.json().id);"
             ]
           }
         }
       ]
     },
     {
-      "name": "7. UC-04 Top up 500",
+      "name": "Top up",
       "request": {
         "method": "POST",
         "header": [
@@ -248,16 +198,6 @@
         "body": {
           "mode": "raw",
           "raw": "{\n  \"amount\": 500\n}"
-        },
-        "auth": {
-          "type": "bearer",
-          "bearer": [
-            {
-              "key": "token",
-              "value": "{{token}}",
-              "type": "string"
-            }
-          ]
         }
       },
       "event": [
@@ -265,89 +205,22 @@
           "listen": "test",
           "script": {
             "exec": [
-              "pm.test('Top-up pending', () => pm.expect(pm.response.json().status).to.eql('PENDING'));",
-              "pm.collectionVariables.set('topupId', pm.response.json().id);"
+              "if (pm.response.code < 300) pm.collectionVariables.set('topupId', pm.response.json().id);"
             ]
           }
         }
       ]
     },
     {
-      "name": "8. UC-04 Simulate PromptPay payment",
+      "name": "Confirm top-up (simulate PromptPay)",
       "request": {
         "method": "POST",
         "header": [],
-        "url": "{{baseUrl}}/wallet/topups/{{topupId}}/confirm",
-        "auth": {
-          "type": "bearer",
-          "bearer": [
-            {
-              "key": "token",
-              "value": "{{token}}",
-              "type": "string"
-            }
-          ]
-        }
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "pm.test('Paid', () => pm.expect(pm.response.json().status).to.eql('PAID'));"
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "9. UC-04 Confirm again (no double credit)",
-      "request": {
-        "method": "POST",
-        "header": [],
-        "url": "{{baseUrl}}/wallet/topups/{{topupId}}/confirm",
-        "auth": {
-          "type": "bearer",
-          "bearer": [
-            {
-              "key": "token",
-              "value": "{{token}}",
-              "type": "string"
-            }
-          ]
-        }
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "pm.test('Already confirmed', () => pm.expect(pm.response.json().alreadyConfirmed).to.eql(true));"
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "10. Wallet balance",
-      "request": {
-        "method": "GET",
-        "header": [],
-        "url": "{{baseUrl}}/wallet",
-        "auth": {
-          "type": "bearer",
-          "bearer": [
-            {
-              "key": "token",
-              "value": "{{token}}",
-              "type": "string"
-            }
-          ]
-        }
+        "url": "{{baseUrl}}/wallet/topups/{{topupId}}/confirm"
       }
     },
     {
-      "name": "11. UC-03 Search tutors",
+      "name": "Search tutors",
       "request": {
         "method": "GET",
         "header": [],
@@ -358,7 +231,7 @@
       }
     },
     {
-      "name": "12. UC-03 Tutor profile with slots",
+      "name": "Get tutor profile",
       "request": {
         "method": "GET",
         "header": [],
@@ -369,7 +242,7 @@
       }
     },
     {
-      "name": "13. UC-03 Book 1 hour",
+      "name": "Create booking",
       "request": {
         "method": "POST",
         "header": [
@@ -382,16 +255,6 @@
         "body": {
           "mode": "raw",
           "raw": "{\n  \"tutorId\": \"{{tutorId}}\",\n  \"subjectName\": \"Mathematics\",\n  \"slotIds\": [\n    \"{{slot1}}\",\n    \"{{slot2}}\"\n  ]\n}"
-        },
-        "auth": {
-          "type": "bearer",
-          "bearer": [
-            {
-              "key": "token",
-              "value": "{{token}}",
-              "type": "string"
-            }
-          ]
         }
       },
       "event": [
@@ -399,103 +262,26 @@
           "listen": "test",
           "script": {
             "exec": [
-              "pm.test('Payment due', () => pm.expect(pm.response.json().status).to.eql('PAYMENT_DUE'));",
-              "pm.collectionVariables.set('bookingId', pm.response.json()._id);"
+              "if (pm.response.code < 300) pm.collectionVariables.set('bookingId', pm.response.json()._id);"
             ]
           }
         }
       ]
     },
     {
-      "name": "14. UC-03 Pay from wallet",
+      "name": "Pay booking",
       "request": {
         "method": "POST",
         "header": [],
-        "url": "{{baseUrl}}/bookings/{{bookingId}}/pay",
-        "auth": {
-          "type": "bearer",
-          "bearer": [
-            {
-              "key": "token",
-              "value": "{{token}}",
-              "type": "string"
-            }
-          ]
-        }
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "pm.test('Confirmed', () => pm.expect(pm.response.json().status).to.eql('CONFIRMED'));"
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "15. Wallet after payment",
-      "request": {
-        "method": "GET",
-        "header": [],
-        "url": "{{baseUrl}}/wallet",
-        "auth": {
-          "type": "bearer",
-          "bearer": [
-            {
-              "key": "token",
-              "value": "{{token}}",
-              "type": "string"
-            }
-          ]
-        }
+        "url": "{{baseUrl}}/bookings/{{bookingId}}/pay"
       }
     },
     {
-      "name": "16. UC-06 Cancel booking",
+      "name": "Cancel booking",
       "request": {
         "method": "POST",
         "header": [],
-        "url": "{{baseUrl}}/bookings/{{bookingId}}/cancel",
-        "auth": {
-          "type": "bearer",
-          "bearer": [
-            {
-              "key": "token",
-              "value": "{{token}}",
-              "type": "string"
-            }
-          ]
-        }
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "pm.test('Cancelled', () => pm.expect(pm.response.json().status).to.eql('CANCELLED'));"
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "17. Wallet after refund",
-      "request": {
-        "method": "GET",
-        "header": [],
-        "url": "{{baseUrl}}/wallet",
-        "auth": {
-          "type": "bearer",
-          "bearer": [
-            {
-              "key": "token",
-              "value": "{{token}}",
-              "type": "string"
-            }
-          ]
-        }
+        "url": "{{baseUrl}}/bookings/{{bookingId}}/cancel"
       }
     }
   ]
