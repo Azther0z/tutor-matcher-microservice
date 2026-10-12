@@ -37,7 +37,7 @@ docker compose up -d --build
 docker compose logs -f notification-service
 ```
 
-This starts MongoDB, PostgreSQL, RabbitMQ and all services. Send requests to the gateway at `http://127.0.0.1:8080`. The RabbitMQ management UI is at `http://127.0.0.1:15672` (`guest` / `guest`). Stop with `docker compose down`, or `docker compose down -v` to also delete the data.
+This starts MongoDB, PostgreSQL, RabbitMQ and all services. Send requests to the gateway at `http://127.0.0.1:8080`. The RabbitMQ management UI is at `http://127.0.0.1:15672` (`guest` / `guest`). To browse the data, open Adminer at `http://127.0.0.1:8081` (System PostgreSQL, server `postgres`, user `tutor`, password `tutor`, database `auth_db` or `wallet_db`), and connect MongoDB Compass to `mongodb://127.0.0.1:27018`. Stop with `docker compose down`, or `docker compose down -v` to also delete the data.
 
 ### Demo flow
 
