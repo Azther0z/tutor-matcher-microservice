@@ -42,8 +42,14 @@ services:
     environment:
       MONGO_URI: mongodb://mongo:27017
       GRPC_PORT: 50052
+      HTTP_PORT: 4004
+      TUTOR_URL: http://tutor-service:4001
+      WALLET_URL: http://wallet-service:4003
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
     depends_on:
       mongo:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
     restart: on-failure
 
