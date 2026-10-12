@@ -60,6 +60,20 @@ services:
         condition: service_healthy
     restart: on-failure
 
+  notification-service:
+    build:
+      context: .
+      dockerfile: notification-service/Dockerfile
+    environment:
+      MONGO_URI: mongodb://mongo:27017
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+    depends_on:
+      mongo:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    restart: on-failure
+
 volumes:
   mongo-data:
   postgres-data:
