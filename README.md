@@ -43,7 +43,7 @@ To use MongoDB Atlas instead of the local MongoDB, copy `.env.example` to `.env`
 
 ### Demo flow
 
-Import [the D4 demo collection](postman/d4-demo.postman_collection.json) and run the requests in order. **Get wallet** first returns 401. After **Login**, paste the token into the collection's Authorization tab (Bearer Token), save, and send **Get wallet** again. The rest tops up 500 THB, books a one-hour lesson for 400 THB, pays from the wallet, then cancels for a refund. Watch the Notification logs while it runs.
+Import [the D4 demo collection](postman/d4-demo.postman_collection.json) and run the requests in order. After **Login**, paste the token into each protected request's Authorization tab (Bearer Token), and copy IDs from earlier responses into the request body or the Params tab. The flow tops up 500 THB, books a one-hour lesson for 400 THB, pays from the wallet, then cancels for a refund.
 
 | Method | Gateway path | Login | Description |
 | --- | --- | --- | --- |

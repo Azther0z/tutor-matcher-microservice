@@ -1,56 +1,38 @@
 {
   "info": {
-    "name": "Tutor Matcher D4 demo (API gateway)",
-    "description": "Requests go through the API gateway. Log in, then paste the token into this collection's Authorization tab (Bearer Token) and save. Notification events appear in `docker compose logs -f notification-service`.",
+    "name": "Tutor Matcher D4 demo",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
-  "auth": {
-    "type": "bearer",
-    "bearer": [
-      {
-        "key": "token",
-        "value": "",
-        "type": "string"
-      }
-    ]
-  },
-  "variable": [
-    {
-      "key": "baseUrl",
-      "value": "http://127.0.0.1:8080"
-    },
-    {
-      "key": "email",
-      "value": ""
-    },
-    {
-      "key": "tutorId",
-      "value": ""
-    },
-    {
-      "key": "slot1",
-      "value": ""
-    },
-    {
-      "key": "slot2",
-      "value": ""
-    },
-    {
-      "key": "topupId",
-      "value": ""
-    },
-    {
-      "key": "bookingId",
-      "value": ""
-    }
-  ],
   "item": [
     {
       "name": "Get wallet",
       "request": {
         "method": "GET",
         "header": [],
-        "url": "{{baseUrl}}/wallet"
+        "url": {
+          "raw": "http://127.0.0.1:8080/wallet",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "8080",
+          "path": [
+            "wallet"
+          ]
+        },
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "",
+              "type": "string"
+            }
+          ]
+        }
       }
     },
     {
@@ -63,25 +45,34 @@
             "value": "application/json"
           }
         ],
-        "url": "{{baseUrl}}/auth/register",
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"email\": \"student.{{$timestamp}}@example.com\",\n  \"password\": \"password123\",\n  \"displayName\": \"Demo Student\"\n}"
+        "url": {
+          "raw": "http://127.0.0.1:8080/auth/register",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "8080",
+          "path": [
+            "auth",
+            "register"
+          ]
         },
         "auth": {
           "type": "noauth"
-        }
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "if (pm.response.code < 300) pm.collectionVariables.set('email', pm.response.json().user.email);"
-            ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"student@example.com\",\n  \"password\": \"password123\",\n  \"displayName\": \"Ideal\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
           }
         }
-      ]
+      }
     },
     {
       "name": "Login",
@@ -93,13 +84,32 @@
             "value": "application/json"
           }
         ],
-        "url": "{{baseUrl}}/auth/login",
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"password123\"\n}"
+        "url": {
+          "raw": "http://127.0.0.1:8080/auth/login",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "8080",
+          "path": [
+            "auth",
+            "login"
+          ]
         },
         "auth": {
           "type": "noauth"
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"student@example.com\",\n  \"password\": \"password123\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
         }
       }
     },
@@ -113,22 +123,40 @@
             "value": "application/json"
           }
         ],
-        "url": "{{baseUrl}}/tutors",
+        "url": {
+          "raw": "http://127.0.0.1:8080/tutors",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "8080",
+          "path": [
+            "tutors"
+          ]
+        },
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "",
+              "type": "string"
+            }
+          ]
+        },
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"firstName\": \"Ada\",\n  \"lastName\": \"Lovelace\",\n  \"email\": \"ada.{{$timestamp}}@example.com\",\n  \"bio\": \"Math tutor\",\n  \"status\": \"PUBLISHED\",\n  \"subjects\": [\n    {\n      \"name\": \"Mathematics\",\n      \"description\": \"Algebra\",\n      \"hourlyRate\": 400\n    }\n  ]\n}"
-        }
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "if (pm.response.code < 300) pm.collectionVariables.set('tutorId', pm.response.json()._id);"
-            ]
+          "raw": "{\n  \"firstName\": \"Ada\",\n  \"lastName\": \"Lovelace\",\n  \"email\": \"ada@example.com\",\n  \"bio\": \"Math tutor\",\n  \"status\": \"PUBLISHED\",\n  \"subjects\": [\n    {\n      \"name\": \"Mathematics\",\n      \"description\": \"Algebra\",\n      \"hourlyRate\": 400\n    }\n  ]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
           }
         }
-      ]
+      }
     },
     {
       "name": "Open slot 09:00",
@@ -140,22 +168,40 @@
             "value": "application/json"
           }
         ],
-        "url": "{{baseUrl}}/availability",
+        "url": {
+          "raw": "http://127.0.0.1:8080/availability",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "8080",
+          "path": [
+            "availability"
+          ]
+        },
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "",
+              "type": "string"
+            }
+          ]
+        },
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"tutorId\": \"{{tutorId}}\",\n  \"startedAt\": \"2026-11-20T09:00:00.000Z\"\n}"
-        }
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "if (pm.response.code < 300) pm.collectionVariables.set('slot1', pm.response.json().id);"
-            ]
+          "raw": "{\n  \"tutorId\": \"\",\n  \"startedAt\": \"2026-11-20T09:00:00.000Z\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
           }
         }
-      ]
+      }
     },
     {
       "name": "Open slot 09:30",
@@ -167,22 +213,40 @@
             "value": "application/json"
           }
         ],
-        "url": "{{baseUrl}}/availability",
+        "url": {
+          "raw": "http://127.0.0.1:8080/availability",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "8080",
+          "path": [
+            "availability"
+          ]
+        },
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "",
+              "type": "string"
+            }
+          ]
+        },
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"tutorId\": \"{{tutorId}}\",\n  \"startedAt\": \"2026-11-20T09:30:00.000Z\"\n}"
-        }
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "if (pm.response.code < 300) pm.collectionVariables.set('slot2', pm.response.json().id);"
-            ]
+          "raw": "{\n  \"tutorId\": \"\",\n  \"startedAt\": \"2026-11-20T09:30:00.000Z\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
           }
         }
-      ]
+      }
     },
     {
       "name": "Top up",
@@ -194,29 +258,80 @@
             "value": "application/json"
           }
         ],
-        "url": "{{baseUrl}}/wallet/topups",
+        "url": {
+          "raw": "http://127.0.0.1:8080/wallet/topups",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "8080",
+          "path": [
+            "wallet",
+            "topups"
+          ]
+        },
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "",
+              "type": "string"
+            }
+          ]
+        },
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"amount\": 500\n}"
-        }
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "if (pm.response.code < 300) pm.collectionVariables.set('topupId', pm.response.json().id);"
-            ]
+          "raw": "{\n  \"amount\": 500\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
           }
         }
-      ]
+      }
     },
     {
-      "name": "Confirm top-up (simulate PromptPay)",
+      "name": "Confirm top-up",
       "request": {
         "method": "POST",
         "header": [],
-        "url": "{{baseUrl}}/wallet/topups/{{topupId}}/confirm"
+        "url": {
+          "raw": "http://127.0.0.1:8080/wallet/topups/:id/confirm",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "8080",
+          "path": [
+            "wallet",
+            "topups",
+            ":id",
+            "confirm"
+          ],
+          "variable": [
+            {
+              "key": "id",
+              "value": ""
+            }
+          ]
+        },
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "",
+              "type": "string"
+            }
+          ]
+        }
       }
     },
     {
@@ -224,18 +339,26 @@
       "request": {
         "method": "GET",
         "header": [],
-        "url": "{{baseUrl}}/tutors?subject=Mathematics",
-        "auth": {
-          "type": "noauth"
-        }
-      }
-    },
-    {
-      "name": "Get tutor profile",
-      "request": {
-        "method": "GET",
-        "header": [],
-        "url": "{{baseUrl}}/tutors/{{tutorId}}",
+        "url": {
+          "raw": "http://127.0.0.1:8080/tutors?subject=Mathematics",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "8080",
+          "path": [
+            "tutors"
+          ],
+          "query": [
+            {
+              "key": "subject",
+              "value": "Mathematics"
+            }
+          ]
+        },
         "auth": {
           "type": "noauth"
         }
@@ -251,29 +374,78 @@
             "value": "application/json"
           }
         ],
-        "url": "{{baseUrl}}/bookings",
+        "url": {
+          "raw": "http://127.0.0.1:8080/bookings",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "8080",
+          "path": [
+            "bookings"
+          ]
+        },
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "",
+              "type": "string"
+            }
+          ]
+        },
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"tutorId\": \"{{tutorId}}\",\n  \"subjectName\": \"Mathematics\",\n  \"slotIds\": [\n    \"{{slot1}}\",\n    \"{{slot2}}\"\n  ]\n}"
-        }
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "if (pm.response.code < 300) pm.collectionVariables.set('bookingId', pm.response.json()._id);"
-            ]
+          "raw": "{\n  \"tutorId\": \"\",\n  \"subjectName\": \"Mathematics\",\n  \"slotIds\": [\n    \"\",\n    \"\"\n  ]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
           }
         }
-      ]
+      }
     },
     {
       "name": "Pay booking",
       "request": {
         "method": "POST",
         "header": [],
-        "url": "{{baseUrl}}/bookings/{{bookingId}}/pay"
+        "url": {
+          "raw": "http://127.0.0.1:8080/bookings/:id/pay",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "8080",
+          "path": [
+            "bookings",
+            ":id",
+            "pay"
+          ],
+          "variable": [
+            {
+              "key": "id",
+              "value": ""
+            }
+          ]
+        },
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "",
+              "type": "string"
+            }
+          ]
+        }
       }
     },
     {
@@ -281,7 +453,38 @@
       "request": {
         "method": "POST",
         "header": [],
-        "url": "{{baseUrl}}/bookings/{{bookingId}}/cancel"
+        "url": {
+          "raw": "http://127.0.0.1:8080/bookings/:id/cancel",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "8080",
+          "path": [
+            "bookings",
+            ":id",
+            "cancel"
+          ],
+          "variable": [
+            {
+              "key": "id",
+              "value": ""
+            }
+          ]
+        },
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "",
+              "type": "string"
+            }
+          ]
+        }
       }
     }
   ]
