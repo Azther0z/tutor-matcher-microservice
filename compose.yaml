@@ -60,6 +60,22 @@ services:
         condition: service_healthy
     restart: on-failure
 
+  auth-service:
+    build:
+      context: .
+      dockerfile: auth-service/Dockerfile
+    environment:
+      PORT: 4002
+      DATABASE_URL: postgres://tutor:tutor@postgres:5432/auth_db
+      JWT_SECRET: ${JWT_SECRET:-dev-only-secret}
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    restart: on-failure
+
   notification-service:
     build:
       context: .
