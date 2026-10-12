@@ -2,18 +2,64 @@
 
 Tutor Matcher is an online marketplace for one-to-one tutoring. Students can browse a tutor's profile, subjects, rates, and available lesson times. Tutors maintain their public offering and open time slots for future bookings.
 
-This repository implements the Tutor and Booking service boundary. The Tutor service owns tutor profiles and subject offerings. The Booking service owns availability slots. When a client requests a tutor profile, the Tutor service retrieves that tutor's slots from Booking over gRPC and returns a combined response.
+This repository implements the Tutor Matcher services behind an API gateway. The demo covers three business use cases plus authentication: UC-03 discover, book and pay for a lesson, UC-04 top up the wallet, and UC-06 cancel a booking with a refund. When a client requests a tutor profile, the Tutor service retrieves that tutor's slots from Booking over gRPC and returns a combined response.
 
 ## Architecture
 
-| Service | Interface | Owns | MongoDB database |
+| Service | Interface | Owns | Database |
 | --- | --- | --- | --- |
-| Tutor | REST on port `4001` | Profiles, publication status, subjects, hourly rates | `tutor_db` |
-| Booking | gRPC on port `50052` | Availability slots and their booking references | `booking_db` |
+| API gateway | REST on port `8080` | Routing and JWT checks; passes the signed-in user to services | none |
+| Auth | REST on port `4002` | Accounts, password hashes, login tokens | PostgreSQL `auth_db` |
+| Tutor | REST on port `4001` | Profiles, publication status, subjects, hourly rates, search | MongoDB `tutor_db` |
+| Booking | gRPC on port `50052`, REST on port `4004` | Availability slots, bookings, payment and cancellation state | MongoDB `booking_db` |
+| Wallet | REST on port `4003` | Balances, mock PromptPay top-ups, payments, refunds | PostgreSQL `wallet_db` |
+| Notification | RabbitMQ consumer | Delivery log of notifications | MongoDB `notification_db` |
 
-Both services use the same MongoDB Atlas cluster and connection URI, but each selects its own database with Mongoose's `dbName` option. A slot stores the tutor's ID as a string; Booking does not query the Tutor database. The shared [protobuf contract](proto/booking.proto) defines the calls between services.
+Each service owns its database and never reads another service's data directly. A slot stores the tutor's ID as a string; Booking does not query the Tutor database. The shared [protobuf contract](proto/booking.proto) defines the gRPC calls between Tutor and Booking.
 
-The wider Tutor Matcher architecture also includes payments, reviews, and notifications. Those capabilities are outside this repository's current API. In particular, `bookingId` is a reference on a slot; payment and booking lifecycle operations are not implemented here.
+Booking calls Wallet synchronously to charge a lesson, because a booking is confirmed only after the money is taken. Charges and refunds are keyed by booking ID, so a retried request never moves money twice. Top-ups are confirmed once, even if the payment confirmation arrives again.
+
+Auth, Wallet and Booking publish events to the RabbitMQ topic exchange `tutor-matcher.events`. The Notification service consumes them from the durable queue `notification.events`. If Notification is down, the business action still succeeds and the event waits in the queue. Each event has an `eventId`, and Notification records deliveries with a unique `eventId`, so a redelivered event is not sent twice.
+
+| Event | Published by | When |
+| --- | --- | --- |
+| `user.registered` | Auth | A new account is created |
+| `wallet.topped_up` | Wallet | A top-up payment is confirmed |
+| `booking.confirmed` | Booking | A booking is paid |
+| `booking.cancelled` | Booking | A booking is cancelled, with the refund amount |
+
+PromptPay is mocked: `POST /wallet/topups` returns a placeholder payload instead of a real QR code, and `POST /wallet/topups/:id/confirm` stands in for the payment provider's confirmation.
+
+## Run everything with Docker
+
+```bash
+docker compose up -d --build
+docker compose logs -f notification-service
+```
+
+This starts MongoDB, PostgreSQL, RabbitMQ and all services. Send requests to the gateway at `http://127.0.0.1:8080`. The RabbitMQ management UI is at `http://127.0.0.1:15672` (`guest` / `guest`). Stop with `docker compose down`, or `docker compose down -v` to also delete the data.
+
+### Demo flow
+
+Import [the D4 demo collection](postman/d4-demo.postman_collection.json) and run the requests in order. It registers and logs in, tops up 500 THB, books a one-hour lesson for 400 THB, pays from the wallet, then cancels for a refund. Watch the Notification logs while it runs.
+
+| Method | Gateway path | Login | Description |
+| --- | --- | --- | --- |
+| `POST` | `/auth/register` | no | Create an account and get a token |
+| `POST` | `/auth/login` | no | Get a token |
+| `GET` | `/auth/me` | yes | Current account |
+| `GET` | `/tutors?subject=&q=&maxRate=` | no | Search published tutors |
+| `GET` | `/tutors/:id` | no | Tutor profile with availability |
+| `POST` | `/availability` | yes | Open a 30-minute slot for a tutor |
+| `POST` | `/wallet/topups` | yes | Start a mock PromptPay top-up |
+| `POST` | `/wallet/topups/:id/confirm` | yes | Simulate the payment confirmation |
+| `GET` | `/wallet` | yes | Balance and recent transactions |
+| `POST` | `/bookings` | yes | Hold back-to-back slots; price is slots × hourly rate ÷ 2 |
+| `POST` | `/bookings/:id/pay` | yes | Pay from the wallet and confirm |
+| `POST` | `/bookings/:id/cancel` | yes | Cancel; full refund 24 hours or more before the start, otherwise half |
+| `GET` | `/bookings` | yes | Your bookings |
+
+The sections below describe running Tutor and Booking alone against MongoDB Atlas.
 
 ## Requirements
 
