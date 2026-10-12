@@ -3,6 +3,48 @@
     "name": "Tutor Matcher D4 demo",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
+  "variable": [
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "studentEmail",
+      "value": "student@example.com",
+      "type": "string"
+    },
+    {
+      "key": "tutorEmail",
+      "value": "ada@example.com",
+      "type": "string"
+    },
+    {
+      "key": "tutorId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "slot0900Id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "slot0930Id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "topupId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "bookingId",
+      "value": "",
+      "type": "string"
+    }
+  ],
   "item": [
     {
       "name": "Get wallet",
@@ -28,7 +70,7 @@
           "bearer": [
             {
               "key": "token",
-              "value": "",
+              "value": "{{token}}",
               "type": "string"
             }
           ]
@@ -65,7 +107,7 @@
         },
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"email\": \"student@example.com\",\n  \"password\": \"password123\",\n  \"displayName\": \"Ideal\"\n}",
+          "raw": "{\n  \"email\": \"{{studentEmail}}\",\n  \"password\": \"password123\",\n  \"displayName\": \"Ideal\"\n}",
           "options": {
             "raw": {
               "language": "json"
@@ -104,12 +146,60 @@
         },
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"email\": \"student@example.com\",\n  \"password\": \"password123\"\n}",
+          "raw": "{\n  \"email\": \"{{studentEmail}}\",\n  \"password\": \"password123\"\n}",
           "options": {
             "raw": {
               "language": "json"
             }
           }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const response = pm.response.json();",
+              "if (!response.token) {",
+              "  pm.collectionVariables.unset('token');",
+              "  throw new Error('Login response did not include a token');",
+              "}",
+              "pm.collectionVariables.set('token', response.token);",
+              "console.log('Bearer token saved to collection variables.');"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Get wallet (after Login)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://127.0.0.1:8080/wallet",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "8080",
+          "path": [
+            "wallet"
+          ]
+        },
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token}}",
+              "type": "string"
+            }
+          ]
         }
       }
     },
@@ -142,21 +232,41 @@
           "bearer": [
             {
               "key": "token",
-              "value": "",
+              "value": "{{token}}",
               "type": "string"
             }
           ]
         },
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"firstName\": \"Ada\",\n  \"lastName\": \"Lovelace\",\n  \"email\": \"ada@example.com\",\n  \"bio\": \"Math tutor\",\n  \"status\": \"PUBLISHED\",\n  \"subjects\": [\n    {\n      \"name\": \"Mathematics\",\n      \"description\": \"Algebra\",\n      \"hourlyRate\": 400\n    }\n  ]\n}",
+          "raw": "{\n  \"firstName\": \"Ada\",\n  \"lastName\": \"Lovelace\",\n  \"email\": \"{{tutorEmail}}\",\n  \"bio\": \"Math tutor\",\n  \"status\": \"PUBLISHED\",\n  \"subjects\": [\n    {\n      \"name\": \"Mathematics\",\n      \"description\": \"Algebra\",\n      \"hourlyRate\": 400\n    }\n  ]\n}",
           "options": {
             "raw": {
               "language": "json"
             }
           }
         }
-      }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const tutor = pm.response.json();",
+              "if (pm.response.code === 409) {",
+              "  pm.collectionVariables.unset('tutorId');",
+              "  throw new Error('Tutor email already exists. Clear tutor_db as in the D4 setup or change the tutorEmail collection variable.');",
+              "}",
+              "if (pm.response.code !== 201 || !tutor._id) {",
+              "  pm.collectionVariables.unset('tutorId');",
+              "  throw new Error('Create tutor response did not include an _id');",
+              "}",
+              "pm.collectionVariables.set('tutorId', tutor._id);"
+            ]
+          }
+        }
+      ]
     },
     {
       "name": "Open slot 09:00",
@@ -187,21 +297,37 @@
           "bearer": [
             {
               "key": "token",
-              "value": "",
+              "value": "{{token}}",
               "type": "string"
             }
           ]
         },
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"tutorId\": \"\",\n  \"startedAt\": \"2026-11-20T09:00:00.000Z\"\n}",
+          "raw": "{\n  \"tutorId\": \"{{tutorId}}\",\n  \"startedAt\": \"2026-11-20T09:00:00.000Z\"\n}",
           "options": {
             "raw": {
               "language": "json"
             }
           }
         }
-      }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const slot = pm.response.json();",
+              "if (pm.response.code !== 201 || !slot.id) {",
+              "  pm.collectionVariables.unset('slot0900Id');",
+              "  throw new Error('Open slot 09:00 response did not include an id');",
+              "}",
+              "pm.collectionVariables.set('slot0900Id', slot.id);"
+            ]
+          }
+        }
+      ]
     },
     {
       "name": "Open slot 09:30",
@@ -232,21 +358,37 @@
           "bearer": [
             {
               "key": "token",
-              "value": "",
+              "value": "{{token}}",
               "type": "string"
             }
           ]
         },
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"tutorId\": \"\",\n  \"startedAt\": \"2026-11-20T09:30:00.000Z\"\n}",
+          "raw": "{\n  \"tutorId\": \"{{tutorId}}\",\n  \"startedAt\": \"2026-11-20T09:30:00.000Z\"\n}",
           "options": {
             "raw": {
               "language": "json"
             }
           }
         }
-      }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const slot = pm.response.json();",
+              "if (pm.response.code !== 201 || !slot.id) {",
+              "  pm.collectionVariables.unset('slot0930Id');",
+              "  throw new Error('Open slot 09:30 response did not include an id');",
+              "}",
+              "pm.collectionVariables.set('slot0930Id', slot.id);"
+            ]
+          }
+        }
+      ]
     },
     {
       "name": "Top up",
@@ -278,7 +420,7 @@
           "bearer": [
             {
               "key": "token",
-              "value": "",
+              "value": "{{token}}",
               "type": "string"
             }
           ]
@@ -292,7 +434,23 @@
             }
           }
         }
-      }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const topup = pm.response.json();",
+              "if (pm.response.code !== 201 || !topup.id) {",
+              "  pm.collectionVariables.unset('topupId');",
+              "  throw new Error('Top up response did not include an id');",
+              "}",
+              "pm.collectionVariables.set('topupId', topup.id);"
+            ]
+          }
+        }
+      ]
     },
     {
       "name": "Confirm top-up",
@@ -318,7 +476,7 @@
           "variable": [
             {
               "key": "id",
-              "value": ""
+              "value": "{{topupId}}"
             }
           ]
         },
@@ -327,7 +485,47 @@
           "bearer": [
             {
               "key": "token",
-              "value": "",
+              "value": "{{token}}",
+              "type": "string"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Confirm top-up again",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "http://127.0.0.1:8080/wallet/topups/:id/confirm",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "8080",
+          "path": [
+            "wallet",
+            "topups",
+            ":id",
+            "confirm"
+          ],
+          "variable": [
+            {
+              "key": "id",
+              "value": "{{topupId}}"
+            }
+          ]
+        },
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token}}",
               "type": "string"
             }
           ]
@@ -393,21 +591,37 @@
           "bearer": [
             {
               "key": "token",
-              "value": "",
+              "value": "{{token}}",
               "type": "string"
             }
           ]
         },
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"tutorId\": \"\",\n  \"subjectName\": \"Mathematics\",\n  \"slotIds\": [\n    \"\",\n    \"\"\n  ]\n}",
+          "raw": "{\n  \"tutorId\": \"{{tutorId}}\",\n  \"subjectName\": \"Mathematics\",\n  \"slotIds\": [\n    \"{{slot0900Id}}\",\n    \"{{slot0930Id}}\"\n  ]\n}",
           "options": {
             "raw": {
               "language": "json"
             }
           }
         }
-      }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const booking = pm.response.json();",
+              "if (pm.response.code !== 201 || !booking._id) {",
+              "  pm.collectionVariables.unset('bookingId');",
+              "  throw new Error('Create booking response did not include an _id');",
+              "}",
+              "pm.collectionVariables.set('bookingId', booking._id);"
+            ]
+          }
+        }
+      ]
     },
     {
       "name": "Pay booking",
@@ -432,7 +646,7 @@
           "variable": [
             {
               "key": "id",
-              "value": ""
+              "value": "{{bookingId}}"
             }
           ]
         },
@@ -441,7 +655,7 @@
           "bearer": [
             {
               "key": "token",
-              "value": "",
+              "value": "{{token}}",
               "type": "string"
             }
           ]
@@ -471,7 +685,7 @@
           "variable": [
             {
               "key": "id",
-              "value": ""
+              "value": "{{bookingId}}"
             }
           ]
         },
@@ -480,7 +694,7 @@
           "bearer": [
             {
               "key": "token",
-              "value": "",
+              "value": "{{token}}",
               "type": "string"
             }
           ]
