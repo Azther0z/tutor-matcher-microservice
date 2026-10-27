@@ -6,6 +6,7 @@ const mongoose = require('mongoose');
 const express = require('express');
 const handlers = require('./availability.handlers');
 const { availabilityRouter, bookingRouter } = require('./booking.routes');
+const { registerService } = require('../../shared/consul');
 
 async function main() {
   const mongoUri = process.env.MONGO_URI?.trim();
@@ -29,6 +30,10 @@ async function main() {
 
   const app = express();
   app.use(express.json());
+  app.get('/health', (_req, res) => {
+    const up = mongoose.connection.readyState === 1;
+    res.status(up ? 200 : 503).json({ status: up ? 'ok' : 'db down' });
+  });
   app.use('/availability', availabilityRouter);
   app.use('/bookings', bookingRouter);
   app.use((error, _req, res, _next) => {
@@ -38,6 +43,7 @@ async function main() {
   });
   const httpPort = Number(process.env.HTTP_PORT || 4004);
   app.listen(httpPort, () => console.log(`[Booking] REST listening on http://127.0.0.1:${httpPort}`));
+  await registerService({ name: 'booking-service', port: httpPort, tag: 'Booking' });
 }
 
 main().catch((error) => {

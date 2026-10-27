@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
-const { migrate } = require('./db');
+const { pool, migrate } = require('./db');
+const { registerService } = require('../../shared/consul');
 const walletRoutes = require('./wallet.routes');
 const internalRoutes = require('./internal.routes');
 
@@ -11,6 +12,14 @@ async function main() {
 
   const app = express();
   app.use(express.json());
+  app.get('/health', async (_req, res) => {
+    try {
+      await pool.query('SELECT 1');
+      res.json({ status: 'ok' });
+    } catch {
+      res.status(503).json({ status: 'db down' });
+    }
+  });
   app.use('/wallet', walletRoutes);
   app.use('/internal', internalRoutes);
   app.use((error, _req, res, _next) => {
@@ -21,6 +30,7 @@ async function main() {
 
   const port = Number(process.env.PORT || 4003);
   app.listen(port, () => console.log(`[Wallet] REST listening on http://127.0.0.1:${port}`));
+  await registerService({ name: 'wallet-service', port, tag: 'Wallet' });
 }
 
 main().catch((error) => {

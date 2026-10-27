@@ -48,6 +48,17 @@ services:
       timeout: 5s
       retries: 20
 
+  consul:
+    image: hashicorp/consul:1.21.4
+    command: agent -dev -client=0.0.0.0 -ui
+    ports:
+      - "127.0.0.1:8500:8500"
+    healthcheck:
+      test: ["CMD", "consul", "members"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
   booking-service:
     build:
       context: .
@@ -59,10 +70,13 @@ services:
       TUTOR_URL: http://tutor-service:4001
       WALLET_URL: http://wallet-service:4003
       RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+      CONSUL_URL: http://consul:8500
     depends_on:
       mongo:
         condition: service_healthy
       rabbitmq:
+        condition: service_healthy
+      consul:
         condition: service_healthy
     restart: on-failure
 
@@ -74,8 +88,11 @@ services:
       MONGO_URI: ${MONGO_URI:-mongodb://mongo:27017}
       PORT: 4001
       BOOKING_GRPC_URL: booking-service:50052
+      CONSUL_URL: http://consul:8500
     depends_on:
       mongo:
+        condition: service_healthy
+      consul:
         condition: service_healthy
     restart: on-failure
 
@@ -88,10 +105,13 @@ services:
       DATABASE_URL: postgres://tutor:tutor@postgres:5432/auth_db
       JWT_SECRET: ${JWT_SECRET:-dev-only-secret}
       RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+      CONSUL_URL: http://consul:8500
     depends_on:
       postgres:
         condition: service_healthy
       rabbitmq:
+        condition: service_healthy
+      consul:
         condition: service_healthy
     restart: on-failure
 
@@ -103,10 +123,13 @@ services:
       PORT: 4003
       DATABASE_URL: postgres://tutor:tutor@postgres:5432/wallet_db
       RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+      CONSUL_URL: http://consul:8500
     depends_on:
       postgres:
         condition: service_healthy
       rabbitmq:
+        condition: service_healthy
+      consul:
         condition: service_healthy
     restart: on-failure
 
@@ -117,10 +140,13 @@ services:
     environment:
       MONGO_URI: ${MONGO_URI:-mongodb://mongo:27017}
       RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+      CONSUL_URL: http://consul:8500
     depends_on:
       mongo:
         condition: service_healthy
       rabbitmq:
+        condition: service_healthy
+      consul:
         condition: service_healthy
     restart: on-failure
 
@@ -137,7 +163,9 @@ services:
       TUTOR_URL: http://tutor-service:4001
       BOOKING_URL: http://booking-service:4004
       WALLET_URL: http://wallet-service:4003
+      CONSUL_URL: http://consul:8500
     depends_on:
+      - consul
       - auth-service
       - tutor-service
       - booking-service

@@ -3,6 +3,7 @@ const amqp = require('amqplib');
 const mongoose = require('mongoose');
 const Delivery = require('./delivery.model');
 const { render } = require('./messages');
+const { registerService } = require('../../shared/consul');
 
 const EXCHANGE = 'tutor-matcher.events';
 const QUEUE = 'notification.events';
@@ -64,6 +65,7 @@ async function main() {
   await channel.prefetch(1);
   await channel.consume(QUEUE, (msg) => msg && handle(channel, msg), { noAck: false });
   console.log(`[Notification] consuming ${QUEUE} bound to ${EXCHANGE}`);
+  await registerService({ name: 'notification-service', port: 0, tag: 'Notification', ttl: true });
 }
 
 main().catch((error) => {
