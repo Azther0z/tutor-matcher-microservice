@@ -61,6 +61,56 @@ Import [the D4 demo collection](postman/d4-demo.postman_collection.json) and run
 | `POST` | `/bookings/:id/cancel` | yes | Cancel; full refund 24 hours or more before the start, otherwise half |
 | `GET` | `/bookings` | yes | Your bookings |
 
+## Progress 3: service discovery and scalability
+
+### Service discovery with Consul
+
+Compose also starts a Consul agent (dev mode). The UI is at `http://127.0.0.1:8500`.
+
+- Every service registers itself in Consul on startup with its container IP and port (`shared/consul.js`). Running more replicas means more entries, nothing to configure by hand.
+- Consul checks `GET /health` on each HTTP service every 2 seconds. Notification has no HTTP port, so it sends a TTL heartbeat every 5 seconds instead.
+- A replica that stops cleanly deregisters itself. A replica that crashes turns red (critical) in about 2 seconds and is removed after 1 minute.
+- The gateway asks Consul for the healthy instances of a service (`/v1/health/service/<name>?passing=true`), caches the list for 1 second and round-robins across it. The `x-served-by` response header shows which instance answered. A GET that fails on one instance is tried once on the next one.
+- If Consul itself is down, the gateway falls back to the Compose DNS names (`tutor-service:4001` and so on), and services register again every 30 seconds, so the registry fills up again when Consul comes back.
+
+Calls between services (Tutor to Booking over gRPC, Booking to Tutor and Wallet) still use the Compose DNS names for now.
+
+### Scalability load test (k6)
+
+The NFR we measure is scalability of tutor search: with 50 concurrent users for 30 seconds, adding Tutor replicas should raise throughput while p95 latency stays under 500 ms and errors stay under 1%. Each Tutor replica is capped at 0.5 CPU in `compose.yaml`, like a small cloud instance, so the numbers do not depend on how big the laptop is.
+
+The test is [loadtest/tutor-search.js](loadtest/tutor-search.js). It seeds 20 published tutors once, then calls `GET /tutors?subject=Mathematics&maxRate=1000` through the gateway. k6 runs in Docker (`profiles: ["loadtest"]`), so nothing needs to be installed.
+
+```bash
+docker compose down -v && docker compose up -d --build
+
+# 1 replica
+docker compose run --rm k6 run /scripts/tutor-search.js
+
+# 3 replicas
+docker compose up -d --scale tutor-service=3
+docker compose run --rm k6 run /scripts/tutor-search.js
+
+# kill one replica while traffic is running (run the kill in a second terminal after about 10 s)
+docker compose run --rm -e VUS=10 k6 run /scripts/tutor-search.js
+docker kill tutor-matcher-tutor-service-2
+
+# bring it back
+docker compose up -d --scale tutor-service=3
+```
+
+Results from our run (MacBook, local MongoDB, saved in [loadtest/results](loadtest/results)):
+
+| Run | Requests/s | Avg | p95 | Errors |
+| --- | --- | --- | --- | --- |
+| 1 Tutor replica, 50 users | 1,105 | 44.9 ms | 91.0 ms | 0% |
+| 3 Tutor replicas, 50 users | 2,170 | 22.8 ms | 73.5 ms | 0% |
+| 3 replicas, 10 users, one replica killed at 15 s | 1,800 | 5.4 ms | 16.5 ms | 0% (0 of 54,344) |
+
+Three replicas gave about 2x the throughput and half the average latency. It is not 3x because the single gateway was at about 100% CPU in the 3 replica run, so the gateway is the next thing to scale. When a replica was killed, Consul marked it critical in about 2 seconds and no request failed. A few requests took up to 5 seconds (the gateway timeout) before the retry went to a healthy replica.
+
+Use the local MongoDB for this test (no `MONGO_URI` in `.env`). With Atlas the network to Atlas is the bottleneck, not the service.
+
 The sections below describe running Tutor and Booking alone against MongoDB Atlas.
 
 ## Requirements

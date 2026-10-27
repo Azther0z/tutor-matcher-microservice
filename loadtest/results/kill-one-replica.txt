@@ -1,0 +1,35 @@
+         /\      Grafana   /‾‾/  
+    /\  /  \     |\  __   /  /   
+   /  \/    \    | |/ /  /   ‾‾\ 
+  /          \   |   (  |  (‾)  |
+ / __________ \  |_|\_\  \_____/ 
+     execution: local
+        script: /scripts/tutor-search.js
+        output: -
+     scenarios: (100.00%) 1 scenario, 10 max VUs, 1m0s max duration (incl. graceful stop):
+              * search: 10 looping VUs for 30s (gracefulStop: 30s)
+  █ THRESHOLDS 
+    http_req_duration
+    ✓ 'p(95)<500' p(95)=16.46ms
+    http_req_failed
+    ✓ 'rate<0.01' rate=0.00%
+  █ TOTAL RESULTS 
+    checks_total.......: 108682  3599.1416/s
+    checks_succeeded...: 100.00% 108682 out of 108682
+    checks_failed......: 0.00%   0 out of 108682
+    ✓ status 200
+    ✓ found tutors
+    HTTP
+    http_req_duration..............: avg=5.39ms med=2.24ms p(90)=6.04ms p(95)=16.46ms max=5.03s
+      { expected_response:true }...: avg=5.39ms med=2.24ms p(90)=6.04ms p(95)=16.46ms max=5.03s
+    http_req_failed................: 0.00%  0 out of 54344
+    http_reqs......................: 54344  1799.670149/s
+    EXECUTION
+    iteration_duration.............: avg=5.52ms med=2.37ms p(90)=6.23ms p(95)=16.64ms max=5.04s
+    iterations.....................: 54341  1799.5708/s
+    vus............................: 10     min=10         max=10
+    vus_max........................: 10     min=10         max=10
+    NETWORK
+    data_received..................: 432 MB 14 MB/s
+    data_sent......................: 6.0 MB 200 kB/s
+search ✓ [ 100% ] 10 VUs  30s
