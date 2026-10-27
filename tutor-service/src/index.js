@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const tutorRoutes = require('./tutor.routes');
+const { registerService } = require('../../shared/consul');
 
 async function main() {
   const mongoUri = process.env.MONGO_URI?.trim();
@@ -11,6 +12,10 @@ async function main() {
 
   const app = express();
   app.use(express.json());
+  app.get('/health', (_req, res) => {
+    const up = mongoose.connection.readyState === 1;
+    res.status(up ? 200 : 503).json({ status: up ? 'ok' : 'db down' });
+  });
   app.use('/tutors', tutorRoutes);
   app.use((error, _req, res, _next) => {
     if (error instanceof SyntaxError && error.status === 400) return res.status(400).json({ error: 'Invalid JSON' });
@@ -20,6 +25,7 @@ async function main() {
 
   const port = Number(process.env.PORT || 4001);
   app.listen(port, () => console.log(`[Tutor] REST listening on http://127.0.0.1:${port}`));
+  await registerService({ name: 'tutor-service', port, tag: 'Tutor' });
 }
 
 main().catch((error) => {

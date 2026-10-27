@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
-const { migrate } = require('./db');
+const { pool, migrate } = require('./db');
+const { registerService } = require('../../shared/consul');
 const authRoutes = require('./auth.routes');
 
 async function main() {
@@ -11,6 +12,14 @@ async function main() {
 
   const app = express();
   app.use(express.json());
+  app.get('/health', async (_req, res) => {
+    try {
+      await pool.query('SELECT 1');
+      res.json({ status: 'ok' });
+    } catch {
+      res.status(503).json({ status: 'db down' });
+    }
+  });
   app.use('/auth', authRoutes);
   app.use((error, _req, res, _next) => {
     if (error instanceof SyntaxError && error.status === 400) return res.status(400).json({ error: 'Invalid JSON' });
@@ -20,6 +29,7 @@ async function main() {
 
   const port = Number(process.env.PORT || 4002);
   app.listen(port, () => console.log(`[Auth] REST listening on http://127.0.0.1:${port}`));
+  await registerService({ name: 'auth-service', port, tag: 'Auth' });
 }
 
 main().catch((error) => {
