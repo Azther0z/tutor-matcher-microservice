@@ -9,6 +9,35 @@ const services = {
   wallet: process.env.WALLET_URL || 'http://127.0.0.1:4003',
 };
 
+const CONSUL_URL = process.env.CONSUL_URL;
+const cache = new Map();
+let turn = 0;
+
+async function healthyInstances(name) {
+  const hit = cache.get(name);
+  if (hit && Date.now() - hit.at < 1000) return hit.urls;
+  const response = await fetch(`${CONSUL_URL}/v1/health/service/${name}-service?passing=true`, {
+    signal: AbortSignal.timeout(1000),
+  });
+  if (!response.ok) throw new Error(`Consul returned ${response.status}`);
+  const urls = (await response.json()).map(({ Service }) => `http://${Service.Address}:${Service.Port}`);
+  cache.set(name, { at: Date.now(), urls });
+  return urls;
+}
+
+async function resolve(name) {
+  if (!CONSUL_URL) return [services[name]];
+  try {
+    const urls = await healthyInstances(name);
+    if (urls.length === 0) return [];
+    turn += 1;
+    return urls.map((_, i) => urls[(turn + i) % urls.length]);
+  } catch (error) {
+    console.warn(`[Gateway] Consul lookup failed (${error.message}); using ${services[name]}`);
+    return [services[name]];
+  }
+}
+
 function authenticate(req, res, next) {
   const header = req.get('authorization') || '';
   const [scheme, token] = header.split(' ');
@@ -30,22 +59,27 @@ function forwardTo(name) {
     }
     const hasBody = !['GET', 'HEAD', 'DELETE'].includes(req.method);
     const who = req.user ? req.user.email : 'anonymous';
-    console.log(`[Gateway] ${req.method} ${req.originalUrl} -> ${name}-service (${who})`);
-    try {
-      const response = await fetch(services[name] + req.originalUrl, {
-        method: req.method,
-        headers,
-        body: hasBody ? JSON.stringify(req.body ?? {}) : undefined,
-        signal: AbortSignal.timeout(5000),
-      });
-      res.status(response.status);
-      const contentType = response.headers.get('content-type');
-      if (contentType) res.set('content-type', contentType);
-      return res.send(Buffer.from(await response.arrayBuffer()));
-    } catch (error) {
-      console.warn(`[Gateway] ${name}-service unavailable: ${error.message}`);
-      return res.status(502).json({ error: `${name} service unavailable` });
+    const targets = await resolve(name);
+    const tries = req.method === 'GET' ? targets.slice(0, 2) : targets.slice(0, 1);
+    for (const target of tries) {
+      console.log(`[Gateway] ${req.method} ${req.originalUrl} -> ${name}-service ${target} (${who})`);
+      try {
+        const response = await fetch(target + req.originalUrl, {
+          method: req.method,
+          headers,
+          body: hasBody ? JSON.stringify(req.body ?? {}) : undefined,
+          signal: AbortSignal.timeout(5000),
+        });
+        res.status(response.status);
+        res.set('x-served-by', target.replace('http://', ''));
+        const contentType = response.headers.get('content-type');
+        if (contentType) res.set('content-type', contentType);
+        return res.send(Buffer.from(await response.arrayBuffer()));
+      } catch (error) {
+        console.warn(`[Gateway] ${name}-service ${target} unavailable: ${error.message}`);
+      }
     }
+    return res.status(502).json({ error: `${name} service unavailable` });
   };
 }
 
