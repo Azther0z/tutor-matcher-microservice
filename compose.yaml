@@ -94,6 +94,10 @@ services:
         condition: service_healthy
       consul:
         condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
     restart: on-failure
 
   auth-service:
@@ -171,6 +175,14 @@ services:
       - booking-service
       - wallet-service
     restart: on-failure
+
+  k6:
+    image: grafana/k6:1.2.0
+    profiles: ["loadtest"]
+    environment:
+      BASE_URL: http://api-gateway:8080
+    volumes:
+      - ./loadtest:/scripts:ro
 
 volumes:
   mongo-data:
