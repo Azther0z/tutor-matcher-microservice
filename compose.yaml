@@ -1,0 +1,149 @@
+name: tutor-matcher
+
+services:
+  mongo:
+    image: mongo:7
+    ports:
+      - "127.0.0.1:27018:27017"
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: tutor
+      POSTGRES_PASSWORD: tutor
+    ports:
+      - "127.0.0.1:5433:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./docker/postgres-init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "tutor"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  adminer:
+    image: adminer:5
+    ports:
+      - "127.0.0.1:8081:8080"
+    environment:
+      ADMINER_DEFAULT_SERVER: postgres
+    depends_on:
+      - postgres
+
+  rabbitmq:
+    image: rabbitmq:4.3.6-management
+    ports:
+      - "127.0.0.1:15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
+  booking-service:
+    build:
+      context: .
+      dockerfile: booking-service/Dockerfile
+    environment:
+      MONGO_URI: ${MONGO_URI:-mongodb://mongo:27017}
+      GRPC_PORT: 50052
+      HTTP_PORT: 4004
+      TUTOR_URL: http://tutor-service:4001
+      WALLET_URL: http://wallet-service:4003
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+    depends_on:
+      mongo:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    restart: on-failure
+
+  tutor-service:
+    build:
+      context: .
+      dockerfile: tutor-service/Dockerfile
+    environment:
+      MONGO_URI: ${MONGO_URI:-mongodb://mongo:27017}
+      PORT: 4001
+      BOOKING_GRPC_URL: booking-service:50052
+    depends_on:
+      mongo:
+        condition: service_healthy
+    restart: on-failure
+
+  auth-service:
+    build:
+      context: .
+      dockerfile: auth-service/Dockerfile
+    environment:
+      PORT: 4002
+      DATABASE_URL: postgres://tutor:tutor@postgres:5432/auth_db
+      JWT_SECRET: ${JWT_SECRET:-dev-only-secret}
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    restart: on-failure
+
+  wallet-service:
+    build:
+      context: .
+      dockerfile: wallet-service/Dockerfile
+    environment:
+      PORT: 4003
+      DATABASE_URL: postgres://tutor:tutor@postgres:5432/wallet_db
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    restart: on-failure
+
+  notification-service:
+    build:
+      context: .
+      dockerfile: notification-service/Dockerfile
+    environment:
+      MONGO_URI: ${MONGO_URI:-mongodb://mongo:27017}
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+    depends_on:
+      mongo:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    restart: on-failure
+
+  api-gateway:
+    build:
+      context: .
+      dockerfile: api-gateway/Dockerfile
+    ports:
+      - "127.0.0.1:8080:8080"
+    environment:
+      PORT: 8080
+      JWT_SECRET: ${JWT_SECRET:-dev-only-secret}
+      AUTH_URL: http://auth-service:4002
+      TUTOR_URL: http://tutor-service:4001
+      BOOKING_URL: http://booking-service:4004
+      WALLET_URL: http://wallet-service:4003
+    depends_on:
+      - auth-service
+      - tutor-service
+      - booking-service
+      - wallet-service
+    restart: on-failure
+
+volumes:
+  mongo-data:
+  postgres-data:

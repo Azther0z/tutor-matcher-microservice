@@ -31,6 +31,32 @@ router.post('/', async (req, res) => {
   } catch (error) { handleError(error, res); }
 });
 
+function escapeRegex(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+router.get('/', async (req, res) => {
+  try {
+    const filter = { status: 'PUBLISHED' };
+    const { subject, q, maxRate } = req.query;
+    if (typeof subject === 'string' && subject.trim()) {
+      filter['subjects.name'] = new RegExp(`^${escapeRegex(subject.trim())}$`, 'i');
+    }
+    if (typeof q === 'string' && q.trim()) {
+      const pattern = new RegExp(escapeRegex(q.trim()), 'i');
+      filter.$or = [{ firstName: pattern }, { lastName: pattern }, { bio: pattern }, { 'subjects.name': pattern }];
+    }
+    if (maxRate !== undefined) {
+      const rate = Number(maxRate);
+      if (!Number.isFinite(rate) || rate < 0) return res.status(400).json({ error: 'maxRate must be a non-negative number' });
+      filter['subjects.hourlyRate'] = { $lte: rate };
+    }
+    const tutors = await Tutor.find(filter).sort({ lastName: 1, firstName: 1 }).lean();
+    console.log(`[Tutor] search ${JSON.stringify(req.query)}: ${tutors.length} tutor(s)`);
+    return res.json(tutors);
+  } catch (error) { return handleError(error, res); }
+});
+
 router.get('/:id', validId, async (req, res) => {
   try {
     const tutor = await Tutor.findById(req.params.id).lean();
