@@ -1,0 +1,26 @@
+$kind: http-request
+description: 'DEMO_MODE and synthetic account only. Response is sensitive, Cache-Control: no-store, never logged or put in
+  delivery receipts.See contracts/README.md for semantic invariants, privacy, retries and pending outcomes.
+
+  Derived target request. Use synthetic IDs and runtime credentials. See contracts/examples/cases.json; target behavior is
+  not implemented yet.'
+url: '{{baseUrl}}/demo/password-resets/:contentRef'
+method: GET
+headers:
+- key: X-Request-Id
+  value: '{{requestId}}'
+  disabled: false
+  description: X-Request-Id
+- key: Accept
+  value: application/json
+pathVariables:
+- key: contentRef
+  value: '{{contentRef}}'
+  disabled: false
+  description: (Required) contentRef
+auth:
+  type: bearer
+  credentials:
+    token: '{{bearerToken}}'
+settings: {}
+order: 15000

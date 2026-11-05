@@ -1,0 +1,4765 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Tutor Matcher v1 shared schemas",
+  "$defs": {
+    "Id": {
+      "type": "string",
+      "minLength": 36,
+      "maxLength": 36,
+      "format": "uuid",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+      "description": "Id. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "Timestamp": {
+      "type": "string",
+      "minLength": 24,
+      "maxLength": 24,
+      "format": "date-time",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$",
+      "description": "Timestamp. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "Date": {
+      "type": "string",
+      "minLength": 10,
+      "maxLength": 10,
+      "format": "date",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+      "description": "Date. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "BangkokTime": {
+      "type": "string",
+      "minLength": 5,
+      "maxLength": 5,
+      "pattern": "^(?:[01]\\d|2[0-3]):(?:00|30)$",
+      "description": "Bangkok Time. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "Revision": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 20,
+      "pattern": "^(?:0|[1-9]\\d*)$",
+      "description": "Revision. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "Amount": {
+      "type": "string",
+      "minLength": 4,
+      "maxLength": 40,
+      "pattern": "^(?:0|[1-9]\\d*)\\.\\d{2}$",
+      "description": "Amount. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "PositiveAmount": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/Amount"
+        },
+        {
+          "not": {
+            "const": "0.00"
+          }
+        }
+      ],
+      "description": "Positive Amount. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "TransferAmount": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/PositiveAmount"
+        },
+        {
+          "pattern": "^(?:(?:0|[1-9]\\d{0,4})\\.\\d{2}|100000\\.00)$"
+        }
+      ],
+      "description": "Transfer Amount. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "HourlyRate": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/PositiveAmount"
+        },
+        {
+          "pattern": "^(?:0|[1-9]\\d{0,7})\\.\\d{2}$"
+        }
+      ],
+      "description": "Hourly Rate. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "Money": {
+      "type": "object",
+      "properties": {
+        "currency": {
+          "const": "THB"
+        },
+        "amount": {
+          "$ref": "#/$defs/Amount"
+        }
+      },
+      "required": [
+        "currency",
+        "amount"
+      ],
+      "additionalProperties": false,
+      "description": "Money. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "PositiveMoney": {
+      "type": "object",
+      "properties": {
+        "currency": {
+          "const": "THB"
+        },
+        "amount": {
+          "$ref": "#/$defs/PositiveAmount"
+        }
+      },
+      "required": [
+        "currency",
+        "amount"
+      ],
+      "additionalProperties": false,
+      "description": "Positive Money. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "HttpsUrl": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2048,
+      "format": "uri",
+      "pattern": "^https://[^\\s]+$",
+      "description": "Https Url. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "Email": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 254,
+      "format": "email",
+      "description": "Email. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "LearningArea": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64,
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+      "description": "Learning Area. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "Error": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80,
+          "pattern": "^[A-Z][A-Z0-9_]+$"
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        },
+        "requestId": {
+          "$ref": "#/$defs/Id"
+        },
+        "retryable": {
+          "type": "boolean"
+        },
+        "fields": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "path": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200
+              },
+              "code": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80
+              },
+              "message": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 500
+              }
+            },
+            "required": [
+              "path",
+              "code",
+              "message"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 0,
+          "maxItems": 100
+        },
+        "operationId": {
+          "$ref": "#/$defs/Id"
+        }
+      },
+      "required": [
+        "code",
+        "message",
+        "requestId",
+        "retryable",
+        "fields"
+      ],
+      "additionalProperties": false,
+      "description": "Error. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "PageMeta": {
+      "type": "object",
+      "properties": {
+        "page": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "pageSize": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100
+        },
+        "totalItems": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "totalPages": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "page",
+        "pageSize",
+        "totalItems",
+        "totalPages"
+      ],
+      "additionalProperties": false,
+      "description": "Page Meta. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "AuditEntry": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/Id"
+        },
+        "actorUserId": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Id"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "action": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2000
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "occurredAt": {
+          "$ref": "#/$defs/Timestamp"
+        }
+      },
+      "required": [
+        "id",
+        "actorUserId",
+        "action",
+        "reason",
+        "occurredAt"
+      ],
+      "additionalProperties": true,
+      "description": "Audit Entry. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "ResourceRef": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "id": {
+          "$ref": "#/$defs/Id"
+        },
+        "url": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048,
+          "pattern": "^/api/"
+        }
+      },
+      "required": [
+        "type",
+        "id",
+        "url"
+      ],
+      "additionalProperties": false,
+      "description": "Resource Ref. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "OperationRef": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/Id"
+        },
+        "owner": {
+          "type": "string",
+          "enum": [
+            "auth",
+            "tutor",
+            "booking",
+            "wallet",
+            "review",
+            "messaging",
+            "notification"
+          ]
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "PENDING",
+            "SUCCEEDED",
+            "REJECTED"
+          ]
+        },
+        "statusUrl": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048,
+          "pattern": "^/api/operations/"
+        },
+        "resource": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ResourceRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "owner",
+        "status",
+        "statusUrl",
+        "resource"
+      ],
+      "additionalProperties": true,
+      "description": "Operation Ref. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "PendingOperationRef": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/OperationRef"
+        },
+        {
+          "properties": {
+            "status": {
+              "const": "PENDING"
+            }
+          }
+        }
+      ],
+      "description": "Pending Operation Ref. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "Operation": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/Id"
+        },
+        "owner": {
+          "type": "string",
+          "enum": [
+            "auth",
+            "tutor",
+            "booking",
+            "wallet",
+            "review",
+            "messaging",
+            "notification"
+          ]
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "PENDING",
+            "SUCCEEDED",
+            "REJECTED"
+          ]
+        },
+        "kind": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "resource": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ResourceRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "error": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Error"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "createdAt": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "updatedAt": {
+          "$ref": "#/$defs/Timestamp"
+        }
+      },
+      "required": [
+        "id",
+        "owner",
+        "status",
+        "kind",
+        "resource",
+        "error",
+        "createdAt",
+        "updatedAt"
+      ],
+      "additionalProperties": true,
+      "description": "Operation. See contracts/README.md for authorization and cross-field invariants.",
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "REJECTED"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "error": {
+                "$ref": "#/$defs/Error"
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "error": {
+                "type": "null"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "Account": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/Id"
+        },
+        "firstName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "lastName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "email": {
+          "$ref": "#/$defs/Email"
+        },
+        "capabilities": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "STUDENT",
+              "TUTOR",
+              "ADMIN"
+            ]
+          },
+          "minItems": 1,
+          "maxItems": 3
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "ACTIVE",
+            "SUSPENDED",
+            "BANNED",
+            "DEACTIVATED"
+          ]
+        },
+        "revision": {
+          "$ref": "#/$defs/Revision"
+        }
+      },
+      "required": [
+        "id",
+        "firstName",
+        "lastName",
+        "email",
+        "capabilities",
+        "status",
+        "revision"
+      ],
+      "additionalProperties": true,
+      "description": "Account. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "AuthSession": {
+      "type": "object",
+      "properties": {
+        "user": {
+          "$ref": "#/$defs/Account"
+        },
+        "token": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 8192
+        },
+        "expiresAt": {
+          "$ref": "#/$defs/Timestamp"
+        }
+      },
+      "required": [
+        "user",
+        "token",
+        "expiresAt"
+      ],
+      "additionalProperties": true,
+      "description": "Auth Session. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "Signup": {
+      "type": "object",
+      "properties": {
+        "firstName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "lastName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "email": {
+          "$ref": "#/$defs/Email"
+        },
+        "password": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 100,
+          "writeOnly": true
+        },
+        "passwordConfirmation": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 100,
+          "writeOnly": true
+        },
+        "termsAccepted": {
+          "const": true
+        },
+        "privacyAccepted": {
+          "const": true
+        },
+        "adminSignupKey": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256,
+          "writeOnly": true
+        }
+      },
+      "required": [
+        "firstName",
+        "lastName",
+        "email",
+        "password",
+        "passwordConfirmation",
+        "termsAccepted",
+        "privacyAccepted"
+      ],
+      "additionalProperties": false,
+      "description": "Signup. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "Login": {
+      "type": "object",
+      "properties": {
+        "email": {
+          "$ref": "#/$defs/Email"
+        },
+        "password": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100,
+          "writeOnly": true
+        }
+      },
+      "required": [
+        "email",
+        "password"
+      ],
+      "additionalProperties": false,
+      "description": "Login. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "ResetRequest": {
+      "type": "object",
+      "properties": {
+        "email": {
+          "$ref": "#/$defs/Email"
+        }
+      },
+      "required": [
+        "email"
+      ],
+      "additionalProperties": false,
+      "description": "Reset Request. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "ResetToken": {
+      "type": "object",
+      "properties": {
+        "token": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512,
+          "writeOnly": true
+        }
+      },
+      "required": [
+        "token"
+      ],
+      "additionalProperties": false,
+      "description": "Reset Token. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "ResetConfirm": {
+      "type": "object",
+      "properties": {
+        "token": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512,
+          "writeOnly": true
+        },
+        "password": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 100,
+          "writeOnly": true
+        },
+        "passwordConfirmation": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 100,
+          "writeOnly": true
+        }
+      },
+      "required": [
+        "token",
+        "password",
+        "passwordConfirmation"
+      ],
+      "additionalProperties": false,
+      "description": "Reset Confirm. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "Acknowledgement": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        }
+      },
+      "required": [
+        "message"
+      ],
+      "additionalProperties": true,
+      "description": "Acknowledgement. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "ResetValidation": {
+      "type": "object",
+      "properties": {
+        "valid": {
+          "const": true
+        },
+        "expiresAt": {
+          "$ref": "#/$defs/Timestamp"
+        }
+      },
+      "required": [
+        "valid",
+        "expiresAt"
+      ],
+      "additionalProperties": true,
+      "description": "Reset Validation. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "AccountUpdate": {
+      "type": "object",
+      "properties": {
+        "firstName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "lastName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "email": {
+          "$ref": "#/$defs/Email"
+        },
+        "currentPassword": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100,
+          "writeOnly": true
+        },
+        "newPassword": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 100,
+          "writeOnly": true
+        },
+        "deactivate": {
+          "const": true
+        }
+      },
+      "required": [],
+      "additionalProperties": false,
+      "minProperties": 1,
+      "description": "Account Update. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "StudentProfileWrite": {
+      "type": "object",
+      "properties": {
+        "learningAreas": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/LearningArea"
+          },
+          "minItems": 0,
+          "maxItems": 30
+        },
+        "level": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 100
+        },
+        "goals": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 2000
+        },
+        "preferredPeriods": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "MORNING",
+              "AFTERNOON",
+              "EVENING"
+            ]
+          },
+          "minItems": 0,
+          "maxItems": 3
+        }
+      },
+      "required": [
+        "learningAreas",
+        "level",
+        "goals",
+        "preferredPeriods"
+      ],
+      "additionalProperties": false,
+      "description": "Student Profile Write. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "StudentProfile": {
+      "type": "object",
+      "properties": {
+        "userId": {
+          "$ref": "#/$defs/Id"
+        },
+        "learningAreas": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/LearningArea"
+          },
+          "minItems": 0
+        },
+        "level": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 100
+        },
+        "goals": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 2000
+        },
+        "preferredPeriods": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "MORNING",
+              "AFTERNOON",
+              "EVENING"
+            ]
+          },
+          "minItems": 0
+        },
+        "revision": {
+          "$ref": "#/$defs/Revision"
+        }
+      },
+      "required": [
+        "userId",
+        "learningAreas",
+        "level",
+        "goals",
+        "preferredPeriods",
+        "revision"
+      ],
+      "additionalProperties": true,
+      "description": "Student Profile. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "RestrictionWrite": {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "enum": [
+            "SUSPEND",
+            "BAN",
+            "RESTORE"
+          ]
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
+        }
+      },
+      "required": [
+        "action",
+        "reason"
+      ],
+      "additionalProperties": false,
+      "description": "Restriction Write. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "AccountDetail": {
+      "type": "object",
+      "properties": {
+        "user": {
+          "$ref": "#/$defs/Account"
+        },
+        "audit": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/AuditEntry"
+          },
+          "minItems": 0
+        },
+        "revision": {
+          "$ref": "#/$defs/Revision"
+        }
+      },
+      "required": [
+        "user",
+        "audit",
+        "revision"
+      ],
+      "additionalProperties": true,
+      "description": "Account Detail. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "TutorDraftWrite": {
+      "type": "object",
+      "properties": {
+        "bio": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 5000
+        },
+        "identificationDocumentUrl": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/HttpsUrl"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "introVideoUrl": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/HttpsUrl"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "avatarUrl": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/HttpsUrl"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "headline": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 200
+        }
+      },
+      "required": [],
+      "additionalProperties": false,
+      "description": "Tutor Draft Write. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "TutorSubmit": {
+      "type": "object",
+      "properties": {
+        "consentAccepted": {
+          "const": true
+        }
+      },
+      "required": [
+        "consentAccepted"
+      ],
+      "additionalProperties": false,
+      "description": "Tutor Submit. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "TutorWithdraw": {
+      "type": "object",
+      "properties": {
+        "submissionId": {
+          "$ref": "#/$defs/Id"
+        }
+      },
+      "required": [
+        "submissionId"
+      ],
+      "additionalProperties": false,
+      "description": "Tutor Withdraw. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "PublicationWrite": {
+      "type": "object",
+      "properties": {
+        "published": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "published"
+      ],
+      "additionalProperties": false,
+      "description": "Publication Write. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "TutorSubmission": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/Id"
+        },
+        "userId": {
+          "$ref": "#/$defs/Id"
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "APPLICATION",
+            "REVISION"
+          ]
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "DRAFT",
+            "PENDING",
+            "APPROVED",
+            "REJECTED",
+            "CANCELLED"
+          ]
+        },
+        "activation": {
+          "type": "string",
+          "enum": [
+            "NOT_REQUIRED",
+            "PENDING",
+            "ACTIVE"
+          ]
+        },
+        "bio": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 5000
+        },
+        "identificationDocumentUrl": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/HttpsUrl"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "introVideoUrl": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/HttpsUrl"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "avatarUrl": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/HttpsUrl"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "headline": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 200
+        },
+        "rejectionReason": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2000
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "submittedAt": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Timestamp"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reviewedAt": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Timestamp"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "kind",
+        "state",
+        "activation",
+        "bio",
+        "identificationDocumentUrl",
+        "introVideoUrl",
+        "avatarUrl",
+        "headline",
+        "rejectionReason",
+        "revision",
+        "submittedAt",
+        "reviewedAt"
+      ],
+      "additionalProperties": true,
+      "description": "Tutor Submission. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "TutorWorkspace": {
+      "type": "object",
+      "properties": {
+        "tutorId": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Id"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "published": {
+          "type": "boolean"
+        },
+        "activation": {
+          "type": "string",
+          "enum": [
+            "NONE",
+            "PENDING",
+            "ACTIVE"
+          ]
+        },
+        "currentSubmissionId": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Id"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "drafts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TutorSubmission"
+          },
+          "minItems": 0
+        },
+        "submissions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TutorSubmission"
+          },
+          "minItems": 0
+        },
+        "revision": {
+          "$ref": "#/$defs/Revision"
+        }
+      },
+      "required": [
+        "tutorId",
+        "published",
+        "activation",
+        "currentSubmissionId",
+        "drafts",
+        "submissions",
+        "revision"
+      ],
+      "additionalProperties": true,
+      "description": "Tutor Workspace. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "TutorReviewWrite": {
+      "type": "object",
+      "properties": {
+        "decision": {
+          "type": "string",
+          "enum": [
+            "APPROVE",
+            "REJECT"
+          ]
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        }
+      },
+      "required": [
+        "decision"
+      ],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "decision": {
+                "const": "REJECT"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "reason"
+            ]
+          }
+        }
+      ],
+      "description": "Tutor Review Write. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "SubjectWrite": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "hourlyRate": {
+          "$ref": "#/$defs/HourlyRate"
+        },
+        "format": {
+          "const": "ONLINE"
+        },
+        "learningAreas": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/LearningArea"
+          },
+          "minItems": 1,
+          "maxItems": 3,
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "name",
+        "description",
+        "hourlyRate",
+        "format",
+        "learningAreas"
+      ],
+      "additionalProperties": false,
+      "description": "Subject Write. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "Subject": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/Id"
+        },
+        "tutorId": {
+          "$ref": "#/$defs/Id"
+        },
+        "tutorUserId": {
+          "$ref": "#/$defs/Id"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "hourlyRate": {
+          "$ref": "#/$defs/HourlyRate"
+        },
+        "format": {
+          "const": "ONLINE"
+        },
+        "learningAreas": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/LearningArea"
+          },
+          "minItems": 1,
+          "maxItems": 3
+        },
+        "revision": {
+          "$ref": "#/$defs/Revision"
+        }
+      },
+      "required": [
+        "id",
+        "tutorId",
+        "tutorUserId",
+        "name",
+        "description",
+        "hourlyRate",
+        "format",
+        "learningAreas",
+        "revision"
+      ],
+      "additionalProperties": true,
+      "description": "Subject. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "RatingSummary": {
+      "type": "object",
+      "properties": {
+        "subjectId": {
+          "$ref": "#/$defs/Id"
+        },
+        "average": {
+          "anyOf": [
+            {
+              "type": "number",
+              "minimum": 1,
+              "maximum": 5
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reviewCount": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "distribution": {
+          "type": "object",
+          "properties": {
+            "1": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "2": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "3": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "4": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "5": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "required": [
+            "1",
+            "2",
+            "3",
+            "4",
+            "5"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "subjectId",
+        "average",
+        "reviewCount",
+        "distribution"
+      ],
+      "additionalProperties": true,
+      "description": "Rating Summary. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "PublicTutor": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/Id"
+        },
+        "userId": {
+          "$ref": "#/$defs/Id"
+        },
+        "displayName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 201
+        },
+        "headline": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 200
+        },
+        "bio": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 5000
+        },
+        "avatarUrl": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/HttpsUrl"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "introVideoUrl": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/HttpsUrl"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "verified": {
+          "const": true
+        },
+        "subjects": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Subject"
+          },
+          "minItems": 0
+        },
+        "recentReviews": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PublicReview"
+          },
+          "minItems": 0
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "displayName",
+        "headline",
+        "bio",
+        "avatarUrl",
+        "introVideoUrl",
+        "verified",
+        "subjects",
+        "recentReviews"
+      ],
+      "additionalProperties": true,
+      "not": {
+        "anyOf": [
+          {
+            "required": [
+              "identificationDocumentUrl"
+            ]
+          },
+          {
+            "required": [
+              "identificationCardUrl"
+            ]
+          },
+          {
+            "required": [
+              "certificationUrls"
+            ]
+          },
+          {
+            "required": [
+              "passwordHash"
+            ]
+          }
+        ]
+      },
+      "description": "Public Tutor. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "SearchItem": {
+      "type": "object",
+      "properties": {
+        "subject": {
+          "$ref": "#/$defs/Subject"
+        },
+        "tutorDisplayName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 201
+        },
+        "rating": {
+          "$ref": "#/$defs/RatingSummary"
+        },
+        "nextAvailableAt": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Timestamp"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "classesTaught": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "subject",
+        "tutorDisplayName",
+        "rating",
+        "nextAvailableAt",
+        "classesTaught"
+      ],
+      "additionalProperties": true,
+      "description": "Search Item. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "SubjectPage": {
+      "type": "object",
+      "properties": {
+        "tutor": {
+          "$ref": "#/$defs/PublicTutor"
+        },
+        "subject": {
+          "$ref": "#/$defs/Subject"
+        },
+        "rating": {
+          "$ref": "#/$defs/RatingSummary"
+        },
+        "selectedDate": {
+          "$ref": "#/$defs/Date"
+        },
+        "slots": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PublicSlot"
+          },
+          "minItems": 0,
+          "maxItems": 48
+        },
+        "reviews": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PublicReview"
+          },
+          "minItems": 0
+        }
+      },
+      "required": [
+        "tutor",
+        "subject",
+        "rating",
+        "selectedDate",
+        "slots",
+        "reviews"
+      ],
+      "additionalProperties": true,
+      "description": "Subject Page. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "LearningAreas": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "$ref": "#/$defs/LearningArea"
+              },
+              "label": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100
+              }
+            },
+            "required": [
+              "id",
+              "label"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 0
+        }
+      },
+      "required": [
+        "items"
+      ],
+      "additionalProperties": true,
+      "description": "Learning Areas. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "PriceRange": {
+      "type": "object",
+      "properties": {
+        "minimum": {
+          "$ref": "#/$defs/Money"
+        },
+        "maximum": {
+          "$ref": "#/$defs/Money"
+        }
+      },
+      "required": [
+        "minimum",
+        "maximum"
+      ],
+      "additionalProperties": true,
+      "description": "Price Range. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "SlotWrite": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "state": {
+              "const": "OPEN"
+            },
+            "subjectIds": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Id"
+              },
+              "minItems": 1,
+              "maxItems": 100,
+              "uniqueItems": true
+            }
+          },
+          "required": [
+            "state",
+            "subjectIds"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "state": {
+              "const": "CLOSED"
+            }
+          },
+          "required": [
+            "state"
+          ],
+          "additionalProperties": false
+        }
+      ],
+      "description": "Slot Write. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "OwnedSlot": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/Id"
+        },
+        "tutorId": {
+          "$ref": "#/$defs/Id"
+        },
+        "date": {
+          "$ref": "#/$defs/Date"
+        },
+        "time": {
+          "$ref": "#/$defs/BangkokTime"
+        },
+        "startsAt": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "endsAt": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "OPEN",
+            "CLOSED",
+            "HELD",
+            "BOOKED"
+          ]
+        },
+        "subjectIds": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Id"
+          },
+          "minItems": 0
+        },
+        "revision": {
+          "$ref": "#/$defs/Revision"
+        }
+      },
+      "required": [
+        "id",
+        "tutorId",
+        "date",
+        "time",
+        "startsAt",
+        "endsAt",
+        "state",
+        "subjectIds",
+        "revision"
+      ],
+      "additionalProperties": true,
+      "description": "Owned Slot. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "PublicSlot": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/Id"
+        },
+        "tutorId": {
+          "$ref": "#/$defs/Id"
+        },
+        "subjectIds": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Id"
+          },
+          "minItems": 1
+        },
+        "startsAt": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "endsAt": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "revision": {
+          "$ref": "#/$defs/Revision"
+        }
+      },
+      "required": [
+        "id",
+        "tutorId",
+        "subjectIds",
+        "startsAt",
+        "endsAt",
+        "revision"
+      ],
+      "additionalProperties": true,
+      "description": "Public Slot. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "AvailabilityDay": {
+      "type": "object",
+      "properties": {
+        "date": {
+          "$ref": "#/$defs/Date"
+        },
+        "slots": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/OwnedSlot"
+          },
+          "minItems": 0,
+          "maxItems": 48
+        }
+      },
+      "required": [
+        "date",
+        "slots"
+      ],
+      "additionalProperties": true,
+      "description": "Availability Day. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "AvailabilityCalendar": {
+      "type": "object",
+      "properties": {
+        "from": {
+          "$ref": "#/$defs/Date"
+        },
+        "to": {
+          "$ref": "#/$defs/Date"
+        },
+        "days": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "date": {
+                "$ref": "#/$defs/Date"
+              },
+              "openSlots": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 48
+              },
+              "lockedSlots": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 48
+              }
+            },
+            "required": [
+              "date",
+              "openSlots",
+              "lockedSlots"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 0,
+          "maxItems": 93
+        }
+      },
+      "required": [
+        "from",
+        "to",
+        "days"
+      ],
+      "additionalProperties": true,
+      "description": "Availability Calendar. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "BookingCreate": {
+      "type": "object",
+      "properties": {
+        "subjectId": {
+          "$ref": "#/$defs/Id"
+        },
+        "availabilityIds": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Id"
+          },
+          "minItems": 1,
+          "maxItems": 8,
+          "uniqueItems": true
+        },
+        "description": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 2000
+        }
+      },
+      "required": [
+        "subjectId",
+        "availabilityIds"
+      ],
+      "additionalProperties": false,
+      "description": "Booking Create. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "SubjectSnapshot": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/Id"
+        },
+        "tutorId": {
+          "$ref": "#/$defs/Id"
+        },
+        "tutorUserId": {
+          "$ref": "#/$defs/Id"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "hourlyRate": {
+          "$ref": "#/$defs/HourlyRate"
+        },
+        "format": {
+          "const": "ONLINE"
+        },
+        "revision": {
+          "$ref": "#/$defs/Revision"
+        }
+      },
+      "required": [
+        "id",
+        "tutorId",
+        "tutorUserId",
+        "name",
+        "description",
+        "hourlyRate",
+        "format",
+        "revision"
+      ],
+      "additionalProperties": true,
+      "description": "Subject Snapshot. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "MeetingAccess": {
+      "type": "object",
+      "properties": {
+        "state": {
+          "type": "string",
+          "enum": [
+            "PROVISIONING",
+            "MISSING",
+            "READY",
+            "CLOSED"
+          ]
+        },
+        "providerReference": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Id"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "generatedUrl": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/HttpsUrl"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "customMeetingUrl": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/HttpsUrl"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "effectiveUrl": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/HttpsUrl"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "canJoin": {
+          "type": "boolean"
+        },
+        "canEdit": {
+          "type": "boolean"
+        },
+        "changedAt": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Timestamp"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "state",
+        "providerReference",
+        "generatedUrl",
+        "customMeetingUrl",
+        "effectiveUrl",
+        "canJoin",
+        "canEdit",
+        "changedAt"
+      ],
+      "additionalProperties": true,
+      "description": "Meeting Access. See contracts/README.md for authorization and cross-field invariants.",
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "state": {
+                "const": "CLOSED"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "generatedUrl": {
+                "type": "null"
+              },
+              "customMeetingUrl": {
+                "type": "null"
+              },
+              "effectiveUrl": {
+                "type": "null"
+              },
+              "canJoin": {
+                "const": false
+              },
+              "canEdit": {
+                "const": false
+              }
+            }
+          }
+        }
+      ]
+    },
+    "Booking": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/Id"
+        },
+        "studentUserId": {
+          "$ref": "#/$defs/Id"
+        },
+        "tutorId": {
+          "$ref": "#/$defs/Id"
+        },
+        "tutorUserId": {
+          "$ref": "#/$defs/Id"
+        },
+        "subject": {
+          "$ref": "#/$defs/SubjectSnapshot"
+        },
+        "availabilityIds": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Id"
+          },
+          "minItems": 1,
+          "maxItems": 8
+        },
+        "description": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 2000
+        },
+        "startsAt": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "endsAt": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "amount": {
+          "$ref": "#/$defs/PositiveMoney"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "PAYMENT_DUE",
+            "CONFIRMED",
+            "COMPLETED",
+            "CANCELLED"
+          ]
+        },
+        "revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "holdExpiresAt": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Timestamp"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "paidAt": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Timestamp"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "completedAt": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Timestamp"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "cancelledAt": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Timestamp"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "cancellationReason": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 500
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "pendingOperation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PendingOperationRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "meeting": {
+          "$ref": "#/$defs/MeetingAccess"
+        },
+        "canReview": {
+          "type": "boolean"
+        },
+        "studentDisplayName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 201
+        },
+        "tutorDisplayName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 201
+        }
+      },
+      "required": [
+        "id",
+        "studentUserId",
+        "tutorId",
+        "tutorUserId",
+        "subject",
+        "availabilityIds",
+        "description",
+        "startsAt",
+        "endsAt",
+        "amount",
+        "status",
+        "revision",
+        "holdExpiresAt",
+        "paidAt",
+        "completedAt",
+        "cancelledAt",
+        "cancellationReason",
+        "pendingOperation",
+        "meeting",
+        "canReview",
+        "studentDisplayName",
+        "tutorDisplayName"
+      ],
+      "additionalProperties": true,
+      "description": "Booking. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "CancellationQuote": {
+      "type": "object",
+      "properties": {
+        "quoteId": {
+          "$ref": "#/$defs/Id"
+        },
+        "bookingId": {
+          "$ref": "#/$defs/Id"
+        },
+        "actor": {
+          "type": "string",
+          "enum": [
+            "STUDENT",
+            "TUTOR"
+          ]
+        },
+        "refund": {
+          "$ref": "#/$defs/Money"
+        },
+        "fee": {
+          "$ref": "#/$defs/Money"
+        },
+        "late": {
+          "type": "boolean"
+        },
+        "requiresWarning": {
+          "type": "boolean"
+        },
+        "bookingRevision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "policyVersion": {
+          "const": "2026-11-06.v1"
+        },
+        "issuedAt": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "expiresAt": {
+          "$ref": "#/$defs/Timestamp"
+        }
+      },
+      "required": [
+        "quoteId",
+        "bookingId",
+        "actor",
+        "refund",
+        "fee",
+        "late",
+        "requiresWarning",
+        "bookingRevision",
+        "policyVersion",
+        "issuedAt",
+        "expiresAt"
+      ],
+      "additionalProperties": true,
+      "description": "Cancellation Quote. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "CancellationWrite": {
+      "type": "object",
+      "properties": {
+        "quoteId": {
+          "$ref": "#/$defs/Id"
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 500
+        }
+      },
+      "required": [
+        "quoteId"
+      ],
+      "additionalProperties": false,
+      "description": "Cancellation Write. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "TutorCancellationWrite": {
+      "type": "object",
+      "properties": {
+        "quoteId": {
+          "$ref": "#/$defs/Id"
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
+        }
+      },
+      "required": [
+        "quoteId",
+        "reason"
+      ],
+      "additionalProperties": false,
+      "description": "Tutor Cancellation Write. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "MeetingWrite": {
+      "type": "object",
+      "properties": {
+        "customMeetingUrl": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/HttpsUrl"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "customMeetingUrl"
+      ],
+      "additionalProperties": false,
+      "description": "Meeting Write. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "WalletOverview": {
+      "type": "object",
+      "properties": {
+        "userId": {
+          "$ref": "#/$defs/Id"
+        },
+        "postedBalance": {
+          "$ref": "#/$defs/Money"
+        },
+        "reservedPayouts": {
+          "$ref": "#/$defs/Money"
+        },
+        "availableBalance": {
+          "$ref": "#/$defs/Money"
+        },
+        "pendingEarnings": {
+          "$ref": "#/$defs/Money"
+        },
+        "earningsThisMonth": {
+          "$ref": "#/$defs/Money"
+        },
+        "totalPaidOut": {
+          "$ref": "#/$defs/Money"
+        },
+        "paymentDueBookings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ResourceRef"
+          },
+          "minItems": 0
+        }
+      },
+      "required": [
+        "userId",
+        "postedBalance",
+        "reservedPayouts",
+        "availableBalance",
+        "pendingEarnings",
+        "earningsThisMonth",
+        "totalPaidOut",
+        "paymentDueBookings"
+      ],
+      "additionalProperties": true,
+      "description": "Wallet Overview. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "WalletTransaction": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/Id"
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "TOP_UP",
+            "LESSON_PAYMENT",
+            "LESSON_EARNING",
+            "REFUND",
+            "PAYOUT"
+          ]
+        },
+        "amount": {
+          "$ref": "#/$defs/Money"
+        },
+        "direction": {
+          "type": "string",
+          "enum": [
+            "IN",
+            "OUT"
+          ]
+        },
+        "balanceAfter": {
+          "$ref": "#/$defs/Money"
+        },
+        "operationId": {
+          "$ref": "#/$defs/Id"
+        },
+        "bookingId": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Id"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "payoutAccountId": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Id"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "createdAt": {
+          "$ref": "#/$defs/Timestamp"
+        }
+      },
+      "required": [
+        "id",
+        "type",
+        "amount",
+        "direction",
+        "balanceAfter",
+        "operationId",
+        "bookingId",
+        "payoutAccountId",
+        "createdAt"
+      ],
+      "additionalProperties": true,
+      "description": "Wallet Transaction. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "TopupCreate": {
+      "type": "object",
+      "properties": {
+        "amount": {
+          "$ref": "#/$defs/TransferAmount"
+        },
+        "returnToBookingId": {
+          "$ref": "#/$defs/Id"
+        }
+      },
+      "required": [
+        "amount"
+      ],
+      "additionalProperties": false,
+      "description": "Topup Create. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "Topup": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/Id"
+        },
+        "userId": {
+          "$ref": "#/$defs/Id"
+        },
+        "amount": {
+          "$ref": "#/$defs/Money"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "PENDING",
+            "SUCCEEDED",
+            "FAILED",
+            "UNKNOWN"
+          ]
+        },
+        "demo": {
+          "const": true
+        },
+        "providerReference": {
+          "$ref": "#/$defs/Id"
+        },
+        "paymentRepresentation": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "operation": {
+          "$ref": "#/$defs/OperationRef"
+        },
+        "createdAt": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "confirmedAt": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Timestamp"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "amount",
+        "status",
+        "demo",
+        "providerReference",
+        "paymentRepresentation",
+        "operation",
+        "createdAt",
+        "confirmedAt"
+      ],
+      "additionalProperties": true,
+      "description": "Topup. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "PayoutAccountCreate": {
+      "type": "object",
+      "properties": {
+        "bankCode": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 20
+        },
+        "accountHolderName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "accountNumber": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 45,
+          "pattern": "^(?:[ -]*[0-9]){10,15}[ -]*$",
+          "writeOnly": true
+        },
+        "makeDefault": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "bankCode",
+        "accountHolderName",
+        "accountNumber"
+      ],
+      "additionalProperties": false,
+      "description": "Payout Account Create. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "PayoutAccount": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/Id"
+        },
+        "bankCode": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 20
+        },
+        "accountHolderName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "maskedAccountNumber": {
+          "type": "string",
+          "minLength": 4,
+          "maxLength": 30
+        },
+        "isDefault": {
+          "type": "boolean"
+        },
+        "revision": {
+          "$ref": "#/$defs/Revision"
+        }
+      },
+      "required": [
+        "id",
+        "bankCode",
+        "accountHolderName",
+        "maskedAccountNumber",
+        "isDefault",
+        "revision"
+      ],
+      "additionalProperties": true,
+      "not": {
+        "required": [
+          "accountNumber"
+        ]
+      },
+      "description": "Payout Account. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "BankList": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 20
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100
+              }
+            },
+            "required": [
+              "code",
+              "name"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 0
+        }
+      },
+      "required": [
+        "items"
+      ],
+      "additionalProperties": true,
+      "description": "Bank List. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "PayoutCreate": {
+      "type": "object",
+      "properties": {
+        "amount": {
+          "$ref": "#/$defs/TransferAmount"
+        },
+        "payoutAccountId": {
+          "$ref": "#/$defs/Id"
+        }
+      },
+      "required": [
+        "amount",
+        "payoutAccountId"
+      ],
+      "additionalProperties": false,
+      "description": "Payout Create. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "Payout": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/Id"
+        },
+        "userId": {
+          "$ref": "#/$defs/Id"
+        },
+        "amount": {
+          "$ref": "#/$defs/Money"
+        },
+        "payoutAccount": {
+          "$ref": "#/$defs/PayoutAccount"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "PENDING",
+            "SUCCEEDED",
+            "FAILED",
+            "UNKNOWN"
+          ]
+        },
+        "operation": {
+          "$ref": "#/$defs/OperationRef"
+        },
+        "demo": {
+          "const": true
+        },
+        "providerReference": {
+          "$ref": "#/$defs/Id"
+        },
+        "createdAt": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "resolvedAt": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Timestamp"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "amount",
+        "payoutAccount",
+        "status",
+        "operation",
+        "demo",
+        "providerReference",
+        "createdAt",
+        "resolvedAt"
+      ],
+      "additionalProperties": true,
+      "description": "Payout. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "DisputeCreate": {
+      "type": "object",
+      "properties": {
+        "bookingId": {
+          "$ref": "#/$defs/Id"
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        }
+      },
+      "required": [
+        "bookingId",
+        "reason"
+      ],
+      "additionalProperties": false,
+      "description": "Dispute Create. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "DisputeDecision": {
+      "type": "object",
+      "properties": {
+        "decision": {
+          "type": "string",
+          "enum": [
+            "APPROVE_FULL_REMAINDER",
+            "REJECT"
+          ]
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        }
+      },
+      "required": [
+        "decision",
+        "reason"
+      ],
+      "additionalProperties": false,
+      "description": "Dispute Decision. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "Dispute": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/Id"
+        },
+        "bookingId": {
+          "$ref": "#/$defs/Id"
+        },
+        "studentUserId": {
+          "$ref": "#/$defs/Id"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "OPEN",
+            "APPROVED",
+            "REJECTED"
+          ]
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "decisionReason": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2000
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "refundedAmount": {
+          "$ref": "#/$defs/Money"
+        },
+        "earningsHeld": {
+          "type": "boolean"
+        },
+        "revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "createdAt": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "resolvedAt": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Timestamp"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "audit": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/AuditEntry"
+          },
+          "minItems": 0
+        }
+      },
+      "required": [
+        "id",
+        "bookingId",
+        "studentUserId",
+        "status",
+        "reason",
+        "decisionReason",
+        "refundedAmount",
+        "earningsHeld",
+        "revision",
+        "createdAt",
+        "resolvedAt",
+        "audit"
+      ],
+      "additionalProperties": true,
+      "description": "Dispute. See contracts/README.md for authorization and cross-field invariants.",
+      "not": {
+        "anyOf": [
+          {
+            "required": [
+              "booking"
+            ]
+          },
+          {
+            "required": [
+              "financial"
+            ]
+          },
+          {
+            "required": [
+              "transactions"
+            ]
+          }
+        ]
+      }
+    },
+    "ReviewCreate": {
+      "type": "object",
+      "properties": {
+        "rating": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 5000
+        },
+        "headline": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 200
+        }
+      },
+      "required": [
+        "rating",
+        "text"
+      ],
+      "additionalProperties": false,
+      "description": "Review Create. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "ReviewReply": {
+      "type": "object",
+      "properties": {
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 5000
+        }
+      },
+      "required": [
+        "text"
+      ],
+      "additionalProperties": false,
+      "description": "Review Reply. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "FlagCreate": {
+      "type": "object",
+      "properties": {
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        }
+      },
+      "required": [
+        "reason"
+      ],
+      "additionalProperties": false,
+      "description": "Flag Create. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "ModerationWrite": {
+      "type": "object",
+      "properties": {
+        "decision": {
+          "type": "string",
+          "enum": [
+            "KEEP",
+            "HIDE",
+            "REMOVE"
+          ]
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        }
+      },
+      "required": [
+        "decision",
+        "reason"
+      ],
+      "additionalProperties": false,
+      "description": "Moderation Write. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "Review": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/Id"
+        },
+        "bookingId": {
+          "$ref": "#/$defs/Id"
+        },
+        "studentUserId": {
+          "$ref": "#/$defs/Id"
+        },
+        "tutorId": {
+          "$ref": "#/$defs/Id"
+        },
+        "tutorUserId": {
+          "$ref": "#/$defs/Id"
+        },
+        "subjectId": {
+          "$ref": "#/$defs/Id"
+        },
+        "rating": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 5000
+        },
+        "headline": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 0,
+              "maxLength": 200
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reply": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "$ref": "#/$defs/Id"
+                },
+                "text": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 5000
+                },
+                "createdAt": {
+                  "$ref": "#/$defs/Timestamp"
+                }
+              },
+              "required": [
+                "id",
+                "text",
+                "createdAt"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "visibility": {
+          "type": "string",
+          "enum": [
+            "PUBLIC",
+            "HIDDEN",
+            "REMOVED"
+          ]
+        },
+        "revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "createdAt": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "studentDisplayName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 201
+        }
+      },
+      "required": [
+        "id",
+        "bookingId",
+        "studentUserId",
+        "tutorId",
+        "tutorUserId",
+        "subjectId",
+        "rating",
+        "text",
+        "headline",
+        "reply",
+        "visibility",
+        "revision",
+        "createdAt",
+        "studentDisplayName"
+      ],
+      "additionalProperties": true,
+      "description": "Review. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "ReviewFlag": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/Id"
+        },
+        "reviewId": {
+          "$ref": "#/$defs/Id"
+        },
+        "reporterUserId": {
+          "$ref": "#/$defs/Id"
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "OPEN",
+            "RESOLVED"
+          ]
+        },
+        "revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "createdAt": {
+          "$ref": "#/$defs/Timestamp"
+        }
+      },
+      "required": [
+        "id",
+        "reviewId",
+        "reporterUserId",
+        "reason",
+        "state",
+        "revision",
+        "createdAt"
+      ],
+      "additionalProperties": true,
+      "description": "Review Flag. See contracts/README.md for authorization and cross-field invariants.",
+      "not": {
+        "required": [
+          "review"
+        ]
+      }
+    },
+    "MessageWrite": {
+      "type": "object",
+      "properties": {
+        "recipientId": {
+          "$ref": "#/$defs/Id"
+        },
+        "view": {
+          "type": "string",
+          "enum": [
+            "STUDENT",
+            "TUTOR",
+            "ADMIN"
+          ]
+        },
+        "content": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        }
+      },
+      "required": [
+        "recipientId",
+        "view",
+        "content"
+      ],
+      "additionalProperties": false,
+      "description": "Message Write. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "ReadCursorWrite": {
+      "type": "object",
+      "properties": {
+        "lastReadMessageId": {
+          "$ref": "#/$defs/Id"
+        }
+      },
+      "required": [
+        "lastReadMessageId"
+      ],
+      "additionalProperties": false,
+      "description": "Read Cursor Write. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "Message": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/Id"
+        },
+        "conversationId": {
+          "$ref": "#/$defs/Id"
+        },
+        "senderUserId": {
+          "$ref": "#/$defs/Id"
+        },
+        "recipientUserId": {
+          "$ref": "#/$defs/Id"
+        },
+        "content": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "createdAt": {
+          "$ref": "#/$defs/Timestamp"
+        }
+      },
+      "required": [
+        "id",
+        "conversationId",
+        "senderUserId",
+        "recipientUserId",
+        "content",
+        "createdAt"
+      ],
+      "additionalProperties": true,
+      "description": "Message. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "Conversation": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/Id"
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "STUDENT_TUTOR",
+            "ADMIN_SUPPORT"
+          ]
+        },
+        "lastMessage": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Message"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "unreadCount": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "participants": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "type": "object",
+            "properties": {
+              "userId": {
+                "$ref": "#/$defs/Id"
+              },
+              "displayName": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 201
+              }
+            },
+            "required": [
+              "userId",
+              "displayName"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "lastMessage",
+        "unreadCount",
+        "participants"
+      ],
+      "additionalProperties": true,
+      "description": "Conversation. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "ThreadPage": {
+      "type": "object",
+      "properties": {
+        "conversation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Conversation"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Message"
+          },
+          "minItems": 0,
+          "maxItems": 100
+        },
+        "nextCursor": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2048
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "conversation",
+        "items",
+        "nextCursor"
+      ],
+      "additionalProperties": true,
+      "description": "Thread Page. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "PreferencesWrite": {
+      "type": "object",
+      "properties": {
+        "bookingUpdates": {
+          "type": "object",
+          "properties": {
+            "email": {
+              "type": "boolean"
+            },
+            "push": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "email",
+            "push"
+          ],
+          "additionalProperties": false
+        },
+        "lessonReminders": {
+          "type": "object",
+          "properties": {
+            "email": {
+              "type": "boolean"
+            },
+            "push": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "email",
+            "push"
+          ],
+          "additionalProperties": false
+        },
+        "newMessages": {
+          "type": "object",
+          "properties": {
+            "email": {
+              "type": "boolean"
+            },
+            "push": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "email",
+            "push"
+          ],
+          "additionalProperties": false
+        },
+        "walletPayments": {
+          "type": "object",
+          "properties": {
+            "email": {
+              "type": "boolean"
+            },
+            "push": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "email",
+            "push"
+          ],
+          "additionalProperties": false
+        },
+        "productNews": {
+          "type": "object",
+          "properties": {
+            "email": {
+              "type": "boolean"
+            },
+            "push": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "email",
+            "push"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "bookingUpdates",
+        "lessonReminders",
+        "newMessages",
+        "walletPayments",
+        "productNews"
+      ],
+      "additionalProperties": false,
+      "description": "Preferences Write. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "Preferences": {
+      "type": "object",
+      "properties": {
+        "bookingUpdates": {
+          "type": "object",
+          "properties": {
+            "email": {
+              "type": "boolean"
+            },
+            "push": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "email",
+            "push"
+          ],
+          "additionalProperties": false
+        },
+        "lessonReminders": {
+          "type": "object",
+          "properties": {
+            "email": {
+              "type": "boolean"
+            },
+            "push": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "email",
+            "push"
+          ],
+          "additionalProperties": false
+        },
+        "newMessages": {
+          "type": "object",
+          "properties": {
+            "email": {
+              "type": "boolean"
+            },
+            "push": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "email",
+            "push"
+          ],
+          "additionalProperties": false
+        },
+        "walletPayments": {
+          "type": "object",
+          "properties": {
+            "email": {
+              "type": "boolean"
+            },
+            "push": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "email",
+            "push"
+          ],
+          "additionalProperties": false
+        },
+        "productNews": {
+          "type": "object",
+          "properties": {
+            "email": {
+              "type": "boolean"
+            },
+            "push": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "email",
+            "push"
+          ],
+          "additionalProperties": false
+        },
+        "revision": {
+          "$ref": "#/$defs/Revision"
+        }
+      },
+      "required": [
+        "bookingUpdates",
+        "lessonReminders",
+        "newMessages",
+        "walletPayments",
+        "productNews",
+        "revision"
+      ],
+      "additionalProperties": true,
+      "description": "Preferences. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "DeliveryReceipt": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/Id"
+        },
+        "eventId": {
+          "$ref": "#/$defs/Id"
+        },
+        "recipientUserId": {
+          "$ref": "#/$defs/Id"
+        },
+        "channel": {
+          "type": "string",
+          "enum": [
+            "EMAIL",
+            "PUSH"
+          ]
+        },
+        "category": {
+          "type": "string",
+          "enum": [
+            "BOOKING_UPDATES",
+            "LESSON_REMINDERS",
+            "NEW_MESSAGES",
+            "WALLET_PAYMENTS",
+            "PRODUCT_NEWS",
+            "SYSTEM"
+          ]
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "PENDING",
+            "DELIVERED",
+            "SKIPPED",
+            "FAILED"
+          ]
+        },
+        "demo": {
+          "const": true
+        },
+        "createdAt": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "deliveredAt": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Timestamp"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "eventId",
+        "recipientUserId",
+        "channel",
+        "category",
+        "status",
+        "demo",
+        "createdAt",
+        "deliveredAt"
+      ],
+      "additionalProperties": true,
+      "description": "Delivery Receipt. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "DemoOutcome": {
+      "type": "object",
+      "properties": {
+        "outcome": {
+          "type": "string",
+          "enum": [
+            "SUCCEEDED",
+            "FAILED",
+            "UNKNOWN"
+          ]
+        },
+        "providerReference": {
+          "$ref": "#/$defs/Id"
+        }
+      },
+      "required": [
+        "outcome",
+        "providerReference"
+      ],
+      "additionalProperties": false,
+      "description": "Demo Outcome. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "Health": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "OK",
+            "DEGRADED"
+          ]
+        },
+        "service": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        }
+      },
+      "required": [
+        "status",
+        "service"
+      ],
+      "additionalProperties": true,
+      "description": "Health. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "AccountPage": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Account"
+          },
+          "minItems": 0,
+          "maxItems": 100
+        },
+        "pagination": {
+          "$ref": "#/$defs/PageMeta"
+        }
+      },
+      "required": [
+        "items",
+        "pagination"
+      ],
+      "additionalProperties": true,
+      "description": "Account Page. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "SubjectList": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Subject"
+          },
+          "minItems": 0,
+          "maxItems": 100
+        },
+        "pagination": {
+          "$ref": "#/$defs/PageMeta"
+        }
+      },
+      "required": [
+        "items",
+        "pagination"
+      ],
+      "additionalProperties": true,
+      "description": "Subject List. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "SearchPage": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SearchItem"
+          },
+          "minItems": 0,
+          "maxItems": 100
+        },
+        "pagination": {
+          "$ref": "#/$defs/PageMeta"
+        }
+      },
+      "required": [
+        "items",
+        "pagination"
+      ],
+      "additionalProperties": true,
+      "description": "Search Page. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "BookingPage": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Booking"
+          },
+          "minItems": 0,
+          "maxItems": 100
+        },
+        "pagination": {
+          "$ref": "#/$defs/PageMeta"
+        }
+      },
+      "required": [
+        "items",
+        "pagination"
+      ],
+      "additionalProperties": true,
+      "description": "Booking Page. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "TransactionPage": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/WalletTransaction"
+          },
+          "minItems": 0,
+          "maxItems": 100
+        },
+        "pagination": {
+          "$ref": "#/$defs/PageMeta"
+        }
+      },
+      "required": [
+        "items",
+        "pagination"
+      ],
+      "additionalProperties": true,
+      "description": "Transaction Page. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "PayoutPage": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Payout"
+          },
+          "minItems": 0,
+          "maxItems": 100
+        },
+        "pagination": {
+          "$ref": "#/$defs/PageMeta"
+        }
+      },
+      "required": [
+        "items",
+        "pagination"
+      ],
+      "additionalProperties": true,
+      "description": "Payout Page. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "DisputePage": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Dispute"
+          },
+          "minItems": 0,
+          "maxItems": 100
+        },
+        "pagination": {
+          "$ref": "#/$defs/PageMeta"
+        }
+      },
+      "required": [
+        "items",
+        "pagination"
+      ],
+      "additionalProperties": true,
+      "description": "Dispute Page. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "ReviewPage": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PublicReview"
+          },
+          "minItems": 0,
+          "maxItems": 100
+        },
+        "pagination": {
+          "$ref": "#/$defs/PageMeta"
+        }
+      },
+      "required": [
+        "items",
+        "pagination"
+      ],
+      "additionalProperties": true,
+      "description": "Review Page. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "FlagPage": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/AdminReviewFlag"
+          },
+          "minItems": 0,
+          "maxItems": 100
+        },
+        "pagination": {
+          "$ref": "#/$defs/PageMeta"
+        }
+      },
+      "required": [
+        "items",
+        "pagination"
+      ],
+      "additionalProperties": true,
+      "description": "Flag Page. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "ConversationPage": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Conversation"
+          },
+          "minItems": 0,
+          "maxItems": 100
+        },
+        "pagination": {
+          "$ref": "#/$defs/PageMeta"
+        }
+      },
+      "required": [
+        "items",
+        "pagination"
+      ],
+      "additionalProperties": true,
+      "description": "Conversation Page. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "ReceiptPage": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/DeliveryReceipt"
+          },
+          "minItems": 0,
+          "maxItems": 100
+        },
+        "pagination": {
+          "$ref": "#/$defs/PageMeta"
+        }
+      },
+      "required": [
+        "items",
+        "pagination"
+      ],
+      "additionalProperties": true,
+      "description": "Receipt Page. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "SubmissionPage": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TutorSubmission"
+          },
+          "minItems": 0,
+          "maxItems": 100
+        },
+        "pagination": {
+          "$ref": "#/$defs/PageMeta"
+        }
+      },
+      "required": [
+        "items",
+        "pagination"
+      ],
+      "additionalProperties": true,
+      "description": "Submission Page. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "PayoutAccountList": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PayoutAccount"
+          },
+          "minItems": 0,
+          "maxItems": 100
+        },
+        "pagination": {
+          "$ref": "#/$defs/PageMeta"
+        }
+      },
+      "required": [
+        "items",
+        "pagination"
+      ],
+      "additionalProperties": true,
+      "description": "Payout Account List. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "Admission": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/Id"
+        },
+        "actorUserId": {
+          "$ref": "#/$defs/Id"
+        },
+        "sessionId": {
+          "$ref": "#/$defs/Id"
+        },
+        "admittedAt": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "requestId": {
+          "$ref": "#/$defs/Id"
+        },
+        "publicOperation": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        }
+      },
+      "required": [
+        "id",
+        "actorUserId",
+        "sessionId",
+        "admittedAt",
+        "requestId",
+        "publicOperation"
+      ],
+      "additionalProperties": false,
+      "description": "Admission. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "Introspection": {
+      "type": "object",
+      "properties": {
+        "active": {
+          "const": true
+        },
+        "userId": {
+          "$ref": "#/$defs/Id"
+        },
+        "sessionId": {
+          "$ref": "#/$defs/Id"
+        },
+        "capabilities": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "STUDENT",
+              "TUTOR",
+              "ADMIN"
+            ]
+          },
+          "minItems": 1,
+          "maxItems": 3
+        },
+        "accountRevision": {
+          "$ref": "#/$defs/Revision"
+        }
+      },
+      "required": [
+        "active",
+        "userId",
+        "sessionId",
+        "capabilities",
+        "accountRevision"
+      ],
+      "additionalProperties": true,
+      "description": "Introspection. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "IntrospectWrite": {
+      "type": "object",
+      "properties": {
+        "token": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 8192,
+          "writeOnly": true
+        }
+      },
+      "required": [
+        "token"
+      ],
+      "additionalProperties": false,
+      "description": "Introspect Write. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "AccountLookupWrite": {
+      "type": "object",
+      "properties": {
+        "userIds": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Id"
+          },
+          "minItems": 1,
+          "maxItems": 100,
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "userIds"
+      ],
+      "additionalProperties": false,
+      "description": "Account Lookup Write. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "AccountLookup": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "$ref": "#/$defs/Id"
+              },
+              "displayName": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 201
+              },
+              "email": {
+                "$ref": "#/$defs/Email"
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "ACTIVE",
+                  "SUSPENDED",
+                  "BANNED",
+                  "DEACTIVATED"
+                ]
+              },
+              "capabilities": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "STUDENT",
+                    "TUTOR",
+                    "ADMIN"
+                  ]
+                },
+                "minItems": 0
+              }
+            },
+            "required": [
+              "id",
+              "displayName",
+              "email",
+              "status",
+              "capabilities"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 0
+        }
+      },
+      "required": [
+        "items"
+      ],
+      "additionalProperties": true,
+      "description": "Account Lookup. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "CapabilityGrant": {
+      "type": "object",
+      "properties": {
+        "userId": {
+          "$ref": "#/$defs/Id"
+        },
+        "submissionId": {
+          "$ref": "#/$defs/Id"
+        },
+        "approvalRevision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "admission": {
+          "$ref": "#/$defs/Admission"
+        }
+      },
+      "required": [
+        "userId",
+        "submissionId",
+        "approvalRevision",
+        "admission"
+      ],
+      "additionalProperties": false,
+      "description": "Capability Grant. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "CapabilityGrantResult": {
+      "type": "object",
+      "properties": {
+        "operationId": {
+          "$ref": "#/$defs/Id"
+        },
+        "userId": {
+          "$ref": "#/$defs/Id"
+        },
+        "capability": {
+          "const": "TUTOR"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "APPLIED"
+          ]
+        },
+        "appliedAt": {
+          "$ref": "#/$defs/Timestamp"
+        }
+      },
+      "required": [
+        "operationId",
+        "userId",
+        "capability",
+        "status",
+        "appliedAt"
+      ],
+      "additionalProperties": true,
+      "description": "Capability Grant Result. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "TutorEligibility": {
+      "type": "object",
+      "properties": {
+        "userId": {
+          "$ref": "#/$defs/Id"
+        },
+        "tutorId": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Id"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "approved": {
+          "type": "boolean"
+        },
+        "activated": {
+          "type": "boolean"
+        },
+        "published": {
+          "type": "boolean"
+        },
+        "revision": {
+          "$ref": "#/$defs/Revision"
+        }
+      },
+      "required": [
+        "userId",
+        "tutorId",
+        "approved",
+        "activated",
+        "published",
+        "revision"
+      ],
+      "additionalProperties": true,
+      "description": "Tutor Eligibility. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "BookableSubject": {
+      "type": "object",
+      "properties": {
+        "subject": {
+          "$ref": "#/$defs/SubjectSnapshot"
+        },
+        "published": {
+          "const": true
+        },
+        "eligibilityCheckedAt": {
+          "$ref": "#/$defs/Timestamp"
+        }
+      },
+      "required": [
+        "subject",
+        "published",
+        "eligibilityCheckedAt"
+      ],
+      "additionalProperties": true,
+      "description": "Bookable Subject. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "RatingBatchWrite": {
+      "type": "object",
+      "properties": {
+        "subjectIds": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Id"
+          },
+          "minItems": 1,
+          "maxItems": 100,
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "subjectIds"
+      ],
+      "additionalProperties": false,
+      "description": "Rating Batch Write. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "RatingBatch": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/RatingSummary"
+          },
+          "minItems": 1,
+          "maxItems": 100
+        }
+      },
+      "required": [
+        "items"
+      ],
+      "additionalProperties": true,
+      "description": "Rating Batch. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "ReviewEligibility": {
+      "type": "object",
+      "properties": {
+        "bookingId": {
+          "$ref": "#/$defs/Id"
+        },
+        "studentUserId": {
+          "$ref": "#/$defs/Id"
+        },
+        "tutorId": {
+          "$ref": "#/$defs/Id"
+        },
+        "tutorUserId": {
+          "$ref": "#/$defs/Id"
+        },
+        "subjectId": {
+          "$ref": "#/$defs/Id"
+        },
+        "completedAt": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Timestamp"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "bookingRevision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "eligible": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "bookingId",
+        "studentUserId",
+        "tutorId",
+        "tutorUserId",
+        "subjectId",
+        "completedAt",
+        "bookingRevision",
+        "eligible"
+      ],
+      "additionalProperties": true,
+      "description": "Review Eligibility. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "ReminderEligibility": {
+      "type": "object",
+      "properties": {
+        "bookingId": {
+          "$ref": "#/$defs/Id"
+        },
+        "eligible": {
+          "type": "boolean"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 80
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "checkedAt": {
+          "$ref": "#/$defs/Timestamp"
+        }
+      },
+      "required": [
+        "bookingId",
+        "eligible",
+        "reason",
+        "checkedAt"
+      ],
+      "additionalProperties": true,
+      "description": "Reminder Eligibility. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "PaymentCommand": {
+      "type": "object",
+      "properties": {
+        "bookingId": {
+          "$ref": "#/$defs/Id"
+        },
+        "sourceOperationId": {
+          "$ref": "#/$defs/Id"
+        },
+        "studentUserId": {
+          "$ref": "#/$defs/Id"
+        },
+        "tutorUserId": {
+          "$ref": "#/$defs/Id"
+        },
+        "subjectId": {
+          "$ref": "#/$defs/Id"
+        },
+        "amount": {
+          "$ref": "#/$defs/PositiveMoney"
+        },
+        "startsAt": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "endsAt": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "holdExpiresAt": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "admission": {
+          "$ref": "#/$defs/Admission"
+        }
+      },
+      "required": [
+        "bookingId",
+        "sourceOperationId",
+        "studentUserId",
+        "tutorUserId",
+        "subjectId",
+        "amount",
+        "startsAt",
+        "endsAt",
+        "holdExpiresAt",
+        "admission"
+      ],
+      "additionalProperties": false,
+      "description": "Payment Command. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "ClosePayment": {
+      "type": "object",
+      "properties": {
+        "command": {
+          "$ref": "#/$defs/PaymentCommand"
+        },
+        "reason": {
+          "type": "string",
+          "enum": [
+            "CANCEL_REQUESTED",
+            "HOLD_EXPIRED",
+            "ABORT_PAYMENT"
+          ]
+        }
+      },
+      "required": [
+        "command",
+        "reason"
+      ],
+      "additionalProperties": false,
+      "description": "Close Payment. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "PaymentResult": {
+      "type": "object",
+      "properties": {
+        "operationId": {
+          "$ref": "#/$defs/Id"
+        },
+        "bookingId": {
+          "$ref": "#/$defs/Id"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "APPLIED",
+            "DECLINED",
+            "CLOSED"
+          ]
+        },
+        "transactionId": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Id"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "amount": {
+          "$ref": "#/$defs/Money"
+        },
+        "balance": {
+          "$ref": "#/$defs/Money"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 80
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "decidedAt": {
+          "$ref": "#/$defs/Timestamp"
+        }
+      },
+      "required": [
+        "operationId",
+        "bookingId",
+        "status",
+        "transactionId",
+        "amount",
+        "balance",
+        "reason",
+        "decidedAt"
+      ],
+      "additionalProperties": true,
+      "description": "Payment Result. See contracts/README.md for authorization and cross-field invariants.",
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "APPLIED"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "transactionId": {
+                "$ref": "#/$defs/Id"
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "transactionId": {
+                "type": "null"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "RefundCommand": {
+      "type": "object",
+      "properties": {
+        "bookingId": {
+          "$ref": "#/$defs/Id"
+        },
+        "paymentOperationId": {
+          "$ref": "#/$defs/Id"
+        },
+        "sourceOperationId": {
+          "$ref": "#/$defs/Id"
+        },
+        "studentUserId": {
+          "$ref": "#/$defs/Id"
+        },
+        "tutorUserId": {
+          "$ref": "#/$defs/Id"
+        },
+        "quoteId": {
+          "$ref": "#/$defs/Id"
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "STUDENT_CANCEL",
+            "TUTOR_CANCEL"
+          ]
+        },
+        "amount": {
+          "$ref": "#/$defs/PositiveMoney"
+        },
+        "policyVersion": {
+          "const": "2026-11-06.v1"
+        },
+        "admission": {
+          "$ref": "#/$defs/Admission"
+        }
+      },
+      "required": [
+        "bookingId",
+        "paymentOperationId",
+        "sourceOperationId",
+        "studentUserId",
+        "tutorUserId",
+        "quoteId",
+        "kind",
+        "amount",
+        "policyVersion",
+        "admission"
+      ],
+      "additionalProperties": false,
+      "description": "Refund Command. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "RefundResult": {
+      "type": "object",
+      "properties": {
+        "operationId": {
+          "$ref": "#/$defs/Id"
+        },
+        "bookingId": {
+          "$ref": "#/$defs/Id"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "APPLIED"
+          ]
+        },
+        "amount": {
+          "$ref": "#/$defs/Money"
+        },
+        "totalRefunded": {
+          "$ref": "#/$defs/Money"
+        },
+        "transactionId": {
+          "$ref": "#/$defs/Id"
+        },
+        "appliedAt": {
+          "$ref": "#/$defs/Timestamp"
+        }
+      },
+      "required": [
+        "operationId",
+        "bookingId",
+        "status",
+        "amount",
+        "totalRefunded",
+        "transactionId",
+        "appliedAt"
+      ],
+      "additionalProperties": true,
+      "description": "Refund Result. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "CompletionCommand": {
+      "type": "object",
+      "properties": {
+        "sourceOperationId": {
+          "$ref": "#/$defs/Id"
+        },
+        "bookingVersion": {
+          "$ref": "#/$defs/Revision"
+        },
+        "tutorConfirmedAt": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "admission": {
+          "$ref": "#/$defs/Admission"
+        }
+      },
+      "required": [
+        "sourceOperationId",
+        "bookingVersion",
+        "tutorConfirmedAt",
+        "admission"
+      ],
+      "additionalProperties": false,
+      "description": "Completion Command. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "FinancialRecord": {
+      "type": "object",
+      "properties": {
+        "bookingId": {
+          "$ref": "#/$defs/Id"
+        },
+        "studentUserId": {
+          "$ref": "#/$defs/Id"
+        },
+        "tutorUserId": {
+          "$ref": "#/$defs/Id"
+        },
+        "paid": {
+          "$ref": "#/$defs/Money"
+        },
+        "refunded": {
+          "$ref": "#/$defs/Money"
+        },
+        "pendingEarning": {
+          "$ref": "#/$defs/Money"
+        },
+        "fee": {
+          "$ref": "#/$defs/Money"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "UNPAID",
+            "PAID",
+            "CANCELLED",
+            "COMPLETED",
+            "SETTLED",
+            "REFUNDED"
+          ]
+        },
+        "paymentGate": {
+          "type": "string",
+          "enum": [
+            "OPEN",
+            "CLOSED"
+          ]
+        },
+        "tutorConfirmedAt": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Timestamp"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "clearingDueAt": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Timestamp"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "disputeId": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Id"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "disputeHeld": {
+          "type": "boolean"
+        },
+        "revision": {
+          "$ref": "#/$defs/Revision"
+        }
+      },
+      "required": [
+        "bookingId",
+        "studentUserId",
+        "tutorUserId",
+        "paid",
+        "refunded",
+        "pendingEarning",
+        "fee",
+        "status",
+        "paymentGate",
+        "tutorConfirmedAt",
+        "clearingDueAt",
+        "disputeId",
+        "disputeHeld",
+        "revision"
+      ],
+      "additionalProperties": true,
+      "description": "Financial Record. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "BookingEvidence": {
+      "type": "object",
+      "properties": {
+        "bookingId": {
+          "$ref": "#/$defs/Id"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "PAYMENT_DUE",
+            "CONFIRMED",
+            "COMPLETED",
+            "CANCELLED"
+          ]
+        },
+        "studentUserId": {
+          "$ref": "#/$defs/Id"
+        },
+        "tutorUserId": {
+          "$ref": "#/$defs/Id"
+        },
+        "subjectId": {
+          "$ref": "#/$defs/Id"
+        },
+        "startsAt": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "endsAt": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "completedAt": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Timestamp"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "cancelledAt": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Timestamp"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "revision": {
+          "$ref": "#/$defs/Revision"
+        }
+      },
+      "required": [
+        "bookingId",
+        "status",
+        "studentUserId",
+        "tutorUserId",
+        "subjectId",
+        "startsAt",
+        "endsAt",
+        "completedAt",
+        "cancelledAt",
+        "revision"
+      ],
+      "additionalProperties": true,
+      "description": "Booking Evidence. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "NotificationContent": {
+      "type": "object",
+      "properties": {
+        "contentRef": {
+          "$ref": "#/$defs/Id"
+        },
+        "recipientUserId": {
+          "$ref": "#/$defs/Id"
+        },
+        "subject": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 10000
+        },
+        "sensitive": {
+          "const": true
+        },
+        "expiresAt": {
+          "$ref": "#/$defs/Timestamp"
+        }
+      },
+      "required": [
+        "contentRef",
+        "recipientUserId",
+        "subject",
+        "text",
+        "sensitive",
+        "expiresAt"
+      ],
+      "additionalProperties": true,
+      "description": "Notification Content. See contracts/README.md for authorization and cross-field invariants."
+    },
+    "AdminDisputeDetail": {
+      "type": "object",
+      "properties": {
+        "dispute": {
+          "$ref": "#/$defs/Dispute"
+        },
+        "booking": {
+          "$ref": "#/$defs/BookingEvidence"
+        },
+        "financial": {
+          "$ref": "#/$defs/FinancialRecord"
+        },
+        "transactions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/WalletTransaction"
+          }
+        },
+        "studentDisplayName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 201
+        },
+        "tutorDisplayName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 201
+        }
+      },
+      "required": [
+        "dispute",
+        "booking",
+        "financial",
+        "transactions",
+        "studentDisplayName",
+        "tutorDisplayName"
+      ],
+      "additionalProperties": true,
+      "description": "AdminDisputeDetail; private administrative projection where applicable."
+    },
+    "AdminReviewFlag": {
+      "type": "object",
+      "properties": {
+        "flag": {
+          "$ref": "#/$defs/ReviewFlag"
+        },
+        "review": {
+          "$ref": "#/$defs/Review"
+        },
+        "reporterDisplayName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 201
+        }
+      },
+      "required": [
+        "flag",
+        "review",
+        "reporterDisplayName"
+      ],
+      "additionalProperties": true,
+      "description": "AdminReviewFlag; private administrative projection where applicable."
+    },
+    "PublicReview": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/Review"
+        },
+        {
+          "properties": {
+            "visibility": {
+              "const": "PUBLIC"
+            }
+          }
+        }
+      ],
+      "description": "Public review projection excludes hidden/removed reviews."
+    }
+  }
+}

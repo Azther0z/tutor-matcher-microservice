@@ -1,0 +1,1164 @@
+[
+  {
+    "operationId": "applyCancellationRefund",
+    "owner": "wallet",
+    "surface": "INTERNAL",
+    "method": "PUT",
+    "path": "/internal/v1/wallet/refunds/{operationId}",
+    "requirements": [
+      "UC06-02",
+      "UC06-03",
+      "UC09-04"
+    ]
+  },
+  {
+    "operationId": "applyLessonCharge",
+    "owner": "wallet",
+    "surface": "INTERNAL",
+    "method": "PUT",
+    "path": "/internal/v1/wallet/payments/{operationId}",
+    "requirements": [
+      "UC03-04",
+      "UC03-05"
+    ]
+  },
+  {
+    "operationId": "cancelBooking",
+    "owner": "booking",
+    "surface": "PUBLIC",
+    "method": "POST",
+    "path": "/api/bookings/{bookingId}/cancel",
+    "requirements": [
+      "UC06-02",
+      "UC06-04"
+    ]
+  },
+  {
+    "operationId": "completeBooking",
+    "owner": "booking",
+    "surface": "PUBLIC",
+    "method": "POST",
+    "path": "/api/bookings/{bookingId}/confirm-completion",
+    "requirements": [
+      "UC05-04",
+      "UC05-05"
+    ]
+  },
+  {
+    "operationId": "confirmPasswordReset",
+    "owner": "auth",
+    "surface": "PUBLIC",
+    "method": "POST",
+    "path": "/api/auth/password-reset/confirm",
+    "requirements": [
+      "AUTH-03"
+    ]
+  },
+  {
+    "operationId": "copyTutorSubmission",
+    "owner": "tutor",
+    "surface": "PUBLIC",
+    "method": "POST",
+    "path": "/api/profiles/me/tutor/submissions/{submissionId}/copy",
+    "requirements": [
+      "UC01-03"
+    ]
+  },
+  {
+    "operationId": "createBooking",
+    "owner": "booking",
+    "surface": "PUBLIC",
+    "method": "POST",
+    "path": "/api/bookings",
+    "requirements": [
+      "UC03-02",
+      "UC03-03"
+    ]
+  },
+  {
+    "operationId": "createPayout",
+    "owner": "wallet",
+    "surface": "PUBLIC",
+    "method": "POST",
+    "path": "/api/payouts",
+    "requirements": [
+      "UC07-03",
+      "UC07-04"
+    ]
+  },
+  {
+    "operationId": "createPayoutAccount",
+    "owner": "wallet",
+    "surface": "PUBLIC",
+    "method": "POST",
+    "path": "/api/payout-accounts",
+    "requirements": [
+      "UC07-02"
+    ]
+  },
+  {
+    "operationId": "createReview",
+    "owner": "review",
+    "surface": "PUBLIC",
+    "method": "POST",
+    "path": "/api/bookings/{bookingId}/review",
+    "requirements": [
+      "UC08-01"
+    ]
+  },
+  {
+    "operationId": "createSubject",
+    "owner": "tutor",
+    "surface": "PUBLIC",
+    "method": "POST",
+    "path": "/api/profiles/me/tutor/subjects",
+    "requirements": [
+      "UC02-03"
+    ]
+  },
+  {
+    "operationId": "createTopup",
+    "owner": "wallet",
+    "surface": "PUBLIC",
+    "method": "POST",
+    "path": "/api/wallet/topups",
+    "requirements": [
+      "UC04-01",
+      "UC04-02"
+    ]
+  },
+  {
+    "operationId": "createTutorDraft",
+    "owner": "tutor",
+    "surface": "PUBLIC",
+    "method": "POST",
+    "path": "/api/profiles/me/tutor/drafts",
+    "requirements": [
+      "UC01-01",
+      "UC02-01"
+    ]
+  },
+  {
+    "operationId": "decideDispute",
+    "owner": "wallet",
+    "surface": "PUBLIC",
+    "method": "POST",
+    "path": "/api/admin/disputes/{disputeId}/decision",
+    "requirements": [
+      "UC09-03",
+      "UC09-04"
+    ]
+  },
+  {
+    "operationId": "deletePayoutAccount",
+    "owner": "wallet",
+    "surface": "PUBLIC",
+    "method": "DELETE",
+    "path": "/api/payout-accounts/{accountId}",
+    "requirements": [
+      "UC07-02"
+    ]
+  },
+  {
+    "operationId": "deleteTutorDraft",
+    "owner": "tutor",
+    "surface": "PUBLIC",
+    "method": "DELETE",
+    "path": "/api/profiles/me/tutor/drafts/{draftId}",
+    "requirements": [
+      "UC01-01"
+    ]
+  },
+  {
+    "operationId": "flagReview",
+    "owner": "review",
+    "surface": "PUBLIC",
+    "method": "POST",
+    "path": "/api/reviews/{reviewId}/flags",
+    "requirements": [
+      "UC08-03"
+    ]
+  },
+  {
+    "operationId": "getAccountSettings",
+    "owner": "auth",
+    "surface": "PUBLIC",
+    "method": "GET",
+    "path": "/api/profiles/me/account",
+    "requirements": [
+      "AUTH-05"
+    ]
+  },
+  {
+    "operationId": "getAdminAccount",
+    "owner": "auth",
+    "surface": "PUBLIC",
+    "method": "GET",
+    "path": "/api/admin/users/{userId}",
+    "requirements": [
+      "SUP-04"
+    ]
+  },
+  {
+    "operationId": "getAdminDispute",
+    "owner": "wallet",
+    "surface": "PUBLIC",
+    "method": "GET",
+    "path": "/api/admin/disputes/{disputeId}",
+    "requirements": [
+      "UC09-02"
+    ]
+  },
+  {
+    "operationId": "getAuthOperation",
+    "owner": "auth",
+    "surface": "INTERNAL",
+    "method": "GET",
+    "path": "/internal/v1/auth/operations/{operationId}",
+    "requirements": [
+      "Q-06"
+    ]
+  },
+  {
+    "operationId": "getBookableSubject",
+    "owner": "tutor",
+    "surface": "INTERNAL",
+    "method": "GET",
+    "path": "/internal/v1/tutor/subjects/{subjectId}/bookable",
+    "requirements": [
+      "UC03-02"
+    ]
+  },
+  {
+    "operationId": "getBooking",
+    "owner": "booking",
+    "surface": "PUBLIC",
+    "method": "GET",
+    "path": "/api/bookings/{bookingId}",
+    "requirements": [
+      "UC03-04",
+      "UC05-01",
+      "UC05-03"
+    ]
+  },
+  {
+    "operationId": "getBookingEvidence",
+    "owner": "booking",
+    "surface": "INTERNAL",
+    "method": "GET",
+    "path": "/internal/v1/booking/bookings/{bookingId}/evidence",
+    "requirements": [
+      "UC09-02",
+      "Q-06"
+    ]
+  },
+  {
+    "operationId": "getBookingFinancialRecord",
+    "owner": "wallet",
+    "surface": "INTERNAL",
+    "method": "GET",
+    "path": "/internal/v1/wallet/bookings/{bookingId}/financial-record",
+    "requirements": [
+      "UC09-02",
+      "UC05-05"
+    ]
+  },
+  {
+    "operationId": "getBookingOperation",
+    "owner": "booking",
+    "surface": "INTERNAL",
+    "method": "GET",
+    "path": "/internal/v1/booking/operations/{operationId}",
+    "requirements": [
+      "Q-06"
+    ]
+  },
+  {
+    "operationId": "getCurrentAccount",
+    "owner": "auth",
+    "surface": "PUBLIC",
+    "method": "GET",
+    "path": "/api/auth/me",
+    "requirements": [
+      "AUTH-04"
+    ]
+  },
+  {
+    "operationId": "getDemoResetContent",
+    "owner": "auth",
+    "surface": "PUBLIC",
+    "method": "GET",
+    "path": "/api/demo/password-resets/{contentRef}",
+    "requirements": [
+      "AUTH-03",
+      "SUP-03"
+    ]
+  },
+  {
+    "operationId": "getHealth",
+    "owner": "gateway",
+    "surface": "PUBLIC",
+    "method": "GET",
+    "path": "/api/health",
+    "requirements": [
+      "Q-07"
+    ]
+  },
+  {
+    "operationId": "getInbox",
+    "owner": "messaging",
+    "surface": "PUBLIC",
+    "method": "GET",
+    "path": "/api/messages/inbox",
+    "requirements": [
+      "SUP-01"
+    ]
+  },
+  {
+    "operationId": "getLearningAreas",
+    "owner": "tutor",
+    "surface": "PUBLIC",
+    "method": "GET",
+    "path": "/api/discovery/learning-areas",
+    "requirements": [
+      "UC02-03",
+      "UC03-01"
+    ]
+  },
+  {
+    "operationId": "getLessonCharge",
+    "owner": "wallet",
+    "surface": "INTERNAL",
+    "method": "GET",
+    "path": "/internal/v1/wallet/payments/{operationId}",
+    "requirements": [
+      "UC03-05"
+    ]
+  },
+  {
+    "operationId": "getMessagingOperation",
+    "owner": "messaging",
+    "surface": "INTERNAL",
+    "method": "GET",
+    "path": "/internal/v1/messaging/operations/{operationId}",
+    "requirements": [
+      "Q-06"
+    ]
+  },
+  {
+    "operationId": "getNeedsConfirmation",
+    "owner": "booking",
+    "surface": "PUBLIC",
+    "method": "GET",
+    "path": "/api/bookings/tutor/needs-confirmation",
+    "requirements": [
+      "UC05-04"
+    ]
+  },
+  {
+    "operationId": "getNotificationOperation",
+    "owner": "notification",
+    "surface": "INTERNAL",
+    "method": "GET",
+    "path": "/internal/v1/notification/operations/{operationId}",
+    "requirements": [
+      "Q-06"
+    ]
+  },
+  {
+    "operationId": "getNotificationPreferences",
+    "owner": "notification",
+    "surface": "PUBLIC",
+    "method": "GET",
+    "path": "/api/notifications/preferences",
+    "requirements": [
+      "SUP-02"
+    ]
+  },
+  {
+    "operationId": "getOperation",
+    "owner": "gateway",
+    "surface": "PUBLIC",
+    "method": "GET",
+    "path": "/api/operations/{owner}/{operationId}",
+    "requirements": [
+      "Q-06"
+    ]
+  },
+  {
+    "operationId": "getOwnAvailabilityCalendar",
+    "owner": "booking",
+    "surface": "PUBLIC",
+    "method": "GET",
+    "path": "/api/profiles/me/tutor/availability/calendar",
+    "requirements": [
+      "UC02-04"
+    ]
+  },
+  {
+    "operationId": "getOwnAvailabilityDay",
+    "owner": "booking",
+    "surface": "PUBLIC",
+    "method": "GET",
+    "path": "/api/profiles/me/tutor/availability/{date}",
+    "requirements": [
+      "UC02-04"
+    ]
+  },
+  {
+    "operationId": "getOwnDispute",
+    "owner": "wallet",
+    "surface": "PUBLIC",
+    "method": "GET",
+    "path": "/api/disputes/{disputeId}",
+    "requirements": [
+      "UC09-02"
+    ]
+  },
+  {
+    "operationId": "getPayout",
+    "owner": "wallet",
+    "surface": "PUBLIC",
+    "method": "GET",
+    "path": "/api/payouts/{payoutId}",
+    "requirements": [
+      "UC07-04"
+    ]
+  },
+  {
+    "operationId": "getPayoutBanks",
+    "owner": "wallet",
+    "surface": "PUBLIC",
+    "method": "GET",
+    "path": "/api/payout-accounts/banks",
+    "requirements": [
+      "UC07-02"
+    ]
+  },
+  {
+    "operationId": "getPublicSubject",
+    "owner": "tutor",
+    "surface": "PUBLIC",
+    "method": "GET",
+    "path": "/api/discovery/tutors/{tutorId}/subjects/{subjectId}",
+    "requirements": [
+      "UC03-01"
+    ]
+  },
+  {
+    "operationId": "getPublicTutor",
+    "owner": "tutor",
+    "surface": "PUBLIC",
+    "method": "GET",
+    "path": "/api/discovery/tutors/{tutorId}/profile",
+    "requirements": [
+      "UC03-01",
+      "UC01-05"
+    ]
+  },
+  {
+    "operationId": "getRatingSummaries",
+    "owner": "review",
+    "surface": "INTERNAL",
+    "method": "POST",
+    "path": "/internal/v1/review/rating-summaries",
+    "requirements": [
+      "UC03-01",
+      "UC08-04"
+    ]
+  },
+  {
+    "operationId": "getRefundOutcome",
+    "owner": "wallet",
+    "surface": "INTERNAL",
+    "method": "GET",
+    "path": "/internal/v1/wallet/refunds/{operationId}",
+    "requirements": [
+      "UC06-04"
+    ]
+  },
+  {
+    "operationId": "getReminderEligibility",
+    "owner": "booking",
+    "surface": "INTERNAL",
+    "method": "GET",
+    "path": "/internal/v1/booking/bookings/{bookingId}/reminder-eligibility",
+    "requirements": [
+      "SUP-02"
+    ]
+  },
+  {
+    "operationId": "getResetNotificationContent",
+    "owner": "auth",
+    "surface": "INTERNAL",
+    "method": "GET",
+    "path": "/internal/v1/auth/notification-content/{contentRef}",
+    "requirements": [
+      "AUTH-03"
+    ]
+  },
+  {
+    "operationId": "getReviewEligibility",
+    "owner": "booking",
+    "surface": "INTERNAL",
+    "method": "GET",
+    "path": "/internal/v1/booking/bookings/{bookingId}/review-eligibility",
+    "requirements": [
+      "UC08-01"
+    ]
+  },
+  {
+    "operationId": "getReviewOperation",
+    "owner": "review",
+    "surface": "INTERNAL",
+    "method": "GET",
+    "path": "/internal/v1/review/operations/{operationId}",
+    "requirements": [
+      "Q-06"
+    ]
+  },
+  {
+    "operationId": "getSearchPriceRange",
+    "owner": "tutor",
+    "surface": "PUBLIC",
+    "method": "GET",
+    "path": "/api/discovery/price-range",
+    "requirements": [
+      "UC03-01"
+    ]
+  },
+  {
+    "operationId": "getStudentCancellationQuote",
+    "owner": "booking",
+    "surface": "PUBLIC",
+    "method": "GET",
+    "path": "/api/bookings/{bookingId}/cancellation-quote",
+    "requirements": [
+      "UC06-01",
+      "UC06-02"
+    ]
+  },
+  {
+    "operationId": "getStudentProfile",
+    "owner": "auth",
+    "surface": "PUBLIC",
+    "method": "GET",
+    "path": "/api/profiles/me/student",
+    "requirements": [
+      "AUTH-05",
+      "UC03-01"
+    ]
+  },
+  {
+    "operationId": "getThread",
+    "owner": "messaging",
+    "surface": "PUBLIC",
+    "method": "GET",
+    "path": "/api/messages/thread/{userId}",
+    "requirements": [
+      "SUP-01"
+    ]
+  },
+  {
+    "operationId": "getTopup",
+    "owner": "wallet",
+    "surface": "PUBLIC",
+    "method": "GET",
+    "path": "/api/wallet/topups/{topupId}",
+    "requirements": [
+      "UC04-03"
+    ]
+  },
+  {
+    "operationId": "getTutorCancellationQuote",
+    "owner": "booking",
+    "surface": "PUBLIC",
+    "method": "GET",
+    "path": "/api/bookings/{bookingId}/tutor-cancellation-quote",
+    "requirements": [
+      "UC06-03"
+    ]
+  },
+  {
+    "operationId": "getTutorEligibility",
+    "owner": "tutor",
+    "surface": "INTERNAL",
+    "method": "GET",
+    "path": "/internal/v1/tutor/users/{userId}/eligibility",
+    "requirements": [
+      "AUTH-04",
+      "UC02-04",
+      "UC07-01"
+    ]
+  },
+  {
+    "operationId": "getTutorGrant",
+    "owner": "auth",
+    "surface": "INTERNAL",
+    "method": "GET",
+    "path": "/internal/v1/auth/tutor-grants/{operationId}",
+    "requirements": [
+      "UC01-04"
+    ]
+  },
+  {
+    "operationId": "getTutorOperation",
+    "owner": "tutor",
+    "surface": "INTERNAL",
+    "method": "GET",
+    "path": "/internal/v1/tutor/operations/{operationId}",
+    "requirements": [
+      "Q-06"
+    ]
+  },
+  {
+    "operationId": "getTutorRequest",
+    "owner": "tutor",
+    "surface": "PUBLIC",
+    "method": "GET",
+    "path": "/api/admin/tutor-requests/{submissionId}",
+    "requirements": [
+      "UC01-05",
+      "UC02-01"
+    ]
+  },
+  {
+    "operationId": "getTutorUpcoming",
+    "owner": "booking",
+    "surface": "PUBLIC",
+    "method": "GET",
+    "path": "/api/bookings/tutor/upcoming",
+    "requirements": [
+      "UC05-01",
+      "UC06-03"
+    ]
+  },
+  {
+    "operationId": "getTutorWorkspace",
+    "owner": "tutor",
+    "surface": "PUBLIC",
+    "method": "GET",
+    "path": "/api/profiles/me/tutor",
+    "requirements": [
+      "UC01-01",
+      "UC01-03"
+    ]
+  },
+  {
+    "operationId": "getWallet",
+    "owner": "wallet",
+    "surface": "PUBLIC",
+    "method": "GET",
+    "path": "/api/wallet",
+    "requirements": [
+      "UC04-03",
+      "UC05-05",
+      "UC07-03"
+    ]
+  },
+  {
+    "operationId": "getWalletOperation",
+    "owner": "wallet",
+    "surface": "INTERNAL",
+    "method": "GET",
+    "path": "/internal/v1/wallet/operations/{operationId}",
+    "requirements": [
+      "Q-06"
+    ]
+  },
+  {
+    "operationId": "getWalletTransaction",
+    "owner": "wallet",
+    "surface": "PUBLIC",
+    "method": "GET",
+    "path": "/api/wallet/transactions/{transactionId}",
+    "requirements": [
+      "UC04-03",
+      "UC07-04"
+    ]
+  },
+  {
+    "operationId": "grantTutorCapability",
+    "owner": "auth",
+    "surface": "INTERNAL",
+    "method": "PUT",
+    "path": "/internal/v1/auth/tutor-grants/{operationId}",
+    "requirements": [
+      "UC01-04"
+    ]
+  },
+  {
+    "operationId": "introspectToken",
+    "owner": "auth",
+    "surface": "INTERNAL",
+    "method": "POST",
+    "path": "/internal/v1/auth/introspections",
+    "requirements": [
+      "AUTH-04",
+      "SUP-04"
+    ]
+  },
+  {
+    "operationId": "listActiveAdmins",
+    "owner": "auth",
+    "surface": "INTERNAL",
+    "method": "GET",
+    "path": "/internal/v1/auth/admins",
+    "requirements": [
+      "SUP-03"
+    ]
+  },
+  {
+    "operationId": "listAdminDisputes",
+    "owner": "wallet",
+    "surface": "PUBLIC",
+    "method": "GET",
+    "path": "/api/admin/disputes",
+    "requirements": [
+      "UC09-02"
+    ]
+  },
+  {
+    "operationId": "listBookings",
+    "owner": "booking",
+    "surface": "PUBLIC",
+    "method": "GET",
+    "path": "/api/bookings",
+    "requirements": [
+      "UC03-04",
+      "UC06-04"
+    ]
+  },
+  {
+    "operationId": "listOwnDisputes",
+    "owner": "wallet",
+    "surface": "PUBLIC",
+    "method": "GET",
+    "path": "/api/disputes",
+    "requirements": [
+      "UC09-02"
+    ]
+  },
+  {
+    "operationId": "listOwnNotifications",
+    "owner": "notification",
+    "surface": "PUBLIC",
+    "method": "GET",
+    "path": "/api/notifications",
+    "requirements": [
+      "SUP-03"
+    ]
+  },
+  {
+    "operationId": "listOwnSubjects",
+    "owner": "tutor",
+    "surface": "PUBLIC",
+    "method": "GET",
+    "path": "/api/profiles/me/tutor/subjects",
+    "requirements": [
+      "UC02-03"
+    ]
+  },
+  {
+    "operationId": "listPayoutAccounts",
+    "owner": "wallet",
+    "surface": "PUBLIC",
+    "method": "GET",
+    "path": "/api/payout-accounts",
+    "requirements": [
+      "UC07-01",
+      "UC07-02"
+    ]
+  },
+  {
+    "operationId": "listPayouts",
+    "owner": "wallet",
+    "surface": "PUBLIC",
+    "method": "GET",
+    "path": "/api/payouts",
+    "requirements": [
+      "UC07-04"
+    ]
+  },
+  {
+    "operationId": "listPublicReviews",
+    "owner": "review",
+    "surface": "PUBLIC",
+    "method": "GET",
+    "path": "/api/reviews",
+    "requirements": [
+      "UC08-02"
+    ]
+  },
+  {
+    "operationId": "listReviewFlags",
+    "owner": "review",
+    "surface": "PUBLIC",
+    "method": "GET",
+    "path": "/api/admin/review-flags",
+    "requirements": [
+      "UC08-04"
+    ]
+  },
+  {
+    "operationId": "listTutorRequests",
+    "owner": "tutor",
+    "surface": "PUBLIC",
+    "method": "GET",
+    "path": "/api/admin/tutor-requests",
+    "requirements": [
+      "UC01-04",
+      "UC02-01"
+    ]
+  },
+  {
+    "operationId": "listWalletTransactions",
+    "owner": "wallet",
+    "surface": "PUBLIC",
+    "method": "GET",
+    "path": "/api/wallet/transactions",
+    "requirements": [
+      "UC04-03",
+      "UC07-04"
+    ]
+  },
+  {
+    "operationId": "login",
+    "owner": "auth",
+    "surface": "PUBLIC",
+    "method": "POST",
+    "path": "/api/auth/login",
+    "requirements": [
+      "AUTH-02"
+    ]
+  },
+  {
+    "operationId": "logout",
+    "owner": "auth",
+    "surface": "PUBLIC",
+    "method": "POST",
+    "path": "/api/auth/logout",
+    "requirements": [
+      "AUTH-02"
+    ]
+  },
+  {
+    "operationId": "lookupAccounts",
+    "owner": "auth",
+    "surface": "INTERNAL",
+    "method": "POST",
+    "path": "/internal/v1/auth/accounts/lookup",
+    "requirements": [
+      "AUTH-04",
+      "SUP-01",
+      "SUP-03"
+    ]
+  },
+  {
+    "operationId": "markThreadRead",
+    "owner": "messaging",
+    "surface": "PUBLIC",
+    "method": "PUT",
+    "path": "/api/messages/thread/{userId}/read",
+    "requirements": [
+      "SUP-01"
+    ]
+  },
+  {
+    "operationId": "moderateReview",
+    "owner": "review",
+    "surface": "PUBLIC",
+    "method": "POST",
+    "path": "/api/admin/reviews/{reviewId}/moderation",
+    "requirements": [
+      "UC08-04"
+    ]
+  },
+  {
+    "operationId": "openDispute",
+    "owner": "wallet",
+    "surface": "PUBLIC",
+    "method": "POST",
+    "path": "/api/disputes",
+    "requirements": [
+      "UC09-01"
+    ]
+  },
+  {
+    "operationId": "payBooking",
+    "owner": "booking",
+    "surface": "PUBLIC",
+    "method": "POST",
+    "path": "/api/bookings/{bookingId}/confirm-payment",
+    "requirements": [
+      "UC03-04",
+      "UC03-05"
+    ]
+  },
+  {
+    "operationId": "putAvailabilitySlot",
+    "owner": "booking",
+    "surface": "PUBLIC",
+    "method": "PUT",
+    "path": "/api/profiles/me/tutor/availability/{date}/{time}",
+    "requirements": [
+      "UC02-04"
+    ]
+  },
+  {
+    "operationId": "putMeetingOverride",
+    "owner": "booking",
+    "surface": "PUBLIC",
+    "method": "PATCH",
+    "path": "/api/bookings/{bookingId}/meeting-link",
+    "requirements": [
+      "UC05-02"
+    ]
+  },
+  {
+    "operationId": "putNotificationPreferences",
+    "owner": "notification",
+    "surface": "PUBLIC",
+    "method": "PUT",
+    "path": "/api/notifications/preferences",
+    "requirements": [
+      "SUP-02"
+    ]
+  },
+  {
+    "operationId": "putStudentProfile",
+    "owner": "auth",
+    "surface": "PUBLIC",
+    "method": "PUT",
+    "path": "/api/profiles/me/student",
+    "requirements": [
+      "AUTH-05",
+      "UC03-01"
+    ]
+  },
+  {
+    "operationId": "recordLessonCompletion",
+    "owner": "wallet",
+    "surface": "INTERNAL",
+    "method": "PUT",
+    "path": "/internal/v1/wallet/bookings/{bookingId}/completion",
+    "requirements": [
+      "UC05-05"
+    ]
+  },
+  {
+    "operationId": "replyToReview",
+    "owner": "review",
+    "surface": "PUBLIC",
+    "method": "POST",
+    "path": "/api/reviews/{reviewId}/reply",
+    "requirements": [
+      "UC08-02"
+    ]
+  },
+  {
+    "operationId": "requestPasswordReset",
+    "owner": "auth",
+    "surface": "PUBLIC",
+    "method": "POST",
+    "path": "/api/auth/password-reset/request",
+    "requirements": [
+      "AUTH-03"
+    ]
+  },
+  {
+    "operationId": "resolveOrCloseLessonCharge",
+    "owner": "wallet",
+    "surface": "INTERNAL",
+    "method": "POST",
+    "path": "/internal/v1/wallet/payments/{operationId}/resolve-or-close",
+    "requirements": [
+      "UC03-05"
+    ]
+  },
+  {
+    "operationId": "restrictAccount",
+    "owner": "auth",
+    "surface": "PUBLIC",
+    "method": "POST",
+    "path": "/api/admin/users/{userId}/restrictions",
+    "requirements": [
+      "SUP-04"
+    ]
+  },
+  {
+    "operationId": "reviewTutorSubmission",
+    "owner": "tutor",
+    "surface": "PUBLIC",
+    "method": "POST",
+    "path": "/api/admin/tutor-requests/{submissionId}/review",
+    "requirements": [
+      "UC01-04",
+      "UC02-01"
+    ]
+  },
+  {
+    "operationId": "searchAccounts",
+    "owner": "auth",
+    "surface": "PUBLIC",
+    "method": "GET",
+    "path": "/api/admin/users",
+    "requirements": [
+      "SUP-04"
+    ]
+  },
+  {
+    "operationId": "searchTutorSubjects",
+    "owner": "tutor",
+    "surface": "PUBLIC",
+    "method": "GET",
+    "path": "/api/discovery/tutors",
+    "requirements": [
+      "UC03-01",
+      "Q-03"
+    ]
+  },
+  {
+    "operationId": "sendMessage",
+    "owner": "messaging",
+    "surface": "PUBLIC",
+    "method": "POST",
+    "path": "/api/messages",
+    "requirements": [
+      "SUP-01",
+      "SUP-03"
+    ]
+  },
+  {
+    "operationId": "setDefaultPayoutAccount",
+    "owner": "wallet",
+    "surface": "PUBLIC",
+    "method": "PATCH",
+    "path": "/api/payout-accounts/{accountId}/default",
+    "requirements": [
+      "UC07-02"
+    ]
+  },
+  {
+    "operationId": "setDemoMeetingsOutcome",
+    "owner": "booking",
+    "surface": "PUBLIC",
+    "method": "POST",
+    "path": "/api/demo/meetings/{bookingId}/outcome",
+    "requirements": [
+      "UC05-01"
+    ]
+  },
+  {
+    "operationId": "setDemoPayoutsOutcome",
+    "owner": "wallet",
+    "surface": "PUBLIC",
+    "method": "POST",
+    "path": "/api/demo/payouts/{payoutId}/outcome",
+    "requirements": [
+      "UC07-04"
+    ]
+  },
+  {
+    "operationId": "setDemoTopupsOutcome",
+    "owner": "wallet",
+    "surface": "PUBLIC",
+    "method": "POST",
+    "path": "/api/demo/topups/{topupId}/outcome",
+    "requirements": [
+      "UC04-03"
+    ]
+  },
+  {
+    "operationId": "setTutorPublication",
+    "owner": "tutor",
+    "surface": "PUBLIC",
+    "method": "PATCH",
+    "path": "/api/profiles/me/tutor/publication",
+    "requirements": [
+      "UC02-02"
+    ]
+  },
+  {
+    "operationId": "signup",
+    "owner": "auth",
+    "surface": "PUBLIC",
+    "method": "POST",
+    "path": "/api/auth/signup",
+    "requirements": [
+      "AUTH-01"
+    ]
+  },
+  {
+    "operationId": "submitTutorDraft",
+    "owner": "tutor",
+    "surface": "PUBLIC",
+    "method": "POST",
+    "path": "/api/profiles/me/tutor/drafts/{draftId}/submit",
+    "requirements": [
+      "UC01-02",
+      "UC02-01"
+    ]
+  },
+  {
+    "operationId": "tutorCancelBooking",
+    "owner": "booking",
+    "surface": "PUBLIC",
+    "method": "POST",
+    "path": "/api/bookings/{bookingId}/tutor-cancel",
+    "requirements": [
+      "UC06-03"
+    ]
+  },
+  {
+    "operationId": "updateAccountSettings",
+    "owner": "auth",
+    "surface": "PUBLIC",
+    "method": "PUT",
+    "path": "/api/profiles/me/account",
+    "requirements": [
+      "AUTH-05"
+    ]
+  },
+  {
+    "operationId": "updateSubject",
+    "owner": "tutor",
+    "surface": "PUBLIC",
+    "method": "PUT",
+    "path": "/api/profiles/me/tutor/subjects/{subjectId}",
+    "requirements": [
+      "UC02-03"
+    ]
+  },
+  {
+    "operationId": "updateTutorDraft",
+    "owner": "tutor",
+    "surface": "PUBLIC",
+    "method": "PUT",
+    "path": "/api/profiles/me/tutor/drafts/{draftId}",
+    "requirements": [
+      "UC01-01",
+      "UC02-01"
+    ]
+  },
+  {
+    "operationId": "validatePasswordReset",
+    "owner": "auth",
+    "surface": "PUBLIC",
+    "method": "POST",
+    "path": "/api/auth/password-reset/validate",
+    "requirements": [
+      "AUTH-03"
+    ]
+  },
+  {
+    "operationId": "withdrawTutorSubmission",
+    "owner": "tutor",
+    "surface": "PUBLIC",
+    "method": "POST",
+    "path": "/api/profiles/me/tutor/withdraw",
+    "requirements": [
+      "UC01-03"
+    ]
+  }
+]

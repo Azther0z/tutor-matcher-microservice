@@ -1,0 +1,22 @@
+$kind: http-request
+description: 'Always return the same 202 acknowledgement, with no account ID or operation link, whether the address exists
+  or not.See contracts/README.md for semantic invariants, privacy, retries and pending outcomes.
+
+  Derived target request. Use synthetic IDs and runtime credentials. See contracts/examples/cases.json; target behavior is
+  not implemented yet.'
+url: '{{baseUrl}}/auth/password-reset/request'
+method: POST
+headers:
+- key: X-Request-Id
+  value: '{{requestId}}'
+  disabled: false
+  description: X-Request-Id
+- key: Content-Type
+  value: application/json
+- key: Accept
+  value: application/json
+body:
+  type: json
+  content: "{\n  \"email\": \"student@example.invalid\"\n}"
+settings: {}
+order: 5000

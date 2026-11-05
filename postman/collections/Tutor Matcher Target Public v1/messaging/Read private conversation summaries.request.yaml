@@ -1,0 +1,34 @@
+$kind: http-request
+description: 'Caller must satisfy current account and capability checks plus owner/resource checks. See contracts/README.md
+  for semantic invariants, privacy, retries and pending outcomes.
+
+  Derived target request. Use synthetic IDs and runtime credentials. See contracts/examples/cases.json; target behavior is
+  not implemented yet.'
+url: '{{baseUrl}}/messages/inbox?page=1&pageSize=20&view=STUDENT'
+method: GET
+headers:
+- key: X-Request-Id
+  value: '{{requestId}}'
+  disabled: false
+  description: X-Request-Id
+- key: Accept
+  value: application/json
+queryParams:
+- key: page
+  value: '1'
+  disabled: false
+  description: page
+- key: pageSize
+  value: '20'
+  disabled: false
+  description: pageSize
+- key: view
+  value: STUDENT
+  disabled: false
+  description: view
+auth:
+  type: bearer
+  credentials:
+    token: '{{bearerToken}}'
+settings: {}
+order: 2000

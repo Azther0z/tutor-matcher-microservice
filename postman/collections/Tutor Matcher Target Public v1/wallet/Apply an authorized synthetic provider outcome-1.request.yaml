@@ -1,0 +1,36 @@
+$kind: http-request
+name: Apply an authorized synthetic provider outcome
+description: 'Caller must satisfy current account and capability checks plus owner/resource checks. See contracts/README.md
+  for semantic invariants, privacy, retries and pending outcomes.
+
+  Derived target request. Use synthetic IDs and runtime credentials. See contracts/examples/cases.json; target behavior is
+  not implemented yet.'
+url: '{{baseUrl}}/demo/payouts/:payoutId/outcome'
+method: POST
+headers:
+- key: X-Request-Id
+  value: '{{requestId}}'
+  disabled: false
+  description: X-Request-Id
+- key: Idempotency-Key
+  value: '{{idempotencyKey}}'
+  disabled: false
+  description: (Required) Stable for retries of one logical action. Resolve authorized replay before checking a stale revision.
+- key: Content-Type
+  value: application/json
+- key: Accept
+  value: application/json
+pathVariables:
+- key: payoutId
+  value: '{{payoutId}}'
+  disabled: false
+  description: (Required) payoutId
+body:
+  type: json
+  content: "{\n  \"outcome\": \"UNKNOWN\",\n  \"providerReference\": \"00000001-1111-4111-8111-111111111111\"\n}"
+auth:
+  type: bearer
+  credentials:
+    token: '{{bearerToken}}'
+settings: {}
+order: 21000

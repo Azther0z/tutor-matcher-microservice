@@ -1,0 +1,59 @@
+$kind: http-request
+description: 'An absent token is anonymous. If a token is supplied, validate it; do not silently downgrade an invalid or restricted
+  identity. Use batches for rating and next-availability composition.See contracts/README.md for semantic invariants, privacy,
+  retries and pending outcomes.
+
+  Derived target request. Use synthetic IDs and runtime credentials. See contracts/examples/cases.json; target behavior is
+  not implemented yet.'
+url: '{{baseUrl}}/discovery/tutors?page=1&pageSize=20&q=Synthetic%20example&tutorName=Synthetic%20example&learningArea=mathematics&minRate=100.00&maxRate=100.00&minRating=1&format=ONLINE&sort=RECOMMENDED'
+method: GET
+headers:
+- key: X-Request-Id
+  value: '{{requestId}}'
+  disabled: false
+  description: X-Request-Id
+- key: Accept
+  value: application/json
+queryParams:
+- key: page
+  value: '1'
+  disabled: false
+  description: page
+- key: pageSize
+  value: '20'
+  disabled: false
+  description: pageSize
+- key: q
+  value: Synthetic example
+  disabled: false
+  description: q
+- key: tutorName
+  value: Synthetic example
+  disabled: false
+  description: tutorName
+- key: learningArea
+  value: mathematics
+  disabled: false
+  description: learningArea
+- key: minRate
+  value: '100.00'
+  disabled: false
+  description: minRate
+- key: maxRate
+  value: '100.00'
+  disabled: false
+  description: maxRate
+- key: minRating
+  value: '1'
+  disabled: false
+  description: minRating
+- key: format
+  value: ONLINE
+  disabled: false
+  description: format
+- key: sort
+  value: RECOMMENDED
+  disabled: false
+  description: sort
+settings: {}
+order: 15000

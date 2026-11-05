@@ -1,0 +1,1703 @@
+{
+  "schemaCases": [
+    {
+      "name": "booking with two slots",
+      "schema": "BookingCreate",
+      "valid": true,
+      "value": {
+        "subjectId": "00000002-1111-4111-8111-111111111111",
+        "availabilityIds": [
+          "00000003-1111-4111-8111-111111111111",
+          "00000004-1111-4111-8111-111111111111"
+        ],
+        "description": "Synthetic lesson goal"
+      }
+    },
+    {
+      "name": "duplicate slot rejected",
+      "schema": "BookingCreate",
+      "valid": false,
+      "value": {
+        "subjectId": "00000002-1111-4111-8111-111111111111",
+        "availabilityIds": [
+          "00000003-1111-4111-8111-111111111111",
+          "00000003-1111-4111-8111-111111111111"
+        ]
+      }
+    },
+    {
+      "name": "maximum eight slots",
+      "schema": "BookingCreate",
+      "valid": true,
+      "value": {
+        "subjectId": "00000002-1111-4111-8111-111111111111",
+        "availabilityIds": [
+          "0000000a-1111-4111-8111-111111111111",
+          "0000000b-1111-4111-8111-111111111111",
+          "0000000c-1111-4111-8111-111111111111",
+          "0000000d-1111-4111-8111-111111111111",
+          "0000000e-1111-4111-8111-111111111111",
+          "0000000f-1111-4111-8111-111111111111",
+          "00000010-1111-4111-8111-111111111111",
+          "00000011-1111-4111-8111-111111111111"
+        ]
+      }
+    },
+    {
+      "name": "ninth slot rejected",
+      "schema": "BookingCreate",
+      "valid": false,
+      "value": {
+        "subjectId": "00000002-1111-4111-8111-111111111111",
+        "availabilityIds": [
+          "0000000a-1111-4111-8111-111111111111",
+          "0000000b-1111-4111-8111-111111111111",
+          "0000000c-1111-4111-8111-111111111111",
+          "0000000d-1111-4111-8111-111111111111",
+          "0000000e-1111-4111-8111-111111111111",
+          "0000000f-1111-4111-8111-111111111111",
+          "00000010-1111-4111-8111-111111111111",
+          "00000011-1111-4111-8111-111111111111",
+          "00000012-1111-4111-8111-111111111111"
+        ]
+      }
+    },
+    {
+      "name": "legacy trial flag rejected",
+      "schema": "BookingCreate",
+      "valid": false,
+      "value": {
+        "subjectId": "00000002-1111-4111-8111-111111111111",
+        "availabilityIds": [
+          "00000003-1111-4111-8111-111111111111"
+        ],
+        "isTrial": true
+      }
+    },
+    {
+      "name": "Mongo ID is not a public target ID",
+      "schema": "Id",
+      "valid": false,
+      "value": "507f1f77bcf86cd799439011"
+    },
+    {
+      "name": "UUID v4 accepted",
+      "schema": "Id",
+      "valid": true,
+      "value": "00000001-1111-4111-8111-111111111111"
+    },
+    {
+      "name": "decimal accepted",
+      "schema": "Amount",
+      "valid": true,
+      "value": "1234.50"
+    },
+    {
+      "name": "zero balance accepted",
+      "schema": "Amount",
+      "valid": true,
+      "value": "0.00"
+    },
+    {
+      "name": "numeric money rejected",
+      "schema": "Amount",
+      "valid": false,
+      "value": 1234.5
+    },
+    {
+      "name": "third decimal rejected",
+      "schema": "Amount",
+      "valid": false,
+      "value": "1.001"
+    },
+    {
+      "name": "negative rejected",
+      "schema": "Amount",
+      "valid": false,
+      "value": "-1.00"
+    },
+    {
+      "name": "transfer maximum",
+      "schema": "TransferAmount",
+      "valid": true,
+      "value": "100000.00"
+    },
+    {
+      "name": "transfer above maximum",
+      "schema": "TransferAmount",
+      "valid": false,
+      "value": "100000.01"
+    },
+    {
+      "name": "zero transfer",
+      "schema": "TransferAmount",
+      "valid": false,
+      "value": "0.00"
+    },
+    {
+      "name": "spaces and dashes normalized later",
+      "schema": "PayoutAccountCreate",
+      "valid": true,
+      "value": {
+        "bankCode": "DEMO",
+        "accountHolderName": "Synthetic Tutor",
+        "accountNumber": "000-000-0000"
+      }
+    },
+    {
+      "name": "public account contains masked number only",
+      "schema": "PayoutAccount",
+      "valid": true,
+      "value": {
+        "id": "00000001-1111-4111-8111-111111111111",
+        "bankCode": "DEMO",
+        "accountHolderName": "Synthetic Tutor",
+        "maskedAccountNumber": "******0000",
+        "isDefault": true,
+        "revision": "0"
+      }
+    },
+    {
+      "name": "full account cannot leak",
+      "schema": "PayoutAccount",
+      "valid": false,
+      "value": {
+        "id": "00000001-1111-4111-8111-111111111111",
+        "bankCode": "DEMO",
+        "accountHolderName": "Synthetic Tutor",
+        "maskedAccountNumber": "******0000",
+        "isDefault": true,
+        "revision": "0",
+        "accountNumber": "0000000000"
+      }
+    },
+    {
+      "name": "UTC milliseconds",
+      "schema": "Timestamp",
+      "valid": true,
+      "value": "2026-11-06T03:00:00.000Z"
+    },
+    {
+      "name": "offset time rejected",
+      "schema": "Timestamp",
+      "valid": false,
+      "value": "2026-11-06T10:00:00.000+07:00"
+    },
+    {
+      "name": "invalid calendar date",
+      "schema": "Date",
+      "valid": false,
+      "value": "2026-02-30"
+    },
+    {
+      "name": "half-hour slot",
+      "schema": "BangkokTime",
+      "valid": true,
+      "value": "23:30"
+    },
+    {
+      "name": "off-grid slot",
+      "schema": "BangkokTime",
+      "valid": false,
+      "value": "10:15"
+    },
+    {
+      "name": "HTTPS override",
+      "schema": "MeetingWrite",
+      "valid": true,
+      "value": {
+        "customMeetingUrl": "https://meeting.example.invalid/synthetic"
+      }
+    },
+    {
+      "name": "clear override",
+      "schema": "MeetingWrite",
+      "valid": true,
+      "value": {
+        "customMeetingUrl": null
+      }
+    },
+    {
+      "name": "unsafe override rejected",
+      "schema": "MeetingWrite",
+      "valid": false,
+      "value": {
+        "customMeetingUrl": "javascript:alert(1)"
+      }
+    },
+    {
+      "name": "rejection requires reason",
+      "schema": "TutorReviewWrite",
+      "valid": false,
+      "value": {
+        "decision": "REJECT"
+      }
+    },
+    {
+      "name": "approval",
+      "schema": "TutorReviewWrite",
+      "valid": true,
+      "value": {
+        "decision": "APPROVE"
+      }
+    },
+    {
+      "name": "draft incomplete",
+      "schema": "TutorDraftWrite",
+      "valid": true,
+      "value": {
+        "bio": "Synthetic draft"
+      }
+    },
+    {
+      "name": "consent on submission",
+      "schema": "TutorSubmit",
+      "valid": true,
+      "value": {
+        "consentAccepted": true
+      }
+    },
+    {
+      "name": "refused consent",
+      "schema": "TutorSubmit",
+      "valid": false,
+      "value": {
+        "consentAccepted": false
+      }
+    },
+    {
+      "name": "tutor cancellation reason",
+      "schema": "TutorCancellationWrite",
+      "valid": true,
+      "value": {
+        "quoteId": "00000001-1111-4111-8111-111111111111",
+        "reason": "Synthetic cancellation"
+      }
+    },
+    {
+      "name": "empty tutor reason rejected",
+      "schema": "TutorCancellationWrite",
+      "valid": false,
+      "value": {
+        "quoteId": "00000001-1111-4111-8111-111111111111",
+        "reason": ""
+      }
+    },
+    {
+      "name": "full remaining dispute award",
+      "schema": "DisputeDecision",
+      "valid": true,
+      "value": {
+        "decision": "APPROVE_FULL_REMAINDER",
+        "reason": "Synthetic evidence accepted"
+      }
+    },
+    {
+      "name": "partial award not supported",
+      "schema": "DisputeDecision",
+      "valid": false,
+      "value": {
+        "decision": "PARTIAL",
+        "reason": "Synthetic"
+      }
+    },
+    {
+      "name": "chat accepted",
+      "schema": "MessageWrite",
+      "valid": true,
+      "value": {
+        "recipientId": "00000002-1111-4111-8111-111111111111",
+        "view": "STUDENT",
+        "content": "Synthetic scheduling question"
+      }
+    },
+    {
+      "name": "empty chat rejected",
+      "schema": "MessageWrite",
+      "valid": false,
+      "value": {
+        "recipientId": "00000002-1111-4111-8111-111111111111",
+        "view": "STUDENT",
+        "content": ""
+      }
+    },
+    {
+      "name": "five preference groups",
+      "schema": "PreferencesWrite",
+      "valid": true,
+      "value": {
+        "bookingUpdates": {
+          "email": true,
+          "push": false
+        },
+        "lessonReminders": {
+          "email": true,
+          "push": false
+        },
+        "newMessages": {
+          "email": true,
+          "push": false
+        },
+        "walletPayments": {
+          "email": true,
+          "push": false
+        },
+        "productNews": {
+          "email": true,
+          "push": false
+        }
+      }
+    },
+    {
+      "name": "SYSTEM is not a sixth preference",
+      "schema": "PreferencesWrite",
+      "valid": false,
+      "value": {
+        "bookingUpdates": {
+          "email": true,
+          "push": false
+        },
+        "lessonReminders": {
+          "email": true,
+          "push": false
+        },
+        "newMessages": {
+          "email": true,
+          "push": false
+        },
+        "walletPayments": {
+          "email": true,
+          "push": false
+        },
+        "productNews": {
+          "email": true,
+          "push": false
+        },
+        "system": {
+          "email": false,
+          "push": false
+        }
+      }
+    },
+    {
+      "name": "stable conflict error",
+      "schema": "Error",
+      "valid": true,
+      "value": {
+        "code": "QUOTE_STALE",
+        "message": "Review a new cancellation quote.",
+        "requestId": "00000001-1111-4111-8111-111111111111",
+        "retryable": false,
+        "fields": []
+      }
+    },
+    {
+      "name": "immutable charge command",
+      "schema": "PaymentCommand",
+      "valid": true,
+      "value": {
+        "bookingId": "00000001-1111-4111-8111-111111111111",
+        "sourceOperationId": "00000002-1111-4111-8111-111111111111",
+        "studentUserId": "00000002-1111-4111-8111-111111111111",
+        "tutorUserId": "00000003-1111-4111-8111-111111111111",
+        "subjectId": "00000004-1111-4111-8111-111111111111",
+        "amount": {
+          "currency": "THB",
+          "amount": "100.00"
+        },
+        "startsAt": "2026-11-07T03:00:00.000Z",
+        "endsAt": "2026-11-07T04:00:00.000Z",
+        "holdExpiresAt": "2026-11-06T03:15:00.000Z",
+        "admission": {
+          "id": "00000001-1111-4111-8111-111111111111",
+          "actorUserId": "00000002-1111-4111-8111-111111111111",
+          "sessionId": "00000003-1111-4111-8111-111111111111",
+          "admittedAt": "2026-11-06T03:00:00.000Z",
+          "requestId": "00000004-1111-4111-8111-111111111111",
+          "publicOperation": "payBooking"
+        }
+      }
+    },
+    {
+      "name": "resolve missing charge by closing",
+      "schema": "ClosePayment",
+      "valid": true,
+      "value": {
+        "command": {
+          "bookingId": "00000001-1111-4111-8111-111111111111",
+          "sourceOperationId": "00000002-1111-4111-8111-111111111111",
+          "studentUserId": "00000002-1111-4111-8111-111111111111",
+          "tutorUserId": "00000003-1111-4111-8111-111111111111",
+          "subjectId": "00000004-1111-4111-8111-111111111111",
+          "amount": {
+            "currency": "THB",
+            "amount": "100.00"
+          },
+          "startsAt": "2026-11-07T03:00:00.000Z",
+          "endsAt": "2026-11-07T04:00:00.000Z",
+          "holdExpiresAt": "2026-11-06T03:15:00.000Z",
+          "admission": {
+            "id": "00000001-1111-4111-8111-111111111111",
+            "actorUserId": "00000002-1111-4111-8111-111111111111",
+            "sessionId": "00000003-1111-4111-8111-111111111111",
+            "admittedAt": "2026-11-06T03:00:00.000Z",
+            "requestId": "00000004-1111-4111-8111-111111111111",
+            "publicOperation": "payBooking"
+          }
+        },
+        "reason": "HOLD_EXPIRED"
+      }
+    },
+    {
+      "name": "charge APPLIED",
+      "schema": "PaymentResult",
+      "valid": true,
+      "value": {
+        "operationId": "00000001-1111-4111-8111-111111111111",
+        "bookingId": "00000002-1111-4111-8111-111111111111",
+        "status": "APPLIED",
+        "transactionId": "00000003-1111-4111-8111-111111111111",
+        "amount": {
+          "currency": "THB",
+          "amount": "100.00"
+        },
+        "balance": {
+          "currency": "THB",
+          "amount": "200.00"
+        },
+        "reason": null,
+        "decidedAt": "2026-11-06T03:00:00.000Z"
+      }
+    },
+    {
+      "name": "charge DECLINED",
+      "schema": "PaymentResult",
+      "valid": true,
+      "value": {
+        "operationId": "00000001-1111-4111-8111-111111111111",
+        "bookingId": "00000002-1111-4111-8111-111111111111",
+        "status": "DECLINED",
+        "transactionId": null,
+        "amount": {
+          "currency": "THB",
+          "amount": "100.00"
+        },
+        "balance": {
+          "currency": "THB",
+          "amount": "200.00"
+        },
+        "reason": "HOLD_EXPIRED",
+        "decidedAt": "2026-11-06T03:00:00.000Z"
+      }
+    },
+    {
+      "name": "charge CLOSED",
+      "schema": "PaymentResult",
+      "valid": true,
+      "value": {
+        "operationId": "00000001-1111-4111-8111-111111111111",
+        "bookingId": "00000002-1111-4111-8111-111111111111",
+        "status": "CLOSED",
+        "transactionId": null,
+        "amount": {
+          "currency": "THB",
+          "amount": "100.00"
+        },
+        "balance": {
+          "currency": "THB",
+          "amount": "200.00"
+        },
+        "reason": "HOLD_EXPIRED",
+        "decidedAt": "2026-11-06T03:00:00.000Z"
+      }
+    },
+    {
+      "name": "accepted pending operation",
+      "schema": "PendingOperationRef",
+      "valid": true,
+      "value": {
+        "id": "00000001-1111-4111-8111-111111111111",
+        "owner": "wallet",
+        "status": "PENDING",
+        "statusUrl": "/api/operations/wallet/00000001-1111-4111-8111-111111111111",
+        "resource": null
+      }
+    },
+    {
+      "name": "202 cannot imply terminal result",
+      "schema": "PendingOperationRef",
+      "valid": false,
+      "value": {
+        "id": "00000001-1111-4111-8111-111111111111",
+        "owner": "wallet",
+        "status": "SUCCEEDED",
+        "statusUrl": "/api/operations/wallet/00000001-1111-4111-8111-111111111111",
+        "resource": null
+      }
+    },
+    {
+      "name": "unknown fake provider",
+      "schema": "DemoOutcome",
+      "valid": true,
+      "value": {
+        "outcome": "UNKNOWN",
+        "providerReference": "00000001-1111-4111-8111-111111111111"
+      }
+    },
+    {
+      "name": "event auth.password-reset-requested",
+      "schema": "event",
+      "valid": true,
+      "value": {
+        "eventId": "00000065-1111-4111-8111-111111111111",
+        "type": "auth.password-reset-requested",
+        "schemaVersion": 1,
+        "occurredAt": "2026-11-06T03:00:00.000Z",
+        "producer": "auth",
+        "aggregate": {
+          "type": "synthetic",
+          "id": "00000001-1111-4111-8111-111111111111",
+          "version": "1"
+        },
+        "correlationId": "00000002-1111-4111-8111-111111111111",
+        "targets": {
+          "kind": "USERS",
+          "userIds": [
+            "00000001-1111-4111-8111-111111111111"
+          ]
+        },
+        "notificationGroup": "SYSTEM",
+        "data": {
+          "contentRef": "00000001-1111-4111-8111-111111111111",
+          "expiresAt": "2026-11-06T03:00:00.000Z"
+        }
+      }
+    },
+    {
+      "name": "event auth.account-restricted",
+      "schema": "event",
+      "valid": true,
+      "value": {
+        "eventId": "00000066-1111-4111-8111-111111111111",
+        "type": "auth.account-restricted",
+        "schemaVersion": 1,
+        "occurredAt": "2026-11-06T03:00:00.000Z",
+        "producer": "auth",
+        "aggregate": {
+          "type": "synthetic",
+          "id": "00000001-1111-4111-8111-111111111111",
+          "version": "2"
+        },
+        "correlationId": "00000002-1111-4111-8111-111111111111",
+        "targets": {
+          "kind": "USERS",
+          "userIds": [
+            "00000001-1111-4111-8111-111111111111"
+          ]
+        },
+        "notificationGroup": "SYSTEM",
+        "data": {
+          "action": "SUSPEND",
+          "reason": "Synthetic reason"
+        }
+      }
+    },
+    {
+      "name": "event tutor.submission-submitted",
+      "schema": "event",
+      "valid": true,
+      "value": {
+        "eventId": "00000067-1111-4111-8111-111111111111",
+        "type": "tutor.submission-submitted",
+        "schemaVersion": 1,
+        "occurredAt": "2026-11-06T03:00:00.000Z",
+        "producer": "tutor",
+        "aggregate": {
+          "type": "synthetic",
+          "id": "00000001-1111-4111-8111-111111111111",
+          "version": "3"
+        },
+        "correlationId": "00000002-1111-4111-8111-111111111111",
+        "targets": {
+          "kind": "ADMINS"
+        },
+        "notificationGroup": "SYSTEM",
+        "data": {
+          "submissionId": "00000001-1111-4111-8111-111111111111",
+          "applicantUserId": "00000001-1111-4111-8111-111111111111",
+          "kind": "APPLICATION"
+        }
+      }
+    },
+    {
+      "name": "event tutor.submission-withdrawn",
+      "schema": "event",
+      "valid": true,
+      "value": {
+        "eventId": "00000068-1111-4111-8111-111111111111",
+        "type": "tutor.submission-withdrawn",
+        "schemaVersion": 1,
+        "occurredAt": "2026-11-06T03:00:00.000Z",
+        "producer": "tutor",
+        "aggregate": {
+          "type": "synthetic",
+          "id": "00000001-1111-4111-8111-111111111111",
+          "version": "4"
+        },
+        "correlationId": "00000002-1111-4111-8111-111111111111",
+        "targets": {
+          "kind": "ADMINS"
+        },
+        "notificationGroup": "SYSTEM",
+        "data": {
+          "submissionId": "00000001-1111-4111-8111-111111111111",
+          "applicantUserId": "00000001-1111-4111-8111-111111111111",
+          "kind": "APPLICATION"
+        }
+      }
+    },
+    {
+      "name": "event tutor.submission-decided",
+      "schema": "event",
+      "valid": true,
+      "value": {
+        "eventId": "00000069-1111-4111-8111-111111111111",
+        "type": "tutor.submission-decided",
+        "schemaVersion": 1,
+        "occurredAt": "2026-11-06T03:00:00.000Z",
+        "producer": "tutor",
+        "aggregate": {
+          "type": "synthetic",
+          "id": "00000001-1111-4111-8111-111111111111",
+          "version": "5"
+        },
+        "correlationId": "00000002-1111-4111-8111-111111111111",
+        "targets": {
+          "kind": "USERS",
+          "userIds": [
+            "00000001-1111-4111-8111-111111111111"
+          ]
+        },
+        "notificationGroup": "SYSTEM",
+        "data": {
+          "submissionId": "00000001-1111-4111-8111-111111111111",
+          "decision": "APPROVE",
+          "reason": null
+        }
+      }
+    },
+    {
+      "name": "event tutor.activated",
+      "schema": "event",
+      "valid": true,
+      "value": {
+        "eventId": "0000006a-1111-4111-8111-111111111111",
+        "type": "tutor.activated",
+        "schemaVersion": 1,
+        "occurredAt": "2026-11-06T03:00:00.000Z",
+        "producer": "tutor",
+        "aggregate": {
+          "type": "synthetic",
+          "id": "00000001-1111-4111-8111-111111111111",
+          "version": "6"
+        },
+        "correlationId": "00000002-1111-4111-8111-111111111111",
+        "targets": {
+          "kind": "USERS",
+          "userIds": [
+            "00000001-1111-4111-8111-111111111111"
+          ]
+        },
+        "notificationGroup": "SYSTEM",
+        "data": {
+          "submissionId": "00000001-1111-4111-8111-111111111111",
+          "tutorId": "00000001-1111-4111-8111-111111111111"
+        }
+      }
+    },
+    {
+      "name": "event booking.confirmed",
+      "schema": "event",
+      "valid": true,
+      "value": {
+        "eventId": "0000006b-1111-4111-8111-111111111111",
+        "type": "booking.confirmed",
+        "schemaVersion": 1,
+        "occurredAt": "2026-11-06T03:00:00.000Z",
+        "producer": "booking",
+        "aggregate": {
+          "type": "synthetic",
+          "id": "00000001-1111-4111-8111-111111111111",
+          "version": "7"
+        },
+        "correlationId": "00000002-1111-4111-8111-111111111111",
+        "targets": {
+          "kind": "USERS",
+          "userIds": [
+            "00000001-1111-4111-8111-111111111111"
+          ]
+        },
+        "notificationGroup": "BOOKING_UPDATES",
+        "data": {
+          "bookingId": "00000001-1111-4111-8111-111111111111",
+          "scheduleVersion": "1",
+          "startsAt": "2026-11-06T03:00:00.000Z",
+          "endsAt": "2026-11-06T03:00:00.000Z"
+        }
+      }
+    },
+    {
+      "name": "event booking.cancelled",
+      "schema": "event",
+      "valid": true,
+      "value": {
+        "eventId": "0000006c-1111-4111-8111-111111111111",
+        "type": "booking.cancelled",
+        "schemaVersion": 1,
+        "occurredAt": "2026-11-06T03:00:00.000Z",
+        "producer": "booking",
+        "aggregate": {
+          "type": "synthetic",
+          "id": "00000001-1111-4111-8111-111111111111",
+          "version": "8"
+        },
+        "correlationId": "00000002-1111-4111-8111-111111111111",
+        "targets": {
+          "kind": "USERS",
+          "userIds": [
+            "00000001-1111-4111-8111-111111111111"
+          ]
+        },
+        "notificationGroup": "BOOKING_UPDATES",
+        "data": {
+          "bookingId": "00000001-1111-4111-8111-111111111111",
+          "cancelledBy": "STUDENT",
+          "reason": null,
+          "refund": {
+            "currency": "THB",
+            "amount": "100.00"
+          }
+        }
+      }
+    },
+    {
+      "name": "event booking.completed",
+      "schema": "event",
+      "valid": true,
+      "value": {
+        "eventId": "0000006d-1111-4111-8111-111111111111",
+        "type": "booking.completed",
+        "schemaVersion": 1,
+        "occurredAt": "2026-11-06T03:00:00.000Z",
+        "producer": "booking",
+        "aggregate": {
+          "type": "synthetic",
+          "id": "00000001-1111-4111-8111-111111111111",
+          "version": "9"
+        },
+        "correlationId": "00000002-1111-4111-8111-111111111111",
+        "targets": {
+          "kind": "USERS",
+          "userIds": [
+            "00000001-1111-4111-8111-111111111111"
+          ]
+        },
+        "notificationGroup": "BOOKING_UPDATES",
+        "data": {
+          "bookingId": "00000001-1111-4111-8111-111111111111",
+          "tutorConfirmedAt": "2026-11-06T03:00:00.000Z",
+          "clearingDueAt": "2026-11-06T03:00:00.000Z"
+        }
+      }
+    },
+    {
+      "name": "event booking.meeting-updated",
+      "schema": "event",
+      "valid": true,
+      "value": {
+        "eventId": "0000006e-1111-4111-8111-111111111111",
+        "type": "booking.meeting-updated",
+        "schemaVersion": 1,
+        "occurredAt": "2026-11-06T03:00:00.000Z",
+        "producer": "booking",
+        "aggregate": {
+          "type": "synthetic",
+          "id": "00000001-1111-4111-8111-111111111111",
+          "version": "10"
+        },
+        "correlationId": "00000002-1111-4111-8111-111111111111",
+        "targets": {
+          "kind": "USERS",
+          "userIds": [
+            "00000001-1111-4111-8111-111111111111"
+          ]
+        },
+        "notificationGroup": "BOOKING_UPDATES",
+        "data": {
+          "bookingId": "00000001-1111-4111-8111-111111111111",
+          "state": "MISSING",
+          "changedAt": "2026-11-06T03:00:00.000Z"
+        }
+      }
+    },
+    {
+      "name": "event booking.reminder-due",
+      "schema": "event",
+      "valid": true,
+      "value": {
+        "eventId": "0000006f-1111-4111-8111-111111111111",
+        "type": "booking.reminder-due",
+        "schemaVersion": 1,
+        "occurredAt": "2026-11-06T03:00:00.000Z",
+        "producer": "booking",
+        "aggregate": {
+          "type": "synthetic",
+          "id": "00000001-1111-4111-8111-111111111111",
+          "version": "11"
+        },
+        "correlationId": "00000002-1111-4111-8111-111111111111",
+        "targets": {
+          "kind": "USERS",
+          "userIds": [
+            "00000001-1111-4111-8111-111111111111"
+          ]
+        },
+        "notificationGroup": "LESSON_REMINDERS",
+        "data": {
+          "bookingId": "00000001-1111-4111-8111-111111111111",
+          "scheduleVersion": "1",
+          "offsetMinutes": 60,
+          "startsAt": "2026-11-06T03:00:00.000Z"
+        }
+      }
+    },
+    {
+      "name": "event wallet.topup-resolved",
+      "schema": "event",
+      "valid": true,
+      "value": {
+        "eventId": "00000070-1111-4111-8111-111111111111",
+        "type": "wallet.topup-resolved",
+        "schemaVersion": 1,
+        "occurredAt": "2026-11-06T03:00:00.000Z",
+        "producer": "wallet",
+        "aggregate": {
+          "type": "synthetic",
+          "id": "00000001-1111-4111-8111-111111111111",
+          "version": "12"
+        },
+        "correlationId": "00000002-1111-4111-8111-111111111111",
+        "targets": {
+          "kind": "USERS",
+          "userIds": [
+            "00000001-1111-4111-8111-111111111111"
+          ]
+        },
+        "notificationGroup": "WALLET_PAYMENTS",
+        "data": {
+          "topupId": "00000001-1111-4111-8111-111111111111",
+          "status": "SUCCEEDED",
+          "amount": {
+            "currency": "THB",
+            "amount": "100.00"
+          }
+        }
+      }
+    },
+    {
+      "name": "event wallet.refund-applied",
+      "schema": "event",
+      "valid": true,
+      "value": {
+        "eventId": "00000071-1111-4111-8111-111111111111",
+        "type": "wallet.refund-applied",
+        "schemaVersion": 1,
+        "occurredAt": "2026-11-06T03:00:00.000Z",
+        "producer": "wallet",
+        "aggregate": {
+          "type": "synthetic",
+          "id": "00000001-1111-4111-8111-111111111111",
+          "version": "13"
+        },
+        "correlationId": "00000002-1111-4111-8111-111111111111",
+        "targets": {
+          "kind": "USERS",
+          "userIds": [
+            "00000001-1111-4111-8111-111111111111"
+          ]
+        },
+        "notificationGroup": "WALLET_PAYMENTS",
+        "data": {
+          "bookingId": "00000001-1111-4111-8111-111111111111",
+          "transactionId": "00000001-1111-4111-8111-111111111111",
+          "amount": {
+            "currency": "THB",
+            "amount": "100.00"
+          }
+        }
+      }
+    },
+    {
+      "name": "event wallet.earning-cleared",
+      "schema": "event",
+      "valid": true,
+      "value": {
+        "eventId": "00000072-1111-4111-8111-111111111111",
+        "type": "wallet.earning-cleared",
+        "schemaVersion": 1,
+        "occurredAt": "2026-11-06T03:00:00.000Z",
+        "producer": "wallet",
+        "aggregate": {
+          "type": "synthetic",
+          "id": "00000001-1111-4111-8111-111111111111",
+          "version": "14"
+        },
+        "correlationId": "00000002-1111-4111-8111-111111111111",
+        "targets": {
+          "kind": "USERS",
+          "userIds": [
+            "00000001-1111-4111-8111-111111111111"
+          ]
+        },
+        "notificationGroup": "WALLET_PAYMENTS",
+        "data": {
+          "bookingId": "00000001-1111-4111-8111-111111111111",
+          "transactionId": "00000001-1111-4111-8111-111111111111",
+          "amount": {
+            "currency": "THB",
+            "amount": "100.00"
+          }
+        }
+      }
+    },
+    {
+      "name": "event wallet.payout-resolved",
+      "schema": "event",
+      "valid": true,
+      "value": {
+        "eventId": "00000073-1111-4111-8111-111111111111",
+        "type": "wallet.payout-resolved",
+        "schemaVersion": 1,
+        "occurredAt": "2026-11-06T03:00:00.000Z",
+        "producer": "wallet",
+        "aggregate": {
+          "type": "synthetic",
+          "id": "00000001-1111-4111-8111-111111111111",
+          "version": "15"
+        },
+        "correlationId": "00000002-1111-4111-8111-111111111111",
+        "targets": {
+          "kind": "USERS",
+          "userIds": [
+            "00000001-1111-4111-8111-111111111111"
+          ]
+        },
+        "notificationGroup": "WALLET_PAYMENTS",
+        "data": {
+          "payoutId": "00000001-1111-4111-8111-111111111111",
+          "status": "SUCCEEDED",
+          "amount": {
+            "currency": "THB",
+            "amount": "100.00"
+          }
+        }
+      }
+    },
+    {
+      "name": "event wallet.dispute-opened",
+      "schema": "event",
+      "valid": true,
+      "value": {
+        "eventId": "00000074-1111-4111-8111-111111111111",
+        "type": "wallet.dispute-opened",
+        "schemaVersion": 1,
+        "occurredAt": "2026-11-06T03:00:00.000Z",
+        "producer": "wallet",
+        "aggregate": {
+          "type": "synthetic",
+          "id": "00000001-1111-4111-8111-111111111111",
+          "version": "16"
+        },
+        "correlationId": "00000002-1111-4111-8111-111111111111",
+        "targets": {
+          "kind": "ADMINS"
+        },
+        "notificationGroup": "SYSTEM",
+        "data": {
+          "disputeId": "00000001-1111-4111-8111-111111111111",
+          "bookingId": "00000001-1111-4111-8111-111111111111"
+        }
+      }
+    },
+    {
+      "name": "event wallet.dispute-held",
+      "schema": "event",
+      "valid": true,
+      "value": {
+        "eventId": "00000075-1111-4111-8111-111111111111",
+        "type": "wallet.dispute-held",
+        "schemaVersion": 1,
+        "occurredAt": "2026-11-06T03:00:00.000Z",
+        "producer": "wallet",
+        "aggregate": {
+          "type": "synthetic",
+          "id": "00000001-1111-4111-8111-111111111111",
+          "version": "17"
+        },
+        "correlationId": "00000002-1111-4111-8111-111111111111",
+        "targets": {
+          "kind": "USERS",
+          "userIds": [
+            "00000001-1111-4111-8111-111111111111"
+          ]
+        },
+        "notificationGroup": "SYSTEM",
+        "data": {
+          "disputeId": "00000001-1111-4111-8111-111111111111",
+          "bookingId": "00000001-1111-4111-8111-111111111111"
+        }
+      }
+    },
+    {
+      "name": "event wallet.dispute-decided",
+      "schema": "event",
+      "valid": true,
+      "value": {
+        "eventId": "00000076-1111-4111-8111-111111111111",
+        "type": "wallet.dispute-decided",
+        "schemaVersion": 1,
+        "occurredAt": "2026-11-06T03:00:00.000Z",
+        "producer": "wallet",
+        "aggregate": {
+          "type": "synthetic",
+          "id": "00000001-1111-4111-8111-111111111111",
+          "version": "18"
+        },
+        "correlationId": "00000002-1111-4111-8111-111111111111",
+        "targets": {
+          "kind": "USERS",
+          "userIds": [
+            "00000001-1111-4111-8111-111111111111"
+          ]
+        },
+        "notificationGroup": "SYSTEM",
+        "data": {
+          "disputeId": "00000001-1111-4111-8111-111111111111",
+          "bookingId": "00000001-1111-4111-8111-111111111111",
+          "decision": "APPROVE_FULL_REMAINDER",
+          "reason": "Synthetic reason",
+          "refund": {
+            "currency": "THB",
+            "amount": "100.00"
+          }
+        }
+      }
+    },
+    {
+      "name": "event review.flagged",
+      "schema": "event",
+      "valid": true,
+      "value": {
+        "eventId": "00000077-1111-4111-8111-111111111111",
+        "type": "review.flagged",
+        "schemaVersion": 1,
+        "occurredAt": "2026-11-06T03:00:00.000Z",
+        "producer": "review",
+        "aggregate": {
+          "type": "synthetic",
+          "id": "00000001-1111-4111-8111-111111111111",
+          "version": "19"
+        },
+        "correlationId": "00000002-1111-4111-8111-111111111111",
+        "targets": {
+          "kind": "ADMINS"
+        },
+        "notificationGroup": "SYSTEM",
+        "data": {
+          "reviewId": "00000001-1111-4111-8111-111111111111",
+          "flagId": "00000001-1111-4111-8111-111111111111"
+        }
+      }
+    },
+    {
+      "name": "event review.moderated",
+      "schema": "event",
+      "valid": true,
+      "value": {
+        "eventId": "00000078-1111-4111-8111-111111111111",
+        "type": "review.moderated",
+        "schemaVersion": 1,
+        "occurredAt": "2026-11-06T03:00:00.000Z",
+        "producer": "review",
+        "aggregate": {
+          "type": "synthetic",
+          "id": "00000001-1111-4111-8111-111111111111",
+          "version": "20"
+        },
+        "correlationId": "00000002-1111-4111-8111-111111111111",
+        "targets": {
+          "kind": "USERS",
+          "userIds": [
+            "00000001-1111-4111-8111-111111111111"
+          ]
+        },
+        "notificationGroup": "SYSTEM",
+        "data": {
+          "reviewId": "00000001-1111-4111-8111-111111111111",
+          "decision": "KEEP",
+          "reason": "Synthetic reason"
+        }
+      }
+    },
+    {
+      "name": "event messaging.message-sent",
+      "schema": "event",
+      "valid": true,
+      "value": {
+        "eventId": "00000079-1111-4111-8111-111111111111",
+        "type": "messaging.message-sent",
+        "schemaVersion": 1,
+        "occurredAt": "2026-11-06T03:00:00.000Z",
+        "producer": "messaging",
+        "aggregate": {
+          "type": "synthetic",
+          "id": "00000001-1111-4111-8111-111111111111",
+          "version": "21"
+        },
+        "correlationId": "00000002-1111-4111-8111-111111111111",
+        "targets": {
+          "kind": "USERS",
+          "userIds": [
+            "00000001-1111-4111-8111-111111111111"
+          ]
+        },
+        "notificationGroup": "NEW_MESSAGES",
+        "data": {
+          "messageId": "00000001-1111-4111-8111-111111111111",
+          "conversationId": "00000001-1111-4111-8111-111111111111",
+          "senderUserId": "00000001-1111-4111-8111-111111111111"
+        }
+      }
+    },
+    {
+      "name": "reset event cannot contain a raw token",
+      "schema": "event",
+      "valid": false,
+      "value": {
+        "eventId": "00000065-1111-4111-8111-111111111111",
+        "type": "auth.password-reset-requested",
+        "schemaVersion": 1,
+        "occurredAt": "2026-11-06T03:00:00.000Z",
+        "producer": "auth",
+        "aggregate": {
+          "type": "synthetic",
+          "id": "00000001-1111-4111-8111-111111111111",
+          "version": "1"
+        },
+        "correlationId": "00000002-1111-4111-8111-111111111111",
+        "targets": {
+          "kind": "USERS",
+          "userIds": [
+            "00000001-1111-4111-8111-111111111111"
+          ]
+        },
+        "notificationGroup": "SYSTEM",
+        "data": {
+          "contentRef": "00000001-1111-4111-8111-111111111111",
+          "expiresAt": "2026-11-06T03:00:00.000Z",
+          "rawResetToken": "synthetic-forbidden-value"
+        }
+      }
+    },
+    {
+      "name": "producer cannot spoof event type",
+      "schema": "event",
+      "valid": false,
+      "value": {
+        "eventId": "00000079-1111-4111-8111-111111111111",
+        "type": "messaging.message-sent",
+        "schemaVersion": 1,
+        "occurredAt": "2026-11-06T03:00:00.000Z",
+        "producer": "wallet",
+        "aggregate": {
+          "type": "synthetic",
+          "id": "00000001-1111-4111-8111-111111111111",
+          "version": "21"
+        },
+        "correlationId": "00000002-1111-4111-8111-111111111111",
+        "targets": {
+          "kind": "USERS",
+          "userIds": [
+            "00000001-1111-4111-8111-111111111111"
+          ]
+        },
+        "notificationGroup": "NEW_MESSAGES",
+        "data": {
+          "messageId": "00000001-1111-4111-8111-111111111111",
+          "conversationId": "00000001-1111-4111-8111-111111111111",
+          "senderUserId": "00000001-1111-4111-8111-111111111111"
+        }
+      }
+    },
+    {
+      "name": "chat content not carried by event",
+      "schema": "event",
+      "valid": false,
+      "value": {
+        "eventId": "00000079-1111-4111-8111-111111111111",
+        "type": "messaging.message-sent",
+        "schemaVersion": 1,
+        "occurredAt": "2026-11-06T03:00:00.000Z",
+        "producer": "messaging",
+        "aggregate": {
+          "type": "synthetic",
+          "id": "00000001-1111-4111-8111-111111111111",
+          "version": "21"
+        },
+        "correlationId": "00000002-1111-4111-8111-111111111111",
+        "targets": {
+          "kind": "USERS",
+          "userIds": [
+            "00000001-1111-4111-8111-111111111111"
+          ]
+        },
+        "notificationGroup": "NEW_MESSAGES",
+        "data": {
+          "messageId": "00000001-1111-4111-8111-111111111111",
+          "conversationId": "00000001-1111-4111-8111-111111111111",
+          "senderUserId": "00000001-1111-4111-8111-111111111111",
+          "content": "Synthetic private text"
+        }
+      }
+    },
+    {
+      "name": "reset cannot opt out as product news",
+      "schema": "event",
+      "valid": false,
+      "value": {
+        "eventId": "00000065-1111-4111-8111-111111111111",
+        "type": "auth.password-reset-requested",
+        "schemaVersion": 1,
+        "occurredAt": "2026-11-06T03:00:00.000Z",
+        "producer": "auth",
+        "aggregate": {
+          "type": "synthetic",
+          "id": "00000001-1111-4111-8111-111111111111",
+          "version": "1"
+        },
+        "correlationId": "00000002-1111-4111-8111-111111111111",
+        "targets": {
+          "kind": "USERS",
+          "userIds": [
+            "00000001-1111-4111-8111-111111111111"
+          ]
+        },
+        "notificationGroup": "PRODUCT_NEWS",
+        "data": {
+          "contentRef": "00000001-1111-4111-8111-111111111111",
+          "expiresAt": "2026-11-06T03:00:00.000Z"
+        }
+      }
+    },
+    {
+      "name": "unknown schema version rejected",
+      "schema": "event",
+      "valid": false,
+      "value": {
+        "eventId": "00000065-1111-4111-8111-111111111111",
+        "type": "auth.password-reset-requested",
+        "schemaVersion": 2,
+        "occurredAt": "2026-11-06T03:00:00.000Z",
+        "producer": "auth",
+        "aggregate": {
+          "type": "synthetic",
+          "id": "00000001-1111-4111-8111-111111111111",
+          "version": "1"
+        },
+        "correlationId": "00000002-1111-4111-8111-111111111111",
+        "targets": {
+          "kind": "USERS",
+          "userIds": [
+            "00000001-1111-4111-8111-111111111111"
+          ]
+        },
+        "notificationGroup": "SYSTEM",
+        "data": {
+          "contentRef": "00000001-1111-4111-8111-111111111111",
+          "expiresAt": "2026-11-06T03:00:00.000Z"
+        }
+      }
+    },
+    {
+      "name": "applied charge needs a transaction receipt",
+      "schema": "PaymentResult",
+      "valid": false,
+      "value": {
+        "operationId": "00000001-1111-4111-8111-111111111111",
+        "bookingId": "00000002-1111-4111-8111-111111111111",
+        "status": "APPLIED",
+        "transactionId": null,
+        "amount": {
+          "currency": "THB",
+          "amount": "100.00"
+        },
+        "balance": {
+          "currency": "THB",
+          "amount": "200.00"
+        },
+        "reason": null,
+        "decidedAt": "2026-11-06T03:00:00.000Z"
+      }
+    },
+    {
+      "name": "visible public review",
+      "schema": "PublicReview",
+      "value": {
+        "id": "00000001-1111-4111-8111-111111111111",
+        "bookingId": "00000002-1111-4111-8111-111111111111",
+        "studentUserId": "00000003-1111-4111-8111-111111111111",
+        "studentDisplayName": "Synthetic Student",
+        "tutorId": "00000004-1111-4111-8111-111111111111",
+        "tutorUserId": "00000005-1111-4111-8111-111111111111",
+        "subjectId": "00000001-1111-4111-8111-111111111111",
+        "rating": 5,
+        "text": "Synthetic review of a completed lesson.",
+        "headline": null,
+        "reply": null,
+        "visibility": "PUBLIC",
+        "revision": "0",
+        "createdAt": "2026-11-06T03:00:00.000Z"
+      },
+      "valid": true
+    },
+    {
+      "name": "hidden review excluded from public projection",
+      "schema": "PublicReview",
+      "value": {
+        "id": "00000001-1111-4111-8111-111111111111",
+        "bookingId": "00000002-1111-4111-8111-111111111111",
+        "studentUserId": "00000003-1111-4111-8111-111111111111",
+        "studentDisplayName": "Synthetic Student",
+        "tutorId": "00000004-1111-4111-8111-111111111111",
+        "tutorUserId": "00000005-1111-4111-8111-111111111111",
+        "subjectId": "00000001-1111-4111-8111-111111111111",
+        "rating": 5,
+        "text": "Synthetic review of a completed lesson.",
+        "headline": null,
+        "reply": null,
+        "visibility": "HIDDEN",
+        "revision": "0",
+        "createdAt": "2026-11-06T03:00:00.000Z"
+      },
+      "valid": false
+    },
+    {
+      "name": "admin moderation queue has review evidence",
+      "schema": "AdminReviewFlag",
+      "value": {
+        "flag": {
+          "id": "00000002-1111-4111-8111-111111111111",
+          "reviewId": "00000001-1111-4111-8111-111111111111",
+          "reporterUserId": "00000005-1111-4111-8111-111111111111",
+          "reason": "Synthetic flag reason",
+          "state": "OPEN",
+          "revision": "0",
+          "createdAt": "2026-11-06T03:00:00.000Z"
+        },
+        "review": {
+          "id": "00000001-1111-4111-8111-111111111111",
+          "bookingId": "00000002-1111-4111-8111-111111111111",
+          "studentUserId": "00000003-1111-4111-8111-111111111111",
+          "studentDisplayName": "Synthetic Student",
+          "tutorId": "00000004-1111-4111-8111-111111111111",
+          "tutorUserId": "00000005-1111-4111-8111-111111111111",
+          "subjectId": "00000001-1111-4111-8111-111111111111",
+          "rating": 5,
+          "text": "Synthetic review of a completed lesson.",
+          "headline": null,
+          "reply": null,
+          "visibility": "PUBLIC",
+          "revision": "0",
+          "createdAt": "2026-11-06T03:00:00.000Z"
+        },
+        "reporterDisplayName": "Synthetic Reporter"
+      },
+      "valid": true
+    },
+    {
+      "name": "private review evidence cannot leak through flag DTO",
+      "schema": "ReviewFlag",
+      "value": {
+        "id": "00000002-1111-4111-8111-111111111111",
+        "reviewId": "00000001-1111-4111-8111-111111111111",
+        "reporterUserId": "00000005-1111-4111-8111-111111111111",
+        "reason": "Synthetic flag reason",
+        "state": "OPEN",
+        "revision": "0",
+        "createdAt": "2026-11-06T03:00:00.000Z",
+        "review": {
+          "id": "00000001-1111-4111-8111-111111111111",
+          "bookingId": "00000002-1111-4111-8111-111111111111",
+          "studentUserId": "00000003-1111-4111-8111-111111111111",
+          "studentDisplayName": "Synthetic Student",
+          "tutorId": "00000004-1111-4111-8111-111111111111",
+          "tutorUserId": "00000005-1111-4111-8111-111111111111",
+          "subjectId": "00000001-1111-4111-8111-111111111111",
+          "rating": 5,
+          "text": "Synthetic review of a completed lesson.",
+          "headline": null,
+          "reply": null,
+          "visibility": "PUBLIC",
+          "revision": "0",
+          "createdAt": "2026-11-06T03:00:00.000Z"
+        }
+      },
+      "valid": false
+    },
+    {
+      "name": "admin dispute includes financial evidence",
+      "schema": "AdminDisputeDetail",
+      "value": {
+        "dispute": {
+          "id": "00000004-1111-4111-8111-111111111111",
+          "bookingId": "00000002-1111-4111-8111-111111111111",
+          "studentUserId": "00000003-1111-4111-8111-111111111111",
+          "status": "OPEN",
+          "reason": "Synthetic remaining-payment claim",
+          "decisionReason": null,
+          "refundedAmount": {
+            "currency": "THB",
+            "amount": "0.00"
+          },
+          "earningsHeld": true,
+          "revision": "0",
+          "createdAt": "2026-11-07T03:00:00.000Z",
+          "resolvedAt": null,
+          "audit": []
+        },
+        "booking": {
+          "bookingId": "00000002-1111-4111-8111-111111111111",
+          "status": "CANCELLED",
+          "studentUserId": "00000003-1111-4111-8111-111111111111",
+          "tutorUserId": "00000005-1111-4111-8111-111111111111",
+          "subjectId": "00000001-1111-4111-8111-111111111111",
+          "startsAt": "2026-11-07T03:00:00.000Z",
+          "endsAt": "2026-11-07T04:00:00.000Z",
+          "completedAt": null,
+          "cancelledAt": "2026-11-06T03:00:00.000Z",
+          "revision": "3"
+        },
+        "financial": {
+          "bookingId": "00000002-1111-4111-8111-111111111111",
+          "studentUserId": "00000003-1111-4111-8111-111111111111",
+          "tutorUserId": "00000005-1111-4111-8111-111111111111",
+          "paid": {
+            "currency": "THB",
+            "amount": "100.00"
+          },
+          "refunded": {
+            "currency": "THB",
+            "amount": "70.00"
+          },
+          "pendingEarning": {
+            "currency": "THB",
+            "amount": "0.00"
+          },
+          "fee": {
+            "currency": "THB",
+            "amount": "0.00"
+          },
+          "status": "CANCELLED",
+          "paymentGate": "CLOSED",
+          "tutorConfirmedAt": null,
+          "clearingDueAt": null,
+          "disputeId": "00000004-1111-4111-8111-111111111111",
+          "disputeHeld": true,
+          "revision": "3"
+        },
+        "transactions": [
+          {
+            "id": "0000000a-1111-4111-8111-111111111111",
+            "type": "LESSON_PAYMENT",
+            "amount": {
+              "currency": "THB",
+              "amount": "100.00"
+            },
+            "direction": "OUT",
+            "balanceAfter": {
+              "currency": "THB",
+              "amount": "100.00"
+            },
+            "operationId": "00000014-1111-4111-8111-111111111111",
+            "bookingId": "00000002-1111-4111-8111-111111111111",
+            "payoutAccountId": null,
+            "createdAt": "2026-11-06T03:00:00.000Z"
+          },
+          {
+            "id": "0000000b-1111-4111-8111-111111111111",
+            "type": "REFUND",
+            "amount": {
+              "currency": "THB",
+              "amount": "70.00"
+            },
+            "direction": "IN",
+            "balanceAfter": {
+              "currency": "THB",
+              "amount": "170.00"
+            },
+            "operationId": "00000015-1111-4111-8111-111111111111",
+            "bookingId": "00000002-1111-4111-8111-111111111111",
+            "payoutAccountId": null,
+            "createdAt": "2026-11-06T03:00:00.000Z"
+          }
+        ],
+        "studentDisplayName": "Synthetic Student",
+        "tutorDisplayName": "Synthetic Tutor"
+      },
+      "valid": true
+    },
+    {
+      "name": "public dispute cannot expose private ledger projection",
+      "schema": "Dispute",
+      "value": {
+        "id": "00000004-1111-4111-8111-111111111111",
+        "bookingId": "00000002-1111-4111-8111-111111111111",
+        "studentUserId": "00000003-1111-4111-8111-111111111111",
+        "status": "OPEN",
+        "reason": "Synthetic remaining-payment claim",
+        "decisionReason": null,
+        "refundedAmount": {
+          "currency": "THB",
+          "amount": "0.00"
+        },
+        "earningsHeld": true,
+        "revision": "0",
+        "createdAt": "2026-11-07T03:00:00.000Z",
+        "resolvedAt": null,
+        "audit": [],
+        "transactions": [
+          {
+            "id": "0000000a-1111-4111-8111-111111111111",
+            "type": "LESSON_PAYMENT",
+            "amount": {
+              "currency": "THB",
+              "amount": "100.00"
+            },
+            "direction": "OUT",
+            "balanceAfter": {
+              "currency": "THB",
+              "amount": "100.00"
+            },
+            "operationId": "00000014-1111-4111-8111-111111111111",
+            "bookingId": "00000002-1111-4111-8111-111111111111",
+            "payoutAccountId": null,
+            "createdAt": "2026-11-06T03:00:00.000Z"
+          },
+          {
+            "id": "0000000b-1111-4111-8111-111111111111",
+            "type": "REFUND",
+            "amount": {
+              "currency": "THB",
+              "amount": "70.00"
+            },
+            "direction": "IN",
+            "balanceAfter": {
+              "currency": "THB",
+              "amount": "170.00"
+            },
+            "operationId": "00000015-1111-4111-8111-111111111111",
+            "bookingId": "00000002-1111-4111-8111-111111111111",
+            "payoutAccountId": null,
+            "createdAt": "2026-11-06T03:00:00.000Z"
+          }
+        ]
+      },
+      "valid": false
+    },
+    {
+      "name": "inbox can display both participants",
+      "schema": "Conversation",
+      "value": {
+        "id": "00000001-1111-4111-8111-111111111111",
+        "kind": "STUDENT_TUTOR",
+        "participants": [
+          {
+            "userId": "00000003-1111-4111-8111-111111111111",
+            "displayName": "Synthetic Student"
+          },
+          {
+            "userId": "00000005-1111-4111-8111-111111111111",
+            "displayName": "Synthetic Tutor"
+          }
+        ],
+        "lastMessage": null,
+        "unreadCount": 0
+      },
+      "valid": true
+    }
+  ],
+  "moneyCases": [
+    {
+      "hourlyRate": "0.01",
+      "slots": 1,
+      "paid": "0.01",
+      "fee": "0.00",
+      "net": "0.01",
+      "lateRefund": "0.01"
+    },
+    {
+      "hourlyRate": "199.99",
+      "slots": 3,
+      "paid": "299.99",
+      "fee": "45.00",
+      "net": "254.99",
+      "lateRefund": "209.99"
+    },
+    {
+      "hourlyRate": "100.00",
+      "slots": 2,
+      "paid": "100.00",
+      "fee": "15.00",
+      "net": "85.00",
+      "lateRefund": "70.00"
+    }
+  ],
+  "cancellationBoundaryCases": [
+    {
+      "name": "just beyond 24h",
+      "startsAt": "2026-11-07T03:00:00.001Z",
+      "admittedAt": "2026-11-06T03:00:00.000Z",
+      "refundPercent": 100
+    },
+    {
+      "name": "exactly 24h",
+      "startsAt": "2026-11-07T03:00:00.000Z",
+      "admittedAt": "2026-11-06T03:00:00.000Z",
+      "refundPercent": 70
+    },
+    {
+      "name": "before start",
+      "startsAt": "2026-11-06T03:00:00.001Z",
+      "admittedAt": "2026-11-06T03:00:00.000Z",
+      "refundPercent": 70
+    },
+    {
+      "name": "at start",
+      "startsAt": "2026-11-06T03:00:00.000Z",
+      "admittedAt": "2026-11-06T03:00:00.000Z",
+      "refundPercent": null
+    }
+  ],
+  "refundCapCases": [
+    {
+      "paid": "100.00",
+      "priorRefunds": "70.00",
+      "remaining": "30.00"
+    },
+    {
+      "paid": "100.00",
+      "priorRefunds": "100.00",
+      "remaining": "0.00"
+    }
+  ]
+}

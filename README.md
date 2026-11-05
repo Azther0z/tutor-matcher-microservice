@@ -1,5 +1,13 @@
 # Tutor Matcher
 
+The [accepted requirements and constraints](docs/requirements.md) define the 10 November delivery for the four-person team. See the [ADR index](docs/adr/README.md), [glossary](GLOSSARY.md), [original PDFs](docs/sources/README.md), and [reference monolith](https://github.com/Azther0z/tutor-matcher).
+
+The [accepted system design](docs/system-design.md) defines the target services, database ownership, recovery, flows, and deployment. The [interface contracts](contracts/README.md) define the step-3 target REST, gRPC, events, authorization and recovery behavior. They are not implemented yet.
+
+The [four-member implementation handoffs](docs/handoffs/README.md) assign parallel work to Saint, Ideal, Santa and P, with UI ownership, integration checkpoints and evidence responsibilities.
+
+The implementation description below records the current backend demo. It does not claim completion of the nine-use-case delivery baseline.
+
 Tutor Matcher is an online marketplace for one-to-one tutoring. Students can browse a tutor's profile, subjects, rates, and available lesson times. Tutors maintain their public offering and open time slots for future bookings.
 
 This repository implements the Tutor Matcher services behind an API gateway. The demo covers three business use cases plus authentication: UC-03 discover, book and pay for a lesson, UC-04 top up the wallet, and UC-06 cancel a booking with a refund. When a client requests a tutor profile, the Tutor service retrieves that tutor's slots from Booking over gRPC and returns a combined response.
