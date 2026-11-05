@@ -10,39 +10,39 @@ service AvailabilityService {
 }
 
 message AvailabilityQuery {
-  string tutor_id = 1;   // lowercase UUID v4; domain Tutor ID, not Auth user ID
-  string subject_id = 2; // lowercase UUID v4; Tutor verifies catalogue ownership before calling
-  string from = 3;      // inclusive UTC millisecond ISO timestamp
-  string to = 4;        // exclusive UTC millisecond ISO timestamp, <=93 days after from
+  optional string tutor_id = 1;   // lowercase UUID v4; domain Tutor ID, not Auth user ID
+  optional string subject_id = 2; // lowercase UUID v4; Tutor verifies catalogue ownership before calling
+  optional string from = 3;      // inclusive UTC millisecond ISO timestamp
+  optional string to = 4;        // exclusive UTC millisecond ISO timestamp, <=93 days after from
 }
 message GetAvailabilityRequest { AvailabilityQuery query = 1; }
 message PublicSlot {
-  string id = 1;
-  string tutor_id = 2;
+  optional string id = 1;
+  optional string tutor_id = 2;
   repeated string subject_ids = 3;
-  string starts_at = 4;
-  string ends_at = 5;
-  string revision = 6;
+  optional string starts_at = 4;
+  optional string ends_at = 5;
+  optional string revision = 6;
 }
 message GetAvailabilityResponse {
   // Complete OPEN, future, unheld slots for this subject; ascending starts_at,id.
   // Empty is a successful query with no free slots; never a dependency failure.
   repeated PublicSlot slots = 1; // <=4464 (93*48); no student or booking identity
-  string checked_at = 2;
+  optional string checked_at = 2;
 }
 message BatchGetAvailabilityRequest {
   repeated AvailabilityQuery queries = 1; // 1..100; unique tutor+subject+window tuples
 }
 message AvailabilitySummary {
-  uint32 query_index = 1; // zero-based input index; exactly one result per query
-  bool has_availability = 2;
+  optional uint32 query_index = 1; // zero-based input index; exactly one result per query
+  optional bool has_availability = 2;
   // Empty iff has_availability is false. Otherwise UTC timestamp in query window.
-  string next_available_at = 3;
-  uint32 free_slot_count = 4;
+  optional string next_available_at = 3;
+  optional uint32 free_slot_count = 4;
 }
 message BatchGetAvailabilityResponse {
   repeated AvailabilitySummary results = 1; // input order, complete; no partial success
-  string checked_at = 2;
+  optional string checked_at = 2;
 }
 // Validate all inputs before reading. INVALID_ARGUMENT for missing/invalid fields,
 // invalid window; UNAUTHENTICATED for bad workload token;

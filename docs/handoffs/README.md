@@ -20,7 +20,7 @@ There is no separate frontend team and no member responsible for writing every o
 
 1. Read the [requirements](../requirements.md) and your relevant acceptance criteria.
 2. Read the [system design](../system-design.md), [glossary](../../GLOSSARY.md) and [ADR index](../adr/README.md).
-3. Read the [interface guide](../../contracts/README.md), [recovery rules](../../contracts/recovery.md) and [event guide](../../contracts/events.md).
+3. Read the [interface guide](../../contracts/README.md), [gRPC guide](../../contracts/grpc/README.md), [recovery rules](../../contracts/recovery.md) and [event guide](../../contracts/events.md).
 4. Use [public OpenAPI](../../contracts/public.openapi.json), [internal OpenAPI](../../contracts/internal.openapi.json) and [shared schemas](../../contracts/schemas/v1.json).
 5. Use the [pinned monolith](https://github.com/Azther0z/tutor-matcher/tree/ce3ec82672d7dac5da8b846ecdb6725dcc7e5ca1) for journeys, code and tests.
 6. Use each requirement's linked PRs and issues to distinguish implemented reference behavior from intended work.
@@ -48,7 +48,7 @@ These paths do not exist at handoff preparation. The Next.js pages below are fro
 | `wallet-service/**`, `notification-service/**` | P | Own money, consumer jobs, simulated delivery and broker topology definitions. |
 | Root `package.json`, root lockfile, root quality configuration | Saint | Other owners supply dependency requests. Saint updates the single lockfile. |
 | `web/package.json`, root layout, shared API/session adapter, navigation and common UI components | Saint | Share a small working shell first. Feature owners add their assigned paths. |
-| `packages/contracts/**`, if a shared type package is introduced | Saint | Generate transport types from contracts. Keep business rules inside their owners. |
+| `packages/contracts/**`, if a shared type package is introduced | Saint | Generate REST/RPC transport types and common presence/error adapters. Keep business rules inside their owners. |
 | `compose.yaml`, `docker/**`, hosted manifests, `.github/**` | Saint | Owners supply ports, migrations, health, volumes and variable names. |
 | Each service's package manifest, Dockerfile, migrations and tests | That service owner | Coordinate dependencies with Saint before updating the root lockfile. |
 | `contracts/**`, `proto/**`, governing requirements and ADRs | Saint coordinates reviewed changes | The affected producer and consumer review a contract change before implementation diverges. |
@@ -74,20 +74,22 @@ The local Gateway remains reachable on loopback port 8080. Saint coordinates the
 | Owner | HTTP port | Store | Other interface |
 | --- | --- | --- | --- |
 | Gateway | 8080 | None | Public API routing through the web entry |
-| Auth | 4002 | PostgreSQL `auth_db` | Private identity/grant operations |
-| Tutor | 4001 | MongoDB `tutor_db` | Availability gRPC client |
-| Booking | 4004 | PostgreSQL `booking_db` | Availability gRPC server on 50052 |
-| Wallet | 4003 | PostgreSQL `wallet_db` | Private financial operations |
-| Review | 4005 | MongoDB `review_db` | Private rating-summary reads |
-| Messaging | 4006 | MongoDB `messaging_db` | Versioned message events |
-| Notification | 4007 | MongoDB `notification_db` | Versioned RabbitMQ consumer |
+| Auth | 4002 | PostgreSQL `auth_db` | gRPC on 50051 for domain identity/grant operations |
+| Tutor | 4001 | MongoDB `tutor_db` | gRPC server on 50053; availability/identity/rating clients |
+| Booking | 4004 | PostgreSQL `booking_db` | Availability/evidence gRPC server on 50052 |
+| Wallet | 4003 | PostgreSQL `wallet_db` | Financial gRPC server on 50054 |
+| Review | 4005 | MongoDB `review_db` | Rating gRPC server on 50055; Booking/Auth clients |
+| Messaging | 4006 | MongoDB `messaging_db` | Auth/Tutor gRPC clients and versioned message events |
+| Notification | 4007 | MongoDB `notification_db` | Auth/Booking gRPC clients and versioned RabbitMQ consumer |
 
 Each backend exposes private health checks and registers the appropriate reachable address in Consul.
 Each owner supplies migrations and runtime requirements to Saint. The database name alone does not grant another service access.
 
 ## First integration contracts
 
-The operation IDs below come from the [route inventory](../../contracts/operation-map.json).
+The operation IDs below come from the [combined REST/gRPC inventory](../../contracts/operation-map.json).
+Public APIs remain REST. All 18 private domain operations now use gRPC, alongside the two availability RPCs.
+Only Gateway introspection and owner-status polling retain private REST. The [gRPC registry](../../contracts/grpc/operations.v1.json) defines the exact wire method and caller allowlist.
 Each member's file contains the full inventory for their owners.
 
 | Provider | First deliverable | Consumer and paired exercise |
@@ -111,7 +113,8 @@ Use the new availability protobuf in both callers. Keep the old protobuf until i
 - Use PostgreSQL for Auth, Booking and Wallet, with separate owned databases.
 - Use separate MongoDB databases for Tutor, Review, Messaging and Notification.
 - Use the persistent single-member MongoDB replica set when local transactions require it. Do not claim database failover.
-- Preserve REST, gRPC, RabbitMQ, Gateway and Consul in actual business flows.
+- Preserve public REST, private domain gRPC, RabbitMQ, Gateway and Consul in actual business flows.
+- Implement all 20 RPCs with explicit deadlines, workload metadata, scalar presence and the documented error mapping.
 - Implement UUID identities, exact THB calculations, UTC timestamps and Bangkok display from the contracts.
 - Save business changes and event work in the same owner transaction. Each producer owns its own outbox and publisher retries.
 - Preserve operation IDs on retries. Reconcile uncertain money before releasing funds or slot holds.
@@ -133,7 +136,7 @@ All dates use Asia/Bangkok.
 
 | Date | Shared exit condition |
 | --- | --- |
-| 6 November | Shared baseline is available. Saint publishes the minimal workspace/shell. All four owners run local service tests and expose their first contracts. |
+| 6 November | Shared baseline is available. Saint publishes the minimal workspace/shell. All four owners run local service tests and expose their first REST/RPC contracts. |
 | 7 November | Real Auth, approval activation, catalogue/availability, payment/refund and notification delivery connect. Prepare the first hosted smoke test for authorized execution. |
 | 8 November | All nine use cases and chat work through the integrated UI. Run the critical cross-owner recovery cases. |
 | 9 November | Complete hosted/local rehearsals, backup restoration, both load-test types, risk matrix and presentation draft. |

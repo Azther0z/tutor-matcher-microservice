@@ -12,17 +12,18 @@ The confirmed product decisions remain in requirements. UUIDs, actor-assertion s
 | Artifact | Owns |
 | --- | --- |
 | [Public OpenAPI](public.openapi.json) | Gateway paths, methods, request/response types, capabilities, errors, owner routing and requirement links. |
-| [Internal OpenAPI](internal.openapi.json) | Private REST collaborations and caller allowlists. Never expose these through the gateway. |
-| [Shared JSON Schema](schemas/v1.json) | Request and response data shapes, including cross-protocol identifiers and amounts. |
-| [Availability protobuf](grpc/booking/v1/availability.proto) | Tutor → Booking read-only gRPC wire messages and methods. |
+| [Internal OpenAPI](internal.openapi.json) | Eight private REST infrastructure operations: Gateway introspection and owner-status polling. Domain collaborations use gRPC. |
+| [Shared JSON Schema](schemas/v1.json) | REST data shapes and gRPC value-validation views. Protobuf files own gRPC wire types; the normalization rules preserve these domain values. |
+| [Private gRPC guide and registry](grpc/README.md) | Twenty typed unary domain collaborations across five servers, with exact callers, schemas and deadlines. |
+| [Availability protobuf](grpc/booking/v1/availability.proto) | The two Tutor → Booking availability methods within that gRPC set. |
 | [Event schema](schemas/events.v1.json) and [event guide](events.md) | Typed payloads, producer, recipient selection, subscriptions, preferences and durable delivery. |
 | [Recovery guide](recovery.md) | Operation identities, unknown outcomes, close/fence semantics and required fault cases. |
 | [Examples](examples/cases.json) | Synthetic positive/negative schema examples and expected outcomes. These are contract fixtures, not evidence of runtime behavior. |
 | [Operation map](operation-map.json) | Derived route/owner/requirement inventory. Regenerate with the validator after changing OpenAPI. |
 
-Use OpenAPI 3.1.1 and JSON Schema 2020-12. The public API's logical version is v1 under `/api`, preserving the monolith's resource paths where useful. Internal REST starts `/internal/v1`; gRPC uses `tutor_matcher.booking.v1`; events use schemaVersion 1 and `v1.<type>` routing.
+Use OpenAPI 3.1.1, JSON Schema 2020-12 and typed proto3 contracts. The user selected all private domain collaborations on gRPC on 6 November 2026. See ADR-0028 in the ADR index. The public API's logical version is v1 under `/api`, preserving the monolith's resource paths where useful. Internal REST starts `/internal/v1`; gRPC uses `tutor_matcher.<owner>.v1`; events use schemaVersion 1 and `v1.<type>` routing.
 An additive optional response field is compatible. A new required input, changed enum meaning, removed field, or changed financial rule requires a reviewed contract change and a major version or coordinated pre-release migration.
-Requests reject unknown fields; consumers tolerate additional response fields, but servers must still enforce explicit public projections. Private fields are not permitted merely because an output permits additive fields.
+REST JSON requests reject unknown fields. gRPC validates decoded named fields and enum values, while protobuf wire evolution permits unknown tags. Consumers tolerate additive response fields, but servers must still enforce explicit public projections. Private fields are not permitted merely because an output permits additive fields.
 
 ## Shared values and boundaries
 
@@ -41,7 +42,7 @@ Requests reject unknown fields; consumers tolerate additional response fields, b
 
 Gateway retains Consul discovery, round-robin selection and last-known healthy addresses from the system design. Discovery failure uses that bounded fallback; it never routes to a caller-supplied address. With no usable owner instance return 503. The required replica/failure and load-test evidence remains step 4.
 
-Booking keeps the existing private gRPC port 50052 (`booking-service:50052`, configured through BOOKING_GRPC_URL). Tutor resolves the reachable private Booking address and that gRPC port, rather than using the HTTP port for an RPC. Private owner HTTP `/health` routes remain Consul checks: 200 when ready and 503 when unavailable, with no sensitive diagnostics. Runtime broker outages leave committed outbox work pending and must not turn a successful business transaction into failure.
+Private domain calls use the [gRPC method registry](grpc/operations.v1.json). Auth serves port 50051, Booking keeps 50052, Tutor serves 50053, Wallet serves 50054 and Review serves 50055. Messaging and Notification use those RPCs as clients. Domain callers use configured private service DNS and gRPC ports. Gateway introspection and owner-status polling remain REST. Private owner HTTP `/health` routes remain Consul checks: 200 when ready and 503 when unavailable, with no sensitive diagnostics. Runtime broker outages leave committed outbox work pending and must not turn a successful business transaction into failure.
 
 The public base is `http://127.0.0.1:8080/api` for local target deployment; hosted deployments use HTTPS. Gateway maps each OpenAPI method/path to x-owner, passes query/body unchanged, and strips caller-supplied internal identity headers. Fixed paths such as `/bookings/tutor/upcoming` precede `/{bookingId}`. No wildcard proxy to internal or demo namespaces is allowed.
 The `/operations/{owner}/{operationId}` route uses a fixed owner allowlist and forwards to that owner's operation store. It forwards to the selected owner's private `/internal/v1/<owner>/operations/{operationId}` path from the internal spec. It is not a new service or a caller-selected hostname.
@@ -78,13 +79,13 @@ Auth owns sessions and current account capabilities. A registered account has ST
 
 Gateway verifies the browser JWT, introspects it through Auth, and issues a 60-second RS256 actor assertion with `iss=api-gateway`, `aud=tutor-matcher-internal`, `sub=userId`, `sessionId`, `admissionId`, `admittedAt`, `requestId` and `publicOperation`, `capabilities` and `accountRevision`. Owners enforce the signed capability claim and their resource policy; the gateway checks current Auth state at admission. The gateway private key stays in encrypted runtime configuration. Owners verify signature, expiry and claims with the configured public key. Never trust an unsigned X-User-Id or X-Actor-Context supplied by a browser.
 
-Every private call also uses a per-caller workload bearer credential from SOPS/age runtime configuration. Receivers map it to a caller name and enforce the operation's x-authorized-callers. Do not reuse one credential across all workloads. Consul resolves private addresses; it does not authenticate a caller. HTTP and gRPC metadata carry only the required caller/actor context; never put a browser token in an event.
+Every private REST or gRPC call also uses a per-caller workload bearer credential from SOPS/age runtime configuration. Receivers map it to a caller name and enforce the REST operation's x-authorized-callers or the gRPC method registry's authorizedCallers. Do not reuse one credential across all workloads. Consul resolves private addresses; it does not authenticate a caller. HTTP and gRPC metadata carry only the required caller/actor context; never put a browser token in an event.
 
 The first user operation requires the valid actor assertion and current admission. The owner saves the minimum Admission with its durable operation before any dependent write. An owner recovering that exact operation can use its workload identity and recorded admission after the browser session/assertion expires; this cannot authorize a new user action. Receivers verify the allowlisted owner, immutable source operation identity, original actor/resource binding and prior admission time. Read-only workload jobs such as rating composition or reminder checks need no fictitious user assertion. Password reset is its separately validated anonymous token flow.
 
 Internal account lookup returns minimal display/capability/contact data only to its allowlisted callers. Review can query immutable Booking eligibility; it cannot query booking_db. Wallet obtains Booking evidence and locks its own financial record for the decision. Auth never re-decides a tutor application during activation. Capability grants are keyed by submission ID plus approval revision; approval remains visibly activation-pending until Auth confirms it.
 
-A student's and tutor's views share one identity but cannot edit each other's resources. A view parameter selects context, not capability. ListBookings defaults STUDENT; tutor inbox/upcoming views require TUTOR. Resource owners enforce participant checks even behind Gateway. Internal paths and private document URLs cannot be reached by changing a public route parameter.
+A student's and tutor's views share one identity but cannot edit each other's resources. A view parameter selects context, not capability. ListBookings defaults STUDENT; tutor inbox/upcoming views require TUTOR. Resource owners enforce participant checks even behind Gateway. Internal REST paths, private RPCs and private document URLs cannot be reached by changing a public route parameter.
 
 ## Owner-specific behavior
 
@@ -115,13 +116,15 @@ Outcome SUCCEEDED commits a single receipt and financial effect; FAILED is a def
 
 See the [local validation record](VALIDATION.md) for verified checks and remaining runtime evidence.
 
-The service owner implements both its producer contract and its consumer checks. Agree contract changes before changing consumers. Each operation in OpenAPI has requirement references; [operation-map.json](operation-map.json) makes gateway routing and ownership reviewable. Shared schemas can generate TypeScript types and mock fixtures in step 4; the runtime must still perform semantic validation.
+The service owner implements both its producer contract and its consumer checks. Agree contract changes before changing consumers. Each REST operation and gRPC method has requirement references; [operation-map.json](operation-map.json) makes REST routing, RPC methods and ownership reviewable. Shared schemas can generate TypeScript types and mock fixtures in step 4; the runtime must still perform semantic validation.
 
-Run `uv run --offline --with jsonschema==4.26.0 python contracts/validate.py` when that dependency is cached; otherwise use a normally provisioned environment with jsonschema 4.26.0. The script validates schemas, examples, references, every AUTH/UC/SUP annotation and route inventory. Add `--with pyyaml==6.0.3` to the uv command and `--collection "postman/collections/Tutor Matcher Target Public v1"` to check all derived requests and their JSON bodies as well. It emits temporary bundled OpenAPI through `--bundle-dir /tmp/tutor-matcher-contract-bundle` for tools that cannot resolve external shared schemas. Generated bundles are not another authority.
-Run `node contracts/check-proto.cjs` after Booking dependencies are installed. It loads, resolves and round-trips the protobuf with the repository's existing protobufjs dependency. It does not run a gRPC server.
+Run `uv run --offline --with jsonschema==4.26.0 python contracts/validate.py` when that dependency is cached; otherwise use a normally provisioned environment with jsonschema 4.26.0. The script validates schemas, examples, every AUTH/UC/SUP annotation and the combined REST/gRPC inventory. It also validates the 20 gRPC request/response pairs and invalid gRPC fixtures. Add `--with pyyaml==6.0.3` to the uv command and `--collection "postman/collections/Tutor Matcher Target Public v1"` to check all derived requests and their JSON bodies as well. It emits temporary bundled OpenAPI through `--bundle-dir /tmp/tutor-matcher-contract-bundle` for tools that cannot resolve external shared schemas. Generated bundles are not another authority.
+Run `node contracts/check-proto.cjs` after Booking dependencies are installed. It checks all 20 methods using the existing protobufjs and grpc-js codecs, including scalar presence, enum defaults and typed error trailers. It does not run a gRPC server.
 Run `postman spec lint /tmp/tutor-matcher-contract-bundle/public.openapi.json --issueType syntax --no-report-events -o json` and the corresponding internal spec. No CLI/cloud init or publication is part of this step.
 
 The generated [target Postman collection](../postman/collections/Tutor%20Matcher%20Target%20Public%20v1/.resources/definition.yaml) contains one request per public operation, grouped by owner. It is derived from the bundled public spec with `postman spec generate collection <bundle> -n "Tutor Matcher Target Public v1" --folder-strategy Tags`. After fresh CLI generation, run `python contracts/prepare-collection.py <collection-directory> --fresh-generated` with PyYAML 6.0.3. This corrects generator const/date examples and URL encoding, removes generic unvalidated response examples, and uses the validated synthetic input fixtures. It refuses collections with maintained scripts. Its token variable is empty; the requestId/idempotencyKey/revision variables and generated example values must be set per logical action (retain the same idempotencyKey for retries) and replaced with synthetic fixture IDs and the applicable caller session. It has not been run against a target server. Existing collections are unchanged. Regenerate into a separate temporary directory for comparison before replacing it, preserving any later maintained scripts.
+
+All 18 former private domain HTTP operations are replaced by typed gRPC methods. [The gRPC guide](grpc/README.md) defines field normalization, error/status mapping and unknown-outcome handling. The public REST spec and its 86-request Postman collection remain unchanged.
 
 The current [legacy protobuf](../proto/booking.proto), JavaScript services, Compose configuration and maintained Postman collection still describe the existing demo. Step 4 must migrate callers and servers together. Public IDs move from Mongo IDs where applicable to UUIDs; prices become decimal strings; direct user-confirmed top-ups become controlled simulated outcomes; reset validation moves from a query token to a POST body; private profile fields are removed from public projections. Legacy isTrial and reschedule endpoints are not part of the required target delivery. Do not claim drop-in compatibility.
 
@@ -129,7 +132,7 @@ The documented interfaces and fixtures must pass before parallel implementation 
 
 ## Requirement coverage
 
-All AUTH, UC01–UC09 and SUP behavior IDs have an operation annotation in OpenAPI. The route inventory is generated from those annotations; protocol semantics and quality criteria also need the following checks.
+All AUTH, UC01–UC09 and SUP behavior IDs have an operation annotation in OpenAPI or the gRPC registry. The route inventory is generated from those annotations; protocol semantics and quality criteria also need the following checks.
 
 | Requirement | Contract location and remaining evidence |
 | --- | --- |

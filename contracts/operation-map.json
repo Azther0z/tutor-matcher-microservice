@@ -2,9 +2,10 @@
   {
     "operationId": "applyCancellationRefund",
     "owner": "wallet",
+    "protocol": "GRPC",
     "surface": "INTERNAL",
-    "method": "PUT",
-    "path": "/internal/v1/wallet/refunds/{operationId}",
+    "method": "UNARY",
+    "path": "/tutor_matcher.wallet.v1.WalletFinanceService/ApplyCancellationRefund",
     "requirements": [
       "UC06-02",
       "UC06-03",
@@ -14,17 +15,31 @@
   {
     "operationId": "applyLessonCharge",
     "owner": "wallet",
+    "protocol": "GRPC",
     "surface": "INTERNAL",
-    "method": "PUT",
-    "path": "/internal/v1/wallet/payments/{operationId}",
+    "method": "UNARY",
+    "path": "/tutor_matcher.wallet.v1.WalletFinanceService/ApplyLessonCharge",
     "requirements": [
       "UC03-04",
       "UC03-05"
     ]
   },
   {
+    "operationId": "batchGetAvailability",
+    "owner": "booking",
+    "protocol": "GRPC",
+    "surface": "INTERNAL",
+    "method": "UNARY",
+    "path": "/tutor_matcher.booking.v1.AvailabilityService/BatchGetAvailability",
+    "requirements": [
+      "UC03-01",
+      "UC02-04"
+    ]
+  },
+  {
     "operationId": "cancelBooking",
     "owner": "booking",
+    "protocol": "REST",
     "surface": "PUBLIC",
     "method": "POST",
     "path": "/api/bookings/{bookingId}/cancel",
@@ -36,6 +51,7 @@
   {
     "operationId": "completeBooking",
     "owner": "booking",
+    "protocol": "REST",
     "surface": "PUBLIC",
     "method": "POST",
     "path": "/api/bookings/{bookingId}/confirm-completion",
@@ -47,6 +63,7 @@
   {
     "operationId": "confirmPasswordReset",
     "owner": "auth",
+    "protocol": "REST",
     "surface": "PUBLIC",
     "method": "POST",
     "path": "/api/auth/password-reset/confirm",
@@ -57,6 +74,7 @@
   {
     "operationId": "copyTutorSubmission",
     "owner": "tutor",
+    "protocol": "REST",
     "surface": "PUBLIC",
     "method": "POST",
     "path": "/api/profiles/me/tutor/submissions/{submissionId}/copy",
@@ -67,6 +85,7 @@
   {
     "operationId": "createBooking",
     "owner": "booking",
+    "protocol": "REST",
     "surface": "PUBLIC",
     "method": "POST",
     "path": "/api/bookings",
@@ -78,6 +97,7 @@
   {
     "operationId": "createPayout",
     "owner": "wallet",
+    "protocol": "REST",
     "surface": "PUBLIC",
     "method": "POST",
     "path": "/api/payouts",
@@ -89,6 +109,7 @@
   {
     "operationId": "createPayoutAccount",
     "owner": "wallet",
+    "protocol": "REST",
     "surface": "PUBLIC",
     "method": "POST",
     "path": "/api/payout-accounts",
@@ -99,6 +120,7 @@
   {
     "operationId": "createReview",
     "owner": "review",
+    "protocol": "REST",
     "surface": "PUBLIC",
     "method": "POST",
     "path": "/api/bookings/{bookingId}/review",
@@ -109,6 +131,7 @@
   {
     "operationId": "createSubject",
     "owner": "tutor",
+    "protocol": "REST",
     "surface": "PUBLIC",
     "method": "POST",
     "path": "/api/profiles/me/tutor/subjects",
@@ -119,6 +142,7 @@
   {
     "operationId": "createTopup",
     "owner": "wallet",
+    "protocol": "REST",
     "surface": "PUBLIC",
     "method": "POST",
     "path": "/api/wallet/topups",
@@ -130,6 +154,7 @@
   {
     "operationId": "createTutorDraft",
     "owner": "tutor",
+    "protocol": "REST",
     "surface": "PUBLIC",
     "method": "POST",
     "path": "/api/profiles/me/tutor/drafts",
@@ -141,6 +166,7 @@
   {
     "operationId": "decideDispute",
     "owner": "wallet",
+    "protocol": "REST",
     "surface": "PUBLIC",
     "method": "POST",
     "path": "/api/admin/disputes/{disputeId}/decision",
@@ -152,6 +178,7 @@
   {
     "operationId": "deletePayoutAccount",
     "owner": "wallet",
+    "protocol": "REST",
     "surface": "PUBLIC",
     "method": "DELETE",
     "path": "/api/payout-accounts/{accountId}",
@@ -162,6 +189,7 @@
   {
     "operationId": "deleteTutorDraft",
     "owner": "tutor",
+    "protocol": "REST",
     "surface": "PUBLIC",
     "method": "DELETE",
     "path": "/api/profiles/me/tutor/drafts/{draftId}",
@@ -172,6 +200,7 @@
   {
     "operationId": "flagReview",
     "owner": "review",
+    "protocol": "REST",
     "surface": "PUBLIC",
     "method": "POST",
     "path": "/api/reviews/{reviewId}/flags",
@@ -182,6 +211,7 @@
   {
     "operationId": "getAccountSettings",
     "owner": "auth",
+    "protocol": "REST",
     "surface": "PUBLIC",
     "method": "GET",
     "path": "/api/profiles/me/account",
@@ -192,6 +222,7 @@
   {
     "operationId": "getAdminAccount",
     "owner": "auth",
+    "protocol": "REST",
     "surface": "PUBLIC",
     "method": "GET",
     "path": "/api/admin/users/{userId}",
@@ -202,6 +233,7 @@
   {
     "operationId": "getAdminDispute",
     "owner": "wallet",
+    "protocol": "REST",
     "surface": "PUBLIC",
     "method": "GET",
     "path": "/api/admin/disputes/{disputeId}",
@@ -212,6 +244,7 @@
   {
     "operationId": "getAuthOperation",
     "owner": "auth",
+    "protocol": "REST",
     "surface": "INTERNAL",
     "method": "GET",
     "path": "/internal/v1/auth/operations/{operationId}",
@@ -220,11 +253,24 @@
     ]
   },
   {
+    "operationId": "getAvailability",
+    "owner": "booking",
+    "protocol": "GRPC",
+    "surface": "INTERNAL",
+    "method": "UNARY",
+    "path": "/tutor_matcher.booking.v1.AvailabilityService/GetAvailability",
+    "requirements": [
+      "UC03-01",
+      "UC02-04"
+    ]
+  },
+  {
     "operationId": "getBookableSubject",
     "owner": "tutor",
+    "protocol": "GRPC",
     "surface": "INTERNAL",
-    "method": "GET",
-    "path": "/internal/v1/tutor/subjects/{subjectId}/bookable",
+    "method": "UNARY",
+    "path": "/tutor_matcher.tutor.v1.TutorCatalogueService/GetBookableSubject",
     "requirements": [
       "UC03-02"
     ]
@@ -232,6 +278,7 @@
   {
     "operationId": "getBooking",
     "owner": "booking",
+    "protocol": "REST",
     "surface": "PUBLIC",
     "method": "GET",
     "path": "/api/bookings/{bookingId}",
@@ -244,9 +291,10 @@
   {
     "operationId": "getBookingEvidence",
     "owner": "booking",
+    "protocol": "GRPC",
     "surface": "INTERNAL",
-    "method": "GET",
-    "path": "/internal/v1/booking/bookings/{bookingId}/evidence",
+    "method": "UNARY",
+    "path": "/tutor_matcher.booking.v1.BookingEvidenceService/GetBookingEvidence",
     "requirements": [
       "UC09-02",
       "Q-06"
@@ -255,9 +303,10 @@
   {
     "operationId": "getBookingFinancialRecord",
     "owner": "wallet",
+    "protocol": "GRPC",
     "surface": "INTERNAL",
-    "method": "GET",
-    "path": "/internal/v1/wallet/bookings/{bookingId}/financial-record",
+    "method": "UNARY",
+    "path": "/tutor_matcher.wallet.v1.WalletFinanceService/GetBookingFinancialRecord",
     "requirements": [
       "UC09-02",
       "UC05-05"
@@ -266,6 +315,7 @@
   {
     "operationId": "getBookingOperation",
     "owner": "booking",
+    "protocol": "REST",
     "surface": "INTERNAL",
     "method": "GET",
     "path": "/internal/v1/booking/operations/{operationId}",
@@ -276,6 +326,7 @@
   {
     "operationId": "getCurrentAccount",
     "owner": "auth",
+    "protocol": "REST",
     "surface": "PUBLIC",
     "method": "GET",
     "path": "/api/auth/me",
@@ -286,6 +337,7 @@
   {
     "operationId": "getDemoResetContent",
     "owner": "auth",
+    "protocol": "REST",
     "surface": "PUBLIC",
     "method": "GET",
     "path": "/api/demo/password-resets/{contentRef}",
@@ -297,6 +349,7 @@
   {
     "operationId": "getHealth",
     "owner": "gateway",
+    "protocol": "REST",
     "surface": "PUBLIC",
     "method": "GET",
     "path": "/api/health",
@@ -307,6 +360,7 @@
   {
     "operationId": "getInbox",
     "owner": "messaging",
+    "protocol": "REST",
     "surface": "PUBLIC",
     "method": "GET",
     "path": "/api/messages/inbox",
@@ -317,6 +371,7 @@
   {
     "operationId": "getLearningAreas",
     "owner": "tutor",
+    "protocol": "REST",
     "surface": "PUBLIC",
     "method": "GET",
     "path": "/api/discovery/learning-areas",
@@ -328,9 +383,10 @@
   {
     "operationId": "getLessonCharge",
     "owner": "wallet",
+    "protocol": "GRPC",
     "surface": "INTERNAL",
-    "method": "GET",
-    "path": "/internal/v1/wallet/payments/{operationId}",
+    "method": "UNARY",
+    "path": "/tutor_matcher.wallet.v1.WalletFinanceService/GetLessonCharge",
     "requirements": [
       "UC03-05"
     ]
@@ -338,6 +394,7 @@
   {
     "operationId": "getMessagingOperation",
     "owner": "messaging",
+    "protocol": "REST",
     "surface": "INTERNAL",
     "method": "GET",
     "path": "/internal/v1/messaging/operations/{operationId}",
@@ -348,6 +405,7 @@
   {
     "operationId": "getNeedsConfirmation",
     "owner": "booking",
+    "protocol": "REST",
     "surface": "PUBLIC",
     "method": "GET",
     "path": "/api/bookings/tutor/needs-confirmation",
@@ -358,6 +416,7 @@
   {
     "operationId": "getNotificationOperation",
     "owner": "notification",
+    "protocol": "REST",
     "surface": "INTERNAL",
     "method": "GET",
     "path": "/internal/v1/notification/operations/{operationId}",
@@ -368,6 +427,7 @@
   {
     "operationId": "getNotificationPreferences",
     "owner": "notification",
+    "protocol": "REST",
     "surface": "PUBLIC",
     "method": "GET",
     "path": "/api/notifications/preferences",
@@ -378,6 +438,7 @@
   {
     "operationId": "getOperation",
     "owner": "gateway",
+    "protocol": "REST",
     "surface": "PUBLIC",
     "method": "GET",
     "path": "/api/operations/{owner}/{operationId}",
@@ -388,6 +449,7 @@
   {
     "operationId": "getOwnAvailabilityCalendar",
     "owner": "booking",
+    "protocol": "REST",
     "surface": "PUBLIC",
     "method": "GET",
     "path": "/api/profiles/me/tutor/availability/calendar",
@@ -398,6 +460,7 @@
   {
     "operationId": "getOwnAvailabilityDay",
     "owner": "booking",
+    "protocol": "REST",
     "surface": "PUBLIC",
     "method": "GET",
     "path": "/api/profiles/me/tutor/availability/{date}",
@@ -408,6 +471,7 @@
   {
     "operationId": "getOwnDispute",
     "owner": "wallet",
+    "protocol": "REST",
     "surface": "PUBLIC",
     "method": "GET",
     "path": "/api/disputes/{disputeId}",
@@ -418,6 +482,7 @@
   {
     "operationId": "getPayout",
     "owner": "wallet",
+    "protocol": "REST",
     "surface": "PUBLIC",
     "method": "GET",
     "path": "/api/payouts/{payoutId}",
@@ -428,6 +493,7 @@
   {
     "operationId": "getPayoutBanks",
     "owner": "wallet",
+    "protocol": "REST",
     "surface": "PUBLIC",
     "method": "GET",
     "path": "/api/payout-accounts/banks",
@@ -438,6 +504,7 @@
   {
     "operationId": "getPublicSubject",
     "owner": "tutor",
+    "protocol": "REST",
     "surface": "PUBLIC",
     "method": "GET",
     "path": "/api/discovery/tutors/{tutorId}/subjects/{subjectId}",
@@ -448,6 +515,7 @@
   {
     "operationId": "getPublicTutor",
     "owner": "tutor",
+    "protocol": "REST",
     "surface": "PUBLIC",
     "method": "GET",
     "path": "/api/discovery/tutors/{tutorId}/profile",
@@ -459,9 +527,10 @@
   {
     "operationId": "getRatingSummaries",
     "owner": "review",
+    "protocol": "GRPC",
     "surface": "INTERNAL",
-    "method": "POST",
-    "path": "/internal/v1/review/rating-summaries",
+    "method": "UNARY",
+    "path": "/tutor_matcher.review.v1.ReviewRatingService/GetRatingSummaries",
     "requirements": [
       "UC03-01",
       "UC08-04"
@@ -470,9 +539,10 @@
   {
     "operationId": "getRefundOutcome",
     "owner": "wallet",
+    "protocol": "GRPC",
     "surface": "INTERNAL",
-    "method": "GET",
-    "path": "/internal/v1/wallet/refunds/{operationId}",
+    "method": "UNARY",
+    "path": "/tutor_matcher.wallet.v1.WalletFinanceService/GetRefundOutcome",
     "requirements": [
       "UC06-04"
     ]
@@ -480,9 +550,10 @@
   {
     "operationId": "getReminderEligibility",
     "owner": "booking",
+    "protocol": "GRPC",
     "surface": "INTERNAL",
-    "method": "GET",
-    "path": "/internal/v1/booking/bookings/{bookingId}/reminder-eligibility",
+    "method": "UNARY",
+    "path": "/tutor_matcher.booking.v1.BookingEvidenceService/GetReminderEligibility",
     "requirements": [
       "SUP-02"
     ]
@@ -490,9 +561,10 @@
   {
     "operationId": "getResetNotificationContent",
     "owner": "auth",
+    "protocol": "GRPC",
     "surface": "INTERNAL",
-    "method": "GET",
-    "path": "/internal/v1/auth/notification-content/{contentRef}",
+    "method": "UNARY",
+    "path": "/tutor_matcher.auth.v1.AuthCollaborationService/GetResetNotificationContent",
     "requirements": [
       "AUTH-03"
     ]
@@ -500,9 +572,10 @@
   {
     "operationId": "getReviewEligibility",
     "owner": "booking",
+    "protocol": "GRPC",
     "surface": "INTERNAL",
-    "method": "GET",
-    "path": "/internal/v1/booking/bookings/{bookingId}/review-eligibility",
+    "method": "UNARY",
+    "path": "/tutor_matcher.booking.v1.BookingEvidenceService/GetReviewEligibility",
     "requirements": [
       "UC08-01"
     ]
@@ -510,6 +583,7 @@
   {
     "operationId": "getReviewOperation",
     "owner": "review",
+    "protocol": "REST",
     "surface": "INTERNAL",
     "method": "GET",
     "path": "/internal/v1/review/operations/{operationId}",
@@ -520,6 +594,7 @@
   {
     "operationId": "getSearchPriceRange",
     "owner": "tutor",
+    "protocol": "REST",
     "surface": "PUBLIC",
     "method": "GET",
     "path": "/api/discovery/price-range",
@@ -530,6 +605,7 @@
   {
     "operationId": "getStudentCancellationQuote",
     "owner": "booking",
+    "protocol": "REST",
     "surface": "PUBLIC",
     "method": "GET",
     "path": "/api/bookings/{bookingId}/cancellation-quote",
@@ -541,6 +617,7 @@
   {
     "operationId": "getStudentProfile",
     "owner": "auth",
+    "protocol": "REST",
     "surface": "PUBLIC",
     "method": "GET",
     "path": "/api/profiles/me/student",
@@ -552,6 +629,7 @@
   {
     "operationId": "getThread",
     "owner": "messaging",
+    "protocol": "REST",
     "surface": "PUBLIC",
     "method": "GET",
     "path": "/api/messages/thread/{userId}",
@@ -562,6 +640,7 @@
   {
     "operationId": "getTopup",
     "owner": "wallet",
+    "protocol": "REST",
     "surface": "PUBLIC",
     "method": "GET",
     "path": "/api/wallet/topups/{topupId}",
@@ -572,6 +651,7 @@
   {
     "operationId": "getTutorCancellationQuote",
     "owner": "booking",
+    "protocol": "REST",
     "surface": "PUBLIC",
     "method": "GET",
     "path": "/api/bookings/{bookingId}/tutor-cancellation-quote",
@@ -582,9 +662,10 @@
   {
     "operationId": "getTutorEligibility",
     "owner": "tutor",
+    "protocol": "GRPC",
     "surface": "INTERNAL",
-    "method": "GET",
-    "path": "/internal/v1/tutor/users/{userId}/eligibility",
+    "method": "UNARY",
+    "path": "/tutor_matcher.tutor.v1.TutorCatalogueService/GetTutorEligibility",
     "requirements": [
       "AUTH-04",
       "UC02-04",
@@ -594,9 +675,10 @@
   {
     "operationId": "getTutorGrant",
     "owner": "auth",
+    "protocol": "GRPC",
     "surface": "INTERNAL",
-    "method": "GET",
-    "path": "/internal/v1/auth/tutor-grants/{operationId}",
+    "method": "UNARY",
+    "path": "/tutor_matcher.auth.v1.AuthCollaborationService/GetTutorGrant",
     "requirements": [
       "UC01-04"
     ]
@@ -604,6 +686,7 @@
   {
     "operationId": "getTutorOperation",
     "owner": "tutor",
+    "protocol": "REST",
     "surface": "INTERNAL",
     "method": "GET",
     "path": "/internal/v1/tutor/operations/{operationId}",
@@ -614,6 +697,7 @@
   {
     "operationId": "getTutorRequest",
     "owner": "tutor",
+    "protocol": "REST",
     "surface": "PUBLIC",
     "method": "GET",
     "path": "/api/admin/tutor-requests/{submissionId}",
@@ -625,6 +709,7 @@
   {
     "operationId": "getTutorUpcoming",
     "owner": "booking",
+    "protocol": "REST",
     "surface": "PUBLIC",
     "method": "GET",
     "path": "/api/bookings/tutor/upcoming",
@@ -636,6 +721,7 @@
   {
     "operationId": "getTutorWorkspace",
     "owner": "tutor",
+    "protocol": "REST",
     "surface": "PUBLIC",
     "method": "GET",
     "path": "/api/profiles/me/tutor",
@@ -647,6 +733,7 @@
   {
     "operationId": "getWallet",
     "owner": "wallet",
+    "protocol": "REST",
     "surface": "PUBLIC",
     "method": "GET",
     "path": "/api/wallet",
@@ -659,6 +746,7 @@
   {
     "operationId": "getWalletOperation",
     "owner": "wallet",
+    "protocol": "REST",
     "surface": "INTERNAL",
     "method": "GET",
     "path": "/internal/v1/wallet/operations/{operationId}",
@@ -669,6 +757,7 @@
   {
     "operationId": "getWalletTransaction",
     "owner": "wallet",
+    "protocol": "REST",
     "surface": "PUBLIC",
     "method": "GET",
     "path": "/api/wallet/transactions/{transactionId}",
@@ -680,9 +769,10 @@
   {
     "operationId": "grantTutorCapability",
     "owner": "auth",
+    "protocol": "GRPC",
     "surface": "INTERNAL",
-    "method": "PUT",
-    "path": "/internal/v1/auth/tutor-grants/{operationId}",
+    "method": "UNARY",
+    "path": "/tutor_matcher.auth.v1.AuthCollaborationService/GrantTutorCapability",
     "requirements": [
       "UC01-04"
     ]
@@ -690,6 +780,7 @@
   {
     "operationId": "introspectToken",
     "owner": "auth",
+    "protocol": "REST",
     "surface": "INTERNAL",
     "method": "POST",
     "path": "/internal/v1/auth/introspections",
@@ -701,9 +792,10 @@
   {
     "operationId": "listActiveAdmins",
     "owner": "auth",
+    "protocol": "GRPC",
     "surface": "INTERNAL",
-    "method": "GET",
-    "path": "/internal/v1/auth/admins",
+    "method": "UNARY",
+    "path": "/tutor_matcher.auth.v1.AuthCollaborationService/ListActiveAdmins",
     "requirements": [
       "SUP-03"
     ]
@@ -711,6 +803,7 @@
   {
     "operationId": "listAdminDisputes",
     "owner": "wallet",
+    "protocol": "REST",
     "surface": "PUBLIC",
     "method": "GET",
     "path": "/api/admin/disputes",
@@ -721,6 +814,7 @@
   {
     "operationId": "listBookings",
     "owner": "booking",
+    "protocol": "REST",
     "surface": "PUBLIC",
     "method": "GET",
     "path": "/api/bookings",
@@ -732,6 +826,7 @@
   {
     "operationId": "listOwnDisputes",
     "owner": "wallet",
+    "protocol": "REST",
     "surface": "PUBLIC",
     "method": "GET",
     "path": "/api/disputes",
@@ -742,6 +837,7 @@
   {
     "operationId": "listOwnNotifications",
     "owner": "notification",
+    "protocol": "REST",
     "surface": "PUBLIC",
     "method": "GET",
     "path": "/api/notifications",
@@ -752,6 +848,7 @@
   {
     "operationId": "listOwnSubjects",
     "owner": "tutor",
+    "protocol": "REST",
     "surface": "PUBLIC",
     "method": "GET",
     "path": "/api/profiles/me/tutor/subjects",
@@ -762,6 +859,7 @@
   {
     "operationId": "listPayoutAccounts",
     "owner": "wallet",
+    "protocol": "REST",
     "surface": "PUBLIC",
     "method": "GET",
     "path": "/api/payout-accounts",
@@ -773,6 +871,7 @@
   {
     "operationId": "listPayouts",
     "owner": "wallet",
+    "protocol": "REST",
     "surface": "PUBLIC",
     "method": "GET",
     "path": "/api/payouts",
@@ -783,6 +882,7 @@
   {
     "operationId": "listPublicReviews",
     "owner": "review",
+    "protocol": "REST",
     "surface": "PUBLIC",
     "method": "GET",
     "path": "/api/reviews",
@@ -793,6 +893,7 @@
   {
     "operationId": "listReviewFlags",
     "owner": "review",
+    "protocol": "REST",
     "surface": "PUBLIC",
     "method": "GET",
     "path": "/api/admin/review-flags",
@@ -803,6 +904,7 @@
   {
     "operationId": "listTutorRequests",
     "owner": "tutor",
+    "protocol": "REST",
     "surface": "PUBLIC",
     "method": "GET",
     "path": "/api/admin/tutor-requests",
@@ -814,6 +916,7 @@
   {
     "operationId": "listWalletTransactions",
     "owner": "wallet",
+    "protocol": "REST",
     "surface": "PUBLIC",
     "method": "GET",
     "path": "/api/wallet/transactions",
@@ -825,6 +928,7 @@
   {
     "operationId": "login",
     "owner": "auth",
+    "protocol": "REST",
     "surface": "PUBLIC",
     "method": "POST",
     "path": "/api/auth/login",
@@ -835,6 +939,7 @@
   {
     "operationId": "logout",
     "owner": "auth",
+    "protocol": "REST",
     "surface": "PUBLIC",
     "method": "POST",
     "path": "/api/auth/logout",
@@ -845,9 +950,10 @@
   {
     "operationId": "lookupAccounts",
     "owner": "auth",
+    "protocol": "GRPC",
     "surface": "INTERNAL",
-    "method": "POST",
-    "path": "/internal/v1/auth/accounts/lookup",
+    "method": "UNARY",
+    "path": "/tutor_matcher.auth.v1.AuthCollaborationService/LookupAccounts",
     "requirements": [
       "AUTH-04",
       "SUP-01",
@@ -857,6 +963,7 @@
   {
     "operationId": "markThreadRead",
     "owner": "messaging",
+    "protocol": "REST",
     "surface": "PUBLIC",
     "method": "PUT",
     "path": "/api/messages/thread/{userId}/read",
@@ -867,6 +974,7 @@
   {
     "operationId": "moderateReview",
     "owner": "review",
+    "protocol": "REST",
     "surface": "PUBLIC",
     "method": "POST",
     "path": "/api/admin/reviews/{reviewId}/moderation",
@@ -877,6 +985,7 @@
   {
     "operationId": "openDispute",
     "owner": "wallet",
+    "protocol": "REST",
     "surface": "PUBLIC",
     "method": "POST",
     "path": "/api/disputes",
@@ -887,6 +996,7 @@
   {
     "operationId": "payBooking",
     "owner": "booking",
+    "protocol": "REST",
     "surface": "PUBLIC",
     "method": "POST",
     "path": "/api/bookings/{bookingId}/confirm-payment",
@@ -898,6 +1008,7 @@
   {
     "operationId": "putAvailabilitySlot",
     "owner": "booking",
+    "protocol": "REST",
     "surface": "PUBLIC",
     "method": "PUT",
     "path": "/api/profiles/me/tutor/availability/{date}/{time}",
@@ -908,6 +1019,7 @@
   {
     "operationId": "putMeetingOverride",
     "owner": "booking",
+    "protocol": "REST",
     "surface": "PUBLIC",
     "method": "PATCH",
     "path": "/api/bookings/{bookingId}/meeting-link",
@@ -918,6 +1030,7 @@
   {
     "operationId": "putNotificationPreferences",
     "owner": "notification",
+    "protocol": "REST",
     "surface": "PUBLIC",
     "method": "PUT",
     "path": "/api/notifications/preferences",
@@ -928,6 +1041,7 @@
   {
     "operationId": "putStudentProfile",
     "owner": "auth",
+    "protocol": "REST",
     "surface": "PUBLIC",
     "method": "PUT",
     "path": "/api/profiles/me/student",
@@ -939,9 +1053,10 @@
   {
     "operationId": "recordLessonCompletion",
     "owner": "wallet",
+    "protocol": "GRPC",
     "surface": "INTERNAL",
-    "method": "PUT",
-    "path": "/internal/v1/wallet/bookings/{bookingId}/completion",
+    "method": "UNARY",
+    "path": "/tutor_matcher.wallet.v1.WalletFinanceService/RecordLessonCompletion",
     "requirements": [
       "UC05-05"
     ]
@@ -949,6 +1064,7 @@
   {
     "operationId": "replyToReview",
     "owner": "review",
+    "protocol": "REST",
     "surface": "PUBLIC",
     "method": "POST",
     "path": "/api/reviews/{reviewId}/reply",
@@ -959,6 +1075,7 @@
   {
     "operationId": "requestPasswordReset",
     "owner": "auth",
+    "protocol": "REST",
     "surface": "PUBLIC",
     "method": "POST",
     "path": "/api/auth/password-reset/request",
@@ -969,9 +1086,10 @@
   {
     "operationId": "resolveOrCloseLessonCharge",
     "owner": "wallet",
+    "protocol": "GRPC",
     "surface": "INTERNAL",
-    "method": "POST",
-    "path": "/internal/v1/wallet/payments/{operationId}/resolve-or-close",
+    "method": "UNARY",
+    "path": "/tutor_matcher.wallet.v1.WalletFinanceService/ResolveOrCloseLessonCharge",
     "requirements": [
       "UC03-05"
     ]
@@ -979,6 +1097,7 @@
   {
     "operationId": "restrictAccount",
     "owner": "auth",
+    "protocol": "REST",
     "surface": "PUBLIC",
     "method": "POST",
     "path": "/api/admin/users/{userId}/restrictions",
@@ -989,6 +1108,7 @@
   {
     "operationId": "reviewTutorSubmission",
     "owner": "tutor",
+    "protocol": "REST",
     "surface": "PUBLIC",
     "method": "POST",
     "path": "/api/admin/tutor-requests/{submissionId}/review",
@@ -1000,6 +1120,7 @@
   {
     "operationId": "searchAccounts",
     "owner": "auth",
+    "protocol": "REST",
     "surface": "PUBLIC",
     "method": "GET",
     "path": "/api/admin/users",
@@ -1010,6 +1131,7 @@
   {
     "operationId": "searchTutorSubjects",
     "owner": "tutor",
+    "protocol": "REST",
     "surface": "PUBLIC",
     "method": "GET",
     "path": "/api/discovery/tutors",
@@ -1021,6 +1143,7 @@
   {
     "operationId": "sendMessage",
     "owner": "messaging",
+    "protocol": "REST",
     "surface": "PUBLIC",
     "method": "POST",
     "path": "/api/messages",
@@ -1032,6 +1155,7 @@
   {
     "operationId": "setDefaultPayoutAccount",
     "owner": "wallet",
+    "protocol": "REST",
     "surface": "PUBLIC",
     "method": "PATCH",
     "path": "/api/payout-accounts/{accountId}/default",
@@ -1042,6 +1166,7 @@
   {
     "operationId": "setDemoMeetingsOutcome",
     "owner": "booking",
+    "protocol": "REST",
     "surface": "PUBLIC",
     "method": "POST",
     "path": "/api/demo/meetings/{bookingId}/outcome",
@@ -1052,6 +1177,7 @@
   {
     "operationId": "setDemoPayoutsOutcome",
     "owner": "wallet",
+    "protocol": "REST",
     "surface": "PUBLIC",
     "method": "POST",
     "path": "/api/demo/payouts/{payoutId}/outcome",
@@ -1062,6 +1188,7 @@
   {
     "operationId": "setDemoTopupsOutcome",
     "owner": "wallet",
+    "protocol": "REST",
     "surface": "PUBLIC",
     "method": "POST",
     "path": "/api/demo/topups/{topupId}/outcome",
@@ -1072,6 +1199,7 @@
   {
     "operationId": "setTutorPublication",
     "owner": "tutor",
+    "protocol": "REST",
     "surface": "PUBLIC",
     "method": "PATCH",
     "path": "/api/profiles/me/tutor/publication",
@@ -1082,6 +1210,7 @@
   {
     "operationId": "signup",
     "owner": "auth",
+    "protocol": "REST",
     "surface": "PUBLIC",
     "method": "POST",
     "path": "/api/auth/signup",
@@ -1092,6 +1221,7 @@
   {
     "operationId": "submitTutorDraft",
     "owner": "tutor",
+    "protocol": "REST",
     "surface": "PUBLIC",
     "method": "POST",
     "path": "/api/profiles/me/tutor/drafts/{draftId}/submit",
@@ -1103,6 +1233,7 @@
   {
     "operationId": "tutorCancelBooking",
     "owner": "booking",
+    "protocol": "REST",
     "surface": "PUBLIC",
     "method": "POST",
     "path": "/api/bookings/{bookingId}/tutor-cancel",
@@ -1113,6 +1244,7 @@
   {
     "operationId": "updateAccountSettings",
     "owner": "auth",
+    "protocol": "REST",
     "surface": "PUBLIC",
     "method": "PUT",
     "path": "/api/profiles/me/account",
@@ -1123,6 +1255,7 @@
   {
     "operationId": "updateSubject",
     "owner": "tutor",
+    "protocol": "REST",
     "surface": "PUBLIC",
     "method": "PUT",
     "path": "/api/profiles/me/tutor/subjects/{subjectId}",
@@ -1133,6 +1266,7 @@
   {
     "operationId": "updateTutorDraft",
     "owner": "tutor",
+    "protocol": "REST",
     "surface": "PUBLIC",
     "method": "PUT",
     "path": "/api/profiles/me/tutor/drafts/{draftId}",
@@ -1144,6 +1278,7 @@
   {
     "operationId": "validatePasswordReset",
     "owner": "auth",
+    "protocol": "REST",
     "surface": "PUBLIC",
     "method": "POST",
     "path": "/api/auth/password-reset/validate",
@@ -1154,6 +1289,7 @@
   {
     "operationId": "withdrawTutorSubmission",
     "owner": "tutor",
+    "protocol": "REST",
     "surface": "PUBLIC",
     "method": "POST",
     "path": "/api/profiles/me/tutor/withdraw",

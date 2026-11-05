@@ -1,23 +1,29 @@
 # Step-3 validation record
 
-Verified locally on 6 November 2026, on `main`, without a commit, deployment or target-service execution.
+Verified locally on 6 November 2026 on the PR branch. Target services were not executed or deployed.
+The latest user-confirmed split replaces 18 private domain HTTP operations with gRPC and retains the two availability methods.
 
 | Check | Result |
 | --- | --- |
-| Shared JSON Schema and local references | Pass: 129 definitions; all references resolve locally. |
-| Notification schema | Pass: 21 typed event variants with producer/category/audience constraints. |
-| Route inventory | Pass: 86 public and 26 internal operations, unique IDs, path parameters and owner/caller annotations. Every AUTH, UC01–UC09 and SUP behavior ID is covered. |
-| Synthetic schema cases | Pass: 82 positive/negative cases, including each event variant, private-field leaks, invalid IDs, duplicate/ninth slots, consent, mandatory SYSTEM and payment receipts. |
-| Exact money/time cases | Pass: 9 calculation/boundary cases, including half-satang rounding, exactly 24 hours and the cumulative refund remainder. |
-| Availability protobuf | Pass: both methods and request/response types resolve and encode/decode; a populated availability request round-trips. |
-| OpenAPI syntax lint | Pass: both self-contained bundles, zero violations with Postman CLI 1.77.0, `--no-report-events`. |
-| Target Postman collection | Pass: 86 requests; zero lint errors/warnings; each request maps to public OpenAPI; JSON bodies validate and query representations agree. No target requests were sent. |
-| Source preservation | Pass: both original PDF SHA-256 values match the source index; all 21 pre-existing Postman files are unchanged. Legacy protobuf and application/deployment files are unchanged. |
-| Documentation | Local links/anchors, ADR numbering and whitespace checked. Unchanged step-2 diagrams were not regenerated. |
+| Shared JSON Schema and references | Pass: 129 shared definitions and 24 gRPC request/availability validation definitions. References resolve locally without fetching schemas. |
+| Notification schema | Pass: 21 unchanged typed event variants with producer/category/audience constraints. |
+| Combined operation inventory | Pass: 86 public REST, eight private Gateway REST and 20 private gRPC methods. All 114 IDs are unique and every AUTH/UC/SUP behavior ID is covered. |
+| REST/event schema cases | Pass: 82 positive/negative cases and nine exact money/time calculation cases. |
+| gRPC schema fixtures | Pass: 20 request/response pairs, 40 validated messages, plus 12 invalid-value cases. Batch ordering/windows and identity agreement are checked where applicable. |
+| Protobuf compilation/codecs | Pass: seven proto files and 20 unary descriptors resolve. All 40 messages round-trip through protobufjs and through the installed grpc-js serializers. Explicit false/missing presence, enum zero and typed binary error trailers pass. Wire fields/types match schema views. The bounded maximum availability payload fits the declared 32 MiB ceiling. |
+| Public REST collection | All 86 requests still match public OpenAPI. JSON bodies and query representations pass. The public spec and target collection were not changed by the gRPC expansion. |
+| Handoff ownership | All 114 REST/RPC operations have one assigned server owner. The four handoffs distinguish transport and client dependencies. |
+| Source preservation | Original PDF SHA-256 values and pre-existing Postman files remain unchanged. Application code, deployment configuration and the legacy protobuf remain unchanged. |
 
-## Repeat the contract checks
+Both bundled OpenAPI specs pass Postman syntax lint with zero violations. The 86-request collection passes lint with zero errors/warnings.
+The updated container, collaboration and payment-recovery diagrams were rendered to SVG/PNG and visually inspected. Their SVG XML parses.
+All 46 Markdown files and 274 local links/anchors pass. The ADR sequence is 0001–0028.
+These checks establish contract consistency. They do not establish target runtime, concurrency, provider, UI or deployment acceptance.
 
-The Python checks use jsonschema 4.26.0 and PyYAML 6.0.3. Offline execution below requires those dependencies in the local uv cache; provision them normally on another machine first. Protobuf checking reuses Booking's installed `@grpc/proto-loader` dependency and its protobufjs dependency, without installing anything in the repository.
+## Repeat the checks
+
+Python uses jsonschema 4.26.0 and PyYAML 6.0.3. Offline execution requires those dependencies in the local uv cache.
+Protobuf checking reuses Booking's installed proto-loader, protobufjs and grpc-js dependencies. It installs nothing in the repository.
 
 ```sh
 uv run --offline --with jsonschema==4.26.0 --with pyyaml==6.0.3 python contracts/validate.py --collection 'postman/collections/Tutor Matcher Target Public v1' --bundle-dir /tmp/tutor-matcher-contract-bundle
@@ -27,8 +33,15 @@ postman spec lint /tmp/tutor-matcher-contract-bundle/internal.openapi.json --iss
 postman collection lint 'postman/collections/Tutor Matcher Target Public v1' -r json
 ```
 
-Postman's external shared-schema resolution failed on the source specs, so lint used reproducible bundled copies generated by `validate.py`. Source reference resolution is checked separately. The generator also emitted invalid const/date examples; `prepare-collection.py` replaces input examples with schema-valid synthetic data, corrects query encoding and removes generic generated responses. The checked-in fixture file owns examples. No existing collection scripts were overwritten and no Postman cloud initialization/publication occurred.
+Postman's external shared-schema resolver failed on the source specs. Lint uses reproducible bundled copies from `validate.py` instead.
+The checker verifies source references separately. Bundles are disposable tooling outputs, not another authority.
+The target collection's earlier generator corrections and empty runtime-token variable remain intact.
+No Postman cloud initialization or publication is part of this work.
 
 ## Remaining implementation evidence
 
-These checks establish contract consistency only. Step 4 still must implement and execute all [recovery cases](recovery.md), authorization checks, nine UI journeys, real internal financial rules with simulated providers, database transactions/outboxes, deployment, restoration and the required scalability measurements. Protocol Buffers does not enforce its documented business bounds; servers must validate them. No target runtime, concurrency, provider, UI or hosted-deployment acceptance is claimed here.
+Implement both RPC servers and their permitted clients before reporting a method as working.
+Execute the [recovery cases](recovery.md), authorization negatives, nine UI journeys and simulated provider failures.
+Test actual database transactions/outboxes, scalar validation, metadata allowlists, lost responses, deadline handling and financial reconciliation.
+Complete hosted/local deployment, isolated restoration, scalability measurements and final submission evidence.
+The presence/normalization example in the contract checker is not an application adapter or a running server.

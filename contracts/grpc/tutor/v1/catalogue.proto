@@ -1,0 +1,43 @@
+syntax = "proto3";
+package tutor_matcher.tutor.v1;
+
+// Value constraints and presence rules: contracts/grpc/README.md and operations.v1.json.
+// All scalar presence is explicit. Validate required/nullable fields after normalization.
+service TutorCatalogueService {
+  rpc GetTutorEligibility(GetTutorEligibilityRequest) returns (TutorEligibility);
+  rpc GetBookableSubject(GetBookableSubjectRequest) returns (BookableSubject);
+}
+
+message GetTutorEligibilityRequest {
+  optional string user_id = 1; // Required after normalization.
+}
+
+message TutorEligibility {
+  optional string user_id = 1; // Required after normalization.
+  optional string tutor_id = 2; // Absent means JSON null.
+  optional bool approved = 3; // Required after normalization.
+  optional bool activated = 4; // Required after normalization.
+  optional bool published = 5; // Required after normalization.
+  optional string revision = 6; // Required after normalization.
+}
+
+message GetBookableSubjectRequest {
+  optional string subject_id = 1; // Required after normalization.
+}
+
+message BookableSubject {
+  SubjectSnapshot subject = 1; // Required after normalization.
+  optional bool published = 2; // Required after normalization.
+  optional string eligibility_checked_at = 3; // Required after normalization.
+}
+
+message SubjectSnapshot {
+  optional string id = 1; // Required after normalization.
+  optional string tutor_id = 2; // Required after normalization.
+  optional string tutor_user_id = 3; // Required after normalization.
+  optional string name = 4; // Required after normalization.
+  optional string description = 5; // Required after normalization.
+  optional string hourly_rate = 6; // Required after normalization.
+  optional string format = 7; // Required after normalization.
+  optional string revision = 8; // Required after normalization.
+}

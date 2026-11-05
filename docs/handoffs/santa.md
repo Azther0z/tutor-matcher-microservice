@@ -36,7 +36,8 @@ Link these flows while preserving the booking destination and original hold dead
 5. Publish typed Wallet client fixtures for applied, declined, closed and unresolved outcomes.
 6. Create the Messaging participant model and first authorized send/thread flow.
 
-Keep gRPC on private port 50052 and HTTP on 4004.
+Serve all five Booking RPCs on private port 50052 and keep public/infrastructure HTTP on 4004.
+Booking calls Tutor, Wallet and Auth through their domain RPCs. Messaging calls Auth/Tutor through gRPC and needs no gRPC server.
 Coordinate the new proto client/server migration with Ideal. Do not remove the old proto before callers migrate.
 Provide the read/evidence interfaces before completing every lifecycle screen.
 Messaging uses separate MongoDB `messaging_db`, not Booking tables or Notification storage.
@@ -46,7 +47,7 @@ Messaging uses separate MongoDB `messaging_db`, not Booking tables or Notificati
 Implement UC02-04, booking portions of UC-03, UC-05 and UC-06.
 Open tutor-owned future half-hour slots and assign owned subjects.
 Reject past, held, booked, overlapping and stale edits. Use the agreed conditional revisions.
-Validate catalogue ownership/eligibility through Tutor's catalogue-only REST operations.
+Validate catalogue ownership/eligibility through Tutor's catalogue-only gRPC operations.
 
 A booking contains 1–8 unique consecutive half-hour slots on one Bangkok day.
 Reject self-booking and past slots. Capture the subject/rate snapshot and server-calculated total.
@@ -57,8 +58,8 @@ Login/top-up navigation must not extend that deadline.
 Persist the payment operation before calling Wallet.
 Keep Wallet calls outside Booking database transactions.
 An unknown response leaves durable pending work and protects the slots from conflicting release.
-A Wallet GET 404 cannot prove that the charge never happened.
-Use the original operation with `resolveOrCloseLessonCharge` before releasing an uncertain hold.
+A Wallet GetLessonCharge RPC returning NOT_FOUND cannot prove that the charge never happened.
+Use the original operation with the ResolveOrCloseLessonCharge RPC before releasing an uncertain hold.
 A known applied charge confirms the booking once or follows the accepted cancellation/refund recovery path.
 
 Implement server-issued cancellation quotes and explicit reconfirmation when terms change.
@@ -79,7 +80,7 @@ P owns the 15% fee, pending earning, 24-hour clearing and dispute hold.
 
 Booking owns reminder schedules at 60 and 10 minutes before start.
 Save reminder event work with stable schedule/offset identity.
-The eligibility endpoint must suppress stale, cancelled, completed or started lessons.
+The GetReminderEligibility RPC must suppress stale, cancelled, completed or started lessons.
 P's Notification worker calls that endpoint before delivery.
 
 ## Messaging behavior and UI
@@ -136,35 +137,38 @@ Draft C-10's representative payment/recovery sequence from observed calls and ev
 Give Saint your slide/demo section and any architecture differences that need coordinated documentation updates.
 Your handoff is complete when the lifecycle and chat work through the UI with real internal peers and recover after interruptions.
 
-## Owned REST inventory
+## Owned interface inventory
 
-This index is derived from the step-3 route inventory. OpenAPI owns payloads, authorization and error meanings.
-Implement all listed operations for your owners. Coordinate contract changes before changing this index.
+This index is derived from the combined REST/gRPC inventory. OpenAPI owns REST wire contracts.
+Protobuf and its method registry own gRPC wire contracts, callers and value-validation references.
+Implement every listed operation. Coordinate producer/consumer changes before updating this index.
 
-| Owner | Surface | Operation ID | Method and path |
-| --- | --- | --- | --- |
-| booking | INTERNAL | `getBookingEvidence` | `GET /internal/v1/booking/bookings/{bookingId}/evidence` |
-| booking | INTERNAL | `getReminderEligibility` | `GET /internal/v1/booking/bookings/{bookingId}/reminder-eligibility` |
-| booking | INTERNAL | `getReviewEligibility` | `GET /internal/v1/booking/bookings/{bookingId}/review-eligibility` |
-| booking | INTERNAL | `getBookingOperation` | `GET /internal/v1/booking/operations/{operationId}` |
-| booking | PUBLIC | `listBookings` | `GET /api/bookings` |
-| booking | PUBLIC | `createBooking` | `POST /api/bookings` |
-| booking | PUBLIC | `getNeedsConfirmation` | `GET /api/bookings/tutor/needs-confirmation` |
-| booking | PUBLIC | `getTutorUpcoming` | `GET /api/bookings/tutor/upcoming` |
-| booking | PUBLIC | `getBooking` | `GET /api/bookings/{bookingId}` |
-| booking | PUBLIC | `cancelBooking` | `POST /api/bookings/{bookingId}/cancel` |
-| booking | PUBLIC | `getStudentCancellationQuote` | `GET /api/bookings/{bookingId}/cancellation-quote` |
-| booking | PUBLIC | `completeBooking` | `POST /api/bookings/{bookingId}/confirm-completion` |
-| booking | PUBLIC | `payBooking` | `POST /api/bookings/{bookingId}/confirm-payment` |
-| booking | PUBLIC | `putMeetingOverride` | `PATCH /api/bookings/{bookingId}/meeting-link` |
-| booking | PUBLIC | `tutorCancelBooking` | `POST /api/bookings/{bookingId}/tutor-cancel` |
-| booking | PUBLIC | `getTutorCancellationQuote` | `GET /api/bookings/{bookingId}/tutor-cancellation-quote` |
-| booking | PUBLIC | `setDemoMeetingsOutcome` | `POST /api/demo/meetings/{bookingId}/outcome` |
-| booking | PUBLIC | `getOwnAvailabilityCalendar` | `GET /api/profiles/me/tutor/availability/calendar` |
-| booking | PUBLIC | `getOwnAvailabilityDay` | `GET /api/profiles/me/tutor/availability/{date}` |
-| booking | PUBLIC | `putAvailabilitySlot` | `PUT /api/profiles/me/tutor/availability/{date}/{time}` |
-| messaging | INTERNAL | `getMessagingOperation` | `GET /internal/v1/messaging/operations/{operationId}` |
-| messaging | PUBLIC | `sendMessage` | `POST /api/messages` |
-| messaging | PUBLIC | `getInbox` | `GET /api/messages/inbox` |
-| messaging | PUBLIC | `getThread` | `GET /api/messages/thread/{userId}` |
-| messaging | PUBLIC | `markThreadRead` | `PUT /api/messages/thread/{userId}/read` |
+| Owner | Protocol | Surface | Operation ID | Method and path |
+| --- | --- | --- | --- | --- |
+| booking | GRPC | INTERNAL | `batchGetAvailability` | `UNARY /tutor_matcher.booking.v1.AvailabilityService/BatchGetAvailability` |
+| booking | GRPC | INTERNAL | `getAvailability` | `UNARY /tutor_matcher.booking.v1.AvailabilityService/GetAvailability` |
+| booking | GRPC | INTERNAL | `getBookingEvidence` | `UNARY /tutor_matcher.booking.v1.BookingEvidenceService/GetBookingEvidence` |
+| booking | GRPC | INTERNAL | `getReminderEligibility` | `UNARY /tutor_matcher.booking.v1.BookingEvidenceService/GetReminderEligibility` |
+| booking | GRPC | INTERNAL | `getReviewEligibility` | `UNARY /tutor_matcher.booking.v1.BookingEvidenceService/GetReviewEligibility` |
+| booking | REST | INTERNAL | `getBookingOperation` | `GET /internal/v1/booking/operations/{operationId}` |
+| booking | REST | PUBLIC | `createBooking` | `POST /api/bookings` |
+| booking | REST | PUBLIC | `listBookings` | `GET /api/bookings` |
+| booking | REST | PUBLIC | `getNeedsConfirmation` | `GET /api/bookings/tutor/needs-confirmation` |
+| booking | REST | PUBLIC | `getTutorUpcoming` | `GET /api/bookings/tutor/upcoming` |
+| booking | REST | PUBLIC | `getBooking` | `GET /api/bookings/{bookingId}` |
+| booking | REST | PUBLIC | `cancelBooking` | `POST /api/bookings/{bookingId}/cancel` |
+| booking | REST | PUBLIC | `getStudentCancellationQuote` | `GET /api/bookings/{bookingId}/cancellation-quote` |
+| booking | REST | PUBLIC | `completeBooking` | `POST /api/bookings/{bookingId}/confirm-completion` |
+| booking | REST | PUBLIC | `payBooking` | `POST /api/bookings/{bookingId}/confirm-payment` |
+| booking | REST | PUBLIC | `putMeetingOverride` | `PATCH /api/bookings/{bookingId}/meeting-link` |
+| booking | REST | PUBLIC | `tutorCancelBooking` | `POST /api/bookings/{bookingId}/tutor-cancel` |
+| booking | REST | PUBLIC | `getTutorCancellationQuote` | `GET /api/bookings/{bookingId}/tutor-cancellation-quote` |
+| booking | REST | PUBLIC | `setDemoMeetingsOutcome` | `POST /api/demo/meetings/{bookingId}/outcome` |
+| booking | REST | PUBLIC | `getOwnAvailabilityCalendar` | `GET /api/profiles/me/tutor/availability/calendar` |
+| booking | REST | PUBLIC | `getOwnAvailabilityDay` | `GET /api/profiles/me/tutor/availability/{date}` |
+| booking | REST | PUBLIC | `putAvailabilitySlot` | `PUT /api/profiles/me/tutor/availability/{date}/{time}` |
+| messaging | REST | INTERNAL | `getMessagingOperation` | `GET /internal/v1/messaging/operations/{operationId}` |
+| messaging | REST | PUBLIC | `sendMessage` | `POST /api/messages` |
+| messaging | REST | PUBLIC | `getInbox` | `GET /api/messages/inbox` |
+| messaging | REST | PUBLIC | `getThread` | `GET /api/messages/thread/{userId}` |
+| messaging | REST | PUBLIC | `markThreadRead` | `PUT /api/messages/thread/{userId}/read` |

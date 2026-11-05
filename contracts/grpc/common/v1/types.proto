@@ -1,0 +1,33 @@
+syntax = "proto3";
+package tutor_matcher.common.v1;
+
+// Value constraints and presence rules: contracts/grpc/README.md and operations.v1.json.
+// All scalar presence is explicit. Validate required/nullable fields after normalization.
+message Money {
+  optional string currency = 1; // Required after normalization.
+  optional string amount = 2; // Required after normalization.
+}
+
+message Admission {
+  optional string id = 1; // Required after normalization.
+  optional string actor_user_id = 2; // Required after normalization.
+  optional string session_id = 3; // Required after normalization.
+  optional string admitted_at = 4; // Required after normalization.
+  optional string request_id = 5; // Required after normalization.
+  optional string public_operation = 6; // Required after normalization.
+}
+
+message ErrorFields {
+  optional string path = 1; // Required after normalization.
+  optional string code = 2; // Required after normalization.
+  optional string message = 3; // Required after normalization.
+}
+
+message ErrorDetail {
+  optional string code = 1; // Required after normalization.
+  optional string message = 2; // Required after normalization.
+  optional string request_id = 3; // Required after normalization.
+  optional bool retryable = 4; // Required after normalization.
+  repeated ErrorFields fields = 5; // Required after normalization.
+  optional string operation_id = 6; // Optional.
+}

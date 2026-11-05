@@ -54,13 +54,13 @@ No service reads another service's tables or collections, even when both databas
 ```mermaid
 flowchart LR
     Web["Next.js frontend"] -->|REST| Gateway["API Gateway"]
-    Gateway --> Auth["Auth\nIdentity and access"]
-    Gateway --> Tutor["Tutor\nApplications and catalogue"]
-    Gateway --> Booking["Booking\nAvailability and lessons"]
-    Gateway --> Wallet["Wallet\nMoney and disputes"]
-    Gateway --> Review["Review\nFeedback and moderation"]
-    Gateway --> Messaging["Messaging\nPrivate conversations"]
-    Gateway --> Notification["Notification\nPreferences and delivery"]
+    Gateway -->|REST| Auth["Auth\nIdentity and access"]
+    Gateway -->|REST| Tutor["Tutor\nApplications and catalogue"]
+    Gateway -->|REST| Booking["Booking\nAvailability and lessons"]
+    Gateway -->|REST| Wallet["Wallet\nMoney and disputes"]
+    Gateway -->|REST| Review["Review\nFeedback and moderation"]
+    Gateway -->|REST| Messaging["Messaging\nPrivate conversations"]
+    Gateway -->|REST| Notification["Notification\nPreferences and delivery"]
     Auth --> AuthDB[("PostgreSQL\nauth_db")]
     Tutor --> TutorDB[("MongoDB\ntutor_db")]
     Booking --> BookingDB[("PostgreSQL\nbooking_db")]
@@ -98,26 +98,35 @@ The gateway remains a router and authentication entry point, rather than becomin
 | --- | --- | --- |
 | UI to gateway and public service operations | REST | Preserve the existing client-facing model and monolith journeys. |
 | Tutor to Booking for availability | gRPC | Preserve a real gRPC collaborator in discovery and availability views. |
-| Booking to Tutor for bookable subject details | REST, catalogue-only read | Avoid calling a profile operation that calls Booking back for availability. |
-| Booking to Wallet for charge/refund/outcome resolution | Synchronous REST with durable recovery | Payment success must be known before confirmation. A timeout cannot be treated as a financial failure. |
+| Booking to Tutor for bookable subject details | gRPC, catalogue-only read | Avoid calling a profile operation that calls Booking back for availability. |
+| Booking to Wallet for charge/refund/outcome resolution | Synchronous gRPC with durable recovery | Payment success must be known before confirmation. A timeout cannot be treated as a financial failure. |
 | Producers to Notification | RabbitMQ events from durable outboxes | Delivery outages do not decide business success. |
-| Tutor to Auth for capability activation | Idempotent internal call with durable retry | Tutor owns the approval decision; Auth owns the account capability. |
-| Review to Booking for eligibility | Read-only internal operation | A browser or client-supplied completion flag cannot authorize a review. |
+| Tutor to Auth for capability activation | Idempotent gRPC with durable retry | Tutor owns the approval decision; Auth owns the account capability. |
+| Review to Booking for eligibility | Read-only gRPC | A browser or client-supplied completion flag cannot authorize a review. |
+| Other private domain lookups | gRPC | Auth lookup/admin/reset content, Tutor eligibility, Review summaries and Booking evidence/reminder checks. |
+| Gateway introspection and owner-status polling | Private REST | Keep Gateway infrastructure separate from domain RPCs. |
 | Scheduled work | Workers in the owning service claiming persisted work | Recovery survives restarts and does not need a new scheduler service. |
 
 ```mermaid
 flowchart LR
-    Tutor["Tutor"] -->|"REST capability activation"| Auth["Auth"]
+    Tutor["Tutor"] -->|"gRPC capability activation"| Auth["Auth"]
     Tutor -->|"gRPC availability"| Booking["Booking"]
-    Booking -->|"REST catalogue only"| Tutor
-    Booking -->|"REST financial decisions"| Wallet["Wallet"]
-    Tutor -->|"REST rating summary"| Review["Review"]
-    Review -->|"REST review eligibility"| Booking
+    Booking -->|"gRPC catalogue only"| Tutor
+    Booking -->|"gRPC financial decisions"| Wallet["Wallet"]
+    Tutor -->|"gRPC rating summary"| Review["Review"]
+    Review -->|"gRPC review eligibility"| Booking
+    Wallet -->|"gRPC lifecycle evidence"| Booking
+    Messaging["Messaging"] -->|"gRPC eligibility"| Tutor
+    Messaging -->|"gRPC accounts"| Auth
+    Notification["Notification"] -->|"gRPC admin and reset content"| Auth
+    Notification -->|"gRPC reminder check"| Booking
     Producers["Existing event producers\nAuth, Tutor, Booking, Wallet,\nReview and Messaging"] -->|"Durable publication"| Broker["RabbitMQ"]
     Broker -->|"Events"| Notification["Notification"]
 ```
 
 This collaboration view supplements the ownership view. The producer box groups existing services and is not an additional container.
+The user selected all private domain collaborations on gRPC in step 3. [ADR-0028](adr/0028-private-domain-grpc.md) records this change. The target now has 20 RPCs, 86 public REST operations and eight private Gateway REST operations.
+
 The [step-3 interface contracts](../contracts/README.md) now define the exact operation surface. The two Tutor/Booking arrows use different operations and do not recreate the current profile callback.
 
 Tutor composes public catalogue, rating, and availability data through bounded batch reads where possible. Avoid a remote request for every result card.
@@ -202,7 +211,7 @@ sequenceDiagram
     participant W as Wallet
     UI->>B: Pay held booking
     Note over B: Persist payment work and protect slots
-    B->>W: Charge with stable operation identity
+    B->>W: gRPC ApplyLessonCharge with stable identity
     Note over W: Commit charge and ledger once
     alt Response arrives
         W-->>B: Applied outcome
@@ -211,7 +220,7 @@ sequenceDiagram
     else Response is lost
         B-->>UI: Payment outcome pending
         Note over B: Owner worker resumes durable work
-        B->>W: Resolve or close this operation
+        B->>W: gRPC ResolveOrCloseLessonCharge
         alt Charge was applied
             W-->>B: Recorded charge
             Note over B: Confirm once
@@ -401,7 +410,7 @@ Use synthetic examples and preserve the pinned monolith UI journeys while defini
 | Contract concern | Required step-3 result |
 | --- | --- |
 | Public REST and internal operations | Resource ownership, route mapping, request/response shapes, error meanings, current authorization, and private/public separation. |
-| Tutor and Booking gRPC | Versioned availability contract, deadlines, batch semantics, and explicit unavailability. |
+| Private domain gRPC | Twenty methods across Auth, Tutor, Booking, Wallet and Review. Typed messages, caller allowlists, deadlines, presence and error semantics. |
 | Identifiers and revisions | Stable user/tutor/subject/slot/booking identities, expected revisions, actor identity, and cross-service references without foreign database access. |
 | Money and time | Decimal representation and rounding, quote identity, UTC timestamps, Bangkok display, deadline boundaries, and authoritative request/confirmation times. |
 | Durable operations | Identity reuse rules, immutable inputs, queryable outcomes, close/fence semantics, concurrent transitions, and retry/timeout behavior. |

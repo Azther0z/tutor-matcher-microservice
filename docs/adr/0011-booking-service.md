@@ -15,3 +15,5 @@ The [system design](../system-design.md#booking-and-payment) uses a Booking-owne
 Wallet calls run after commit. Recovery must resolve an applied charge or durably close an unexecuted operation against late execution before releasing protected slots.
 
 Source: [Tutor Matcher PDF](../sources/tutor-matcher.pdf), pp. 14, original ADR-011. Reconciled against the [accepted requirements](../requirements.md) on 6 November 2026.
+
+[ADR-0028](0028-private-domain-grpc.md) changes private domain calls to typed gRPC. Booking/Wallet financial recovery, immutable identities and transaction ownership remain required. A gRPC timeout does not establish financial failure.

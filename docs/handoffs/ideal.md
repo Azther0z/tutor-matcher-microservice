@@ -38,7 +38,8 @@ Link that editor from your tutor pages. Do not build a second slot store or edit
 6. Build application, subject and discovery feature components while Saint completes the common shell.
 
 Tutor's catalogue read must not call Booking availability.
-Your separate discovery client calls Booking's gRPC availability interface.
+Serve Tutor's two RPCs on 50053 and Review's rating RPC on 50055.
+Your discovery client calls Booking's gRPC availability interface. Auth lookup/grants and Booking review eligibility also use gRPC.
 This separation prevents the old profile callback from recreating a dependency loop.
 
 ## Tutor behavior and UI
@@ -108,7 +109,8 @@ Coordinate local or authorized hosted execution with Saint. Keep historical resu
 | Santa | Catalogue-only reads, owned subjects and tutor eligibility | Both availability RPCs and review eligibility |
 | P | Tutor/Review versioned events and recipient selection | Durable Notification acceptance and delivery receipts |
 
-Start with typed Auth/Booking test doubles and local MongoDB transactions.
+Start with typed Auth/Booking RPC test doubles and local MongoDB transactions.
+Use the registry's deadlines, metadata, enum values and presence rules for all three owned RPCs and their clients.
 The integrated application must use the real internal services.
 Give Santa catalogue operations before completing every application/admin screen.
 Coordinate any protobuf or payload change with both its producer and consumer through Saint.
@@ -130,40 +132,41 @@ Draft C-08/C-09 goals, constraints, decisions and C4 explanations from the actua
 Give Saint your slide section, live walkthrough, sanitized test evidence and unresolved risks.
 Your handoff is complete when these journeys work with real peers and the measurements can be reproduced.
 
-## Owned REST inventory
+## Owned interface inventory
 
-This index is derived from the step-3 route inventory. OpenAPI owns payloads, authorization and error meanings.
-Implement all listed operations for your owners. Coordinate contract changes before changing this index.
+This index is derived from the combined REST/gRPC inventory. OpenAPI owns REST wire contracts.
+Protobuf and its method registry own gRPC wire contracts, callers and value-validation references.
+Implement every listed operation. Coordinate producer/consumer changes before updating this index.
 
-| Owner | Surface | Operation ID | Method and path |
-| --- | --- | --- | --- |
-| review | INTERNAL | `getReviewOperation` | `GET /internal/v1/review/operations/{operationId}` |
-| review | INTERNAL | `getRatingSummaries` | `POST /internal/v1/review/rating-summaries` |
-| review | PUBLIC | `listReviewFlags` | `GET /api/admin/review-flags` |
-| review | PUBLIC | `moderateReview` | `POST /api/admin/reviews/{reviewId}/moderation` |
-| review | PUBLIC | `createReview` | `POST /api/bookings/{bookingId}/review` |
-| review | PUBLIC | `listPublicReviews` | `GET /api/reviews` |
-| review | PUBLIC | `flagReview` | `POST /api/reviews/{reviewId}/flags` |
-| review | PUBLIC | `replyToReview` | `POST /api/reviews/{reviewId}/reply` |
-| tutor | INTERNAL | `getTutorOperation` | `GET /internal/v1/tutor/operations/{operationId}` |
-| tutor | INTERNAL | `getBookableSubject` | `GET /internal/v1/tutor/subjects/{subjectId}/bookable` |
-| tutor | INTERNAL | `getTutorEligibility` | `GET /internal/v1/tutor/users/{userId}/eligibility` |
-| tutor | PUBLIC | `listTutorRequests` | `GET /api/admin/tutor-requests` |
-| tutor | PUBLIC | `getTutorRequest` | `GET /api/admin/tutor-requests/{submissionId}` |
-| tutor | PUBLIC | `reviewTutorSubmission` | `POST /api/admin/tutor-requests/{submissionId}/review` |
-| tutor | PUBLIC | `getLearningAreas` | `GET /api/discovery/learning-areas` |
-| tutor | PUBLIC | `getSearchPriceRange` | `GET /api/discovery/price-range` |
-| tutor | PUBLIC | `searchTutorSubjects` | `GET /api/discovery/tutors` |
-| tutor | PUBLIC | `getPublicTutor` | `GET /api/discovery/tutors/{tutorId}/profile` |
-| tutor | PUBLIC | `getPublicSubject` | `GET /api/discovery/tutors/{tutorId}/subjects/{subjectId}` |
-| tutor | PUBLIC | `getTutorWorkspace` | `GET /api/profiles/me/tutor` |
-| tutor | PUBLIC | `createTutorDraft` | `POST /api/profiles/me/tutor/drafts` |
-| tutor | PUBLIC | `deleteTutorDraft` | `DELETE /api/profiles/me/tutor/drafts/{draftId}` |
-| tutor | PUBLIC | `updateTutorDraft` | `PUT /api/profiles/me/tutor/drafts/{draftId}` |
-| tutor | PUBLIC | `submitTutorDraft` | `POST /api/profiles/me/tutor/drafts/{draftId}/submit` |
-| tutor | PUBLIC | `setTutorPublication` | `PATCH /api/profiles/me/tutor/publication` |
-| tutor | PUBLIC | `listOwnSubjects` | `GET /api/profiles/me/tutor/subjects` |
-| tutor | PUBLIC | `createSubject` | `POST /api/profiles/me/tutor/subjects` |
-| tutor | PUBLIC | `updateSubject` | `PUT /api/profiles/me/tutor/subjects/{subjectId}` |
-| tutor | PUBLIC | `copyTutorSubmission` | `POST /api/profiles/me/tutor/submissions/{submissionId}/copy` |
-| tutor | PUBLIC | `withdrawTutorSubmission` | `POST /api/profiles/me/tutor/withdraw` |
+| Owner | Protocol | Surface | Operation ID | Method and path |
+| --- | --- | --- | --- | --- |
+| review | GRPC | INTERNAL | `getRatingSummaries` | `UNARY /tutor_matcher.review.v1.ReviewRatingService/GetRatingSummaries` |
+| review | REST | INTERNAL | `getReviewOperation` | `GET /internal/v1/review/operations/{operationId}` |
+| review | REST | PUBLIC | `listReviewFlags` | `GET /api/admin/review-flags` |
+| review | REST | PUBLIC | `moderateReview` | `POST /api/admin/reviews/{reviewId}/moderation` |
+| review | REST | PUBLIC | `createReview` | `POST /api/bookings/{bookingId}/review` |
+| review | REST | PUBLIC | `listPublicReviews` | `GET /api/reviews` |
+| review | REST | PUBLIC | `flagReview` | `POST /api/reviews/{reviewId}/flags` |
+| review | REST | PUBLIC | `replyToReview` | `POST /api/reviews/{reviewId}/reply` |
+| tutor | GRPC | INTERNAL | `getBookableSubject` | `UNARY /tutor_matcher.tutor.v1.TutorCatalogueService/GetBookableSubject` |
+| tutor | GRPC | INTERNAL | `getTutorEligibility` | `UNARY /tutor_matcher.tutor.v1.TutorCatalogueService/GetTutorEligibility` |
+| tutor | REST | INTERNAL | `getTutorOperation` | `GET /internal/v1/tutor/operations/{operationId}` |
+| tutor | REST | PUBLIC | `listTutorRequests` | `GET /api/admin/tutor-requests` |
+| tutor | REST | PUBLIC | `getTutorRequest` | `GET /api/admin/tutor-requests/{submissionId}` |
+| tutor | REST | PUBLIC | `reviewTutorSubmission` | `POST /api/admin/tutor-requests/{submissionId}/review` |
+| tutor | REST | PUBLIC | `getLearningAreas` | `GET /api/discovery/learning-areas` |
+| tutor | REST | PUBLIC | `getSearchPriceRange` | `GET /api/discovery/price-range` |
+| tutor | REST | PUBLIC | `searchTutorSubjects` | `GET /api/discovery/tutors` |
+| tutor | REST | PUBLIC | `getPublicTutor` | `GET /api/discovery/tutors/{tutorId}/profile` |
+| tutor | REST | PUBLIC | `getPublicSubject` | `GET /api/discovery/tutors/{tutorId}/subjects/{subjectId}` |
+| tutor | REST | PUBLIC | `getTutorWorkspace` | `GET /api/profiles/me/tutor` |
+| tutor | REST | PUBLIC | `createTutorDraft` | `POST /api/profiles/me/tutor/drafts` |
+| tutor | REST | PUBLIC | `deleteTutorDraft` | `DELETE /api/profiles/me/tutor/drafts/{draftId}` |
+| tutor | REST | PUBLIC | `updateTutorDraft` | `PUT /api/profiles/me/tutor/drafts/{draftId}` |
+| tutor | REST | PUBLIC | `submitTutorDraft` | `POST /api/profiles/me/tutor/drafts/{draftId}/submit` |
+| tutor | REST | PUBLIC | `setTutorPublication` | `PATCH /api/profiles/me/tutor/publication` |
+| tutor | REST | PUBLIC | `createSubject` | `POST /api/profiles/me/tutor/subjects` |
+| tutor | REST | PUBLIC | `listOwnSubjects` | `GET /api/profiles/me/tutor/subjects` |
+| tutor | REST | PUBLIC | `updateSubject` | `PUT /api/profiles/me/tutor/subjects/{subjectId}` |
+| tutor | REST | PUBLIC | `copyTutorSubmission` | `POST /api/profiles/me/tutor/submissions/{submissionId}/copy` |
+| tutor | REST | PUBLIC | `withdrawTutorSubmission` | `POST /api/profiles/me/tutor/withdraw` |

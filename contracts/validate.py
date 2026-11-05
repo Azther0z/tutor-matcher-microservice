@@ -9,6 +9,7 @@ from decimal import Decimal, ROUND_HALF_UP
 from pathlib import Path
 from urllib.parse import urlparse
 from jsonschema import Draft202012Validator, FormatChecker
+from referencing import Registry, Resource
 
 ROOT = Path(__file__).resolve().parent
 REPO = ROOT.parent
@@ -58,15 +59,19 @@ def check_references(path, document):
         for segment in pointer.lstrip('/').split('/') if pointer else []:
             target = target[segment.replace('~1', '/').replace('~0', '~')]
 
-def inventory(public, internal):
+def inventory(public, internal, grpc):
     rows = []
     for is_public, spec in [(True, public), (False, internal)]:
         for path, methods in spec['paths'].items():
             for method, op in methods.items():
-                rows.append({'operationId': op['operationId'], 'owner': op['x-owner'],
+                rows.append({'operationId': op['operationId'], 'owner': op['x-owner'], 'protocol': 'REST',
                              'surface': 'PUBLIC' if is_public else 'INTERNAL', 'method': method.upper(),
                              'path': ('/api' if is_public else '/internal/v1') + path,
                              'requirements': op['x-requirements']})
+    for op in grpc['operations']:
+        rows.append({'operationId': op['operationId'], 'owner': op['owner'], 'protocol': 'GRPC',
+                     'surface': 'INTERNAL', 'method': 'UNARY', 'path': '/' + op['service'] + '/' + op['rpc'],
+                     'requirements': op['requirements']})
     return sorted(rows, key=lambda row: row["operationId"])
 
 def check_operations(spec, public, requirements):
@@ -105,6 +110,52 @@ def main():
     merged_event = rewrite_refs(events, './v1.json#/$defs/', '#/$defs/')
     merged_event['$defs'] = shared['$defs']
     Draft202012Validator.check_schema(merged_event)
+    grpc = read(ROOT / 'grpc/operations.v1.json')
+    rpc_messages = read(ROOT / 'grpc/messages.v1.json')
+    Draft202012Validator.check_schema(rpc_messages)
+    check_references(ROOT / 'grpc/messages.v1.json', rpc_messages)
+    resources = []
+    for path in [ROOT / 'schemas/v1.json', ROOT / 'grpc/messages.v1.json']:
+        contents = dict(read(path), **{'$id': path.as_uri()})
+        resources.append((path.as_uri(), Resource.from_contents(contents)))
+    registry = Registry().with_resources(resources)
+    def rpc_validator(reference):
+        filename, _, pointer = reference.partition('#')
+        path = (ROOT / 'grpc' / filename).resolve()
+        assert path.is_relative_to(ROOT)
+        return Draft202012Validator({'$ref': path.as_uri() + '#' + pointer}, registry=registry, format_checker=FORMATS)
+    by_rpc = {op['operationId']: op for op in grpc['operations']}
+    assert len(by_rpc) == len(grpc['operations']) == 20
+    assert {op['owner'] for op in grpc['operations']} == {'auth','tutor','booking','wallet','review'}
+    assert len({op['service'] + '/' + op['rpc'] for op in grpc['operations']}) == 20
+    rpc_cases = read(ROOT / 'grpc/examples.v1.json')
+    assert {case['operationId'] for case in rpc_cases['operations']} == set(by_rpc)
+    for op in grpc['operations']:
+        assert op['authorizedCallers'] and op['requirements'] and op['deadlineMs'] in [2000,3000]
+        assert (ROOT / 'grpc' / op['proto']).is_file()
+        for direction in ['request','response']:
+            rpc_validator(op[direction+'Schema'])
+    for case in rpc_cases['operations']:
+        op = by_rpc[case['operationId']]
+        for direction in ['request','response']:
+            rpc_validator(op[direction+'Schema']).validate(case[direction])
+        request, response = case['request'], case['response']
+        for key in ['operationId','bookingId','userId']:
+            if key in request and key in response:
+                assert request[key] == response[key], (case['operationId'], key)
+        if case['operationId'] == 'getRatingSummaries':
+            assert request['subjectIds'] == [item['subjectId'] for item in response['items']]
+        if case['operationId'] in ['getAvailability','batchGetAvailability']:
+            queries = [request['query']] if 'query' in request else request['queries']
+            for query in queries:
+                delta = datetime.fromisoformat(query['to']) - datetime.fromisoformat(query['from'])
+                assert 0 < delta.total_seconds() <= 93*86400
+            if 'results' in response:
+                assert [item['queryIndex'] for item in response['results']] == list(range(len(queries)))
+    for case in rpc_cases['invalidCases']:
+        op = by_rpc[case['operationId']]
+        assert list(rpc_validator(op[case['direction']+'Schema']).iter_errors(case['value'])), case['name']
+    print(f'PASS: {len(grpc["operations"])} gRPC methods, 40 request/response schema fixtures and {len(rpc_cases["invalidCases"])} invalid gRPC fixtures.')
     cases = read(ROOT / 'examples/cases.json')
     for case in cases['schemaCases']:
         schema = merged_event if case['schema'] == 'event' else dict(shared, **{'$ref': '#/$defs/' + case['schema']})
@@ -124,8 +175,27 @@ def main():
     requirements = set(re.findall(r'\b(?:AUTH-\d+|UC\d{2}-\d+|SUP-\d+|Q-\d+)\b', requirements_text))
     check_operations(public, True, requirements)
     check_operations(internal, False, requirements)
-    rows = inventory(public, internal)
+    rows = inventory(public, internal, grpc)
+    rpc_ids = {op['operationId'] for op in grpc['operations']}
+    assert not rpc_ids.intersection(op['operationId'] for methods in internal['paths'].values() for op in methods.values()), 'Duplicate REST/gRPC authority'
+    assert sum(len(methods) for methods in internal['paths'].values()) == 8
+    for methods in internal['paths'].values():
+        for op in methods.values():
+            assert op['x-authorized-callers'] == ['gateway']
+    for op in grpc['operations']:
+        assert set(op['requirements']) <= requirements
     assert len({r['operationId'] for r in rows}) == len(rows)
+    # Keep the four implementation handoffs synchronized with both transports.
+    assignments = {'saint': {'auth','gateway'}, 'ideal': {'tutor','review'},
+                   'santa': {'booking','messaging'}, 'p': {'wallet','notification'}}
+    handoff_ids = []
+    for member, owners in assignments.items():
+        text = (REPO / 'docs/handoffs' / (member + '.md')).read_text()
+        entries = re.findall(r'^\| (\w+) \| (REST|GRPC) \| (PUBLIC|INTERNAL) \| `([^`]+)` \| `([A-Z]+) ([^`]+)` \|$', text, re.M)
+        expected = {(r['owner'],r['protocol'],r['surface'],r['operationId'],r['method'],r['path']) for r in rows if r['owner'] in owners}
+        assert len(entries) == len(expected) and set(entries) == expected, member + ' handoff is stale'
+        handoff_ids.extend(entry[3] for entry in entries)
+    assert len(handoff_ids) == len(set(handoff_ids)) == len(rows)
     covered = {req for row in rows for req in row['requirements']}
     behavior_requirements = {r for r in requirements if not r.startswith('Q-')}
     assert behavior_requirements <= covered, f'Missing behavior annotation: {behavior_requirements - covered}'
@@ -166,7 +236,7 @@ def main():
             bundle = copy.deepcopy(spec)
             bundle['components']['schemas'] = defs
             (args.bundle_dir / f'{name}.openapi.json').write_text(json.dumps(bundle, indent=2) + '\n')
-    print(f'PASS: {len(shared["$defs"])} shared schemas, {len(events["oneOf"])} event variants, {len(rows)} unique operations, all nine use cases, {len(cases["schemaCases"])} schema fixtures and {sum(len(cases[k]) for k in ["moneyCases","cancellationBoundaryCases","refundCapCases"])} money/time fixtures. Local references and route inventory agree.')
+    print(f'PASS: {len(shared["$defs"])} shared schemas, {len(events["oneOf"])} event variants, {len(rows)} unique REST/gRPC operations, all nine use cases, {len(cases["schemaCases"])} schema fixtures and {sum(len(cases[k]) for k in ["moneyCases","cancellationBoundaryCases","refundCapCases"])} money/time fixtures. Local references and route inventory agree.')
     print('These checks do not prove runtime, concurrency, provider, UI or deployment acceptance.')
 
 if __name__ == '__main__':

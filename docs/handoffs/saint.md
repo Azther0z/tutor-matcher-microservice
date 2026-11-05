@@ -35,12 +35,12 @@ Coordinate shared changes instead of rewriting another owner's service.
 2. Publish TypeScript service conventions and the minimal Next.js shell.
 3. Publish the shared API/session adapter and consistent field/pending/error handling.
 4. Publish synthetic identity fixtures and stable IDs through approved runtime configuration.
-5. Expose Auth introspection, account lookup and idempotent tutor activation grants.
+5. Expose REST Auth introspection plus gRPC account/admin lookup, sensitive reset-content fetch and idempotent tutor grants.
 6. Connect Gateway to one real Auth request and one routed service request.
 
 The first shell needs navigation, session handling and feature mount points. It does not need completed feature pages.
 Let each member create their assigned feature directories immediately.
-Expose small typed adapters for actor verification and workload identity. Keep business decisions inside their service owners.
+Expose small typed adapters for actor verification, workload metadata, protobuf presence and typed error trailers. Keep business decisions inside their service owners.
 Do not make peers wait for a general-purpose service framework.
 
 ## Required behavior
@@ -69,7 +69,7 @@ Use Consul health routing and the agreed fixed-name fallback. Register reachable
 
 Own the simulated reset-content access control and its Admin-only page.
 Keep reset material out of events, logs, ordinary receipts and screenshots with actual data.
-P implements the simulated delivery worker. Auth retains recipient-bound content for that worker's permitted fetch.
+P implements the simulated delivery worker. Auth retains recipient-bound content for the allowlisted GetResetNotificationContent RPC.
 
 Auth owns its transactional outbox and publisher worker.
 Produce `auth.password-reset-requested` and `auth.account-restricted` from the [event contract](../../contracts/events.md).
@@ -92,6 +92,9 @@ Follow the repository approval rules before publication or server changes.
 Coordinate the first authorized hosted smoke test while feature development continues.
 Prepare backup/restore and local fallback procedures before the final rehearsal.
 Each database owner verifies their records and pending work after restoration.
+
+Serve the five Auth methods on private port 50051. Keep Gateway introspection and owner-status routing on REST.
+Publish the shared gRPC normalization/error adapters early, without moving owner business rules into them.
 
 ## Interfaces and parallel work
 
@@ -124,34 +127,35 @@ A historical load result or schema check does not prove the final revision works
 Your handoff is complete when peers can use real identity/routing, your pages pass their journeys, and deployment procedures are reviewable.
 Report missing authorization or runtime access separately from completed local files.
 
-## Owned REST inventory
+## Owned interface inventory
 
-This index is derived from the step-3 route inventory. OpenAPI owns payloads, authorization and error meanings.
-Implement all listed operations for your owners. Coordinate contract changes before changing this index.
+This index is derived from the combined REST/gRPC inventory. OpenAPI owns REST wire contracts.
+Protobuf and its method registry own gRPC wire contracts, callers and value-validation references.
+Implement every listed operation. Coordinate producer/consumer changes before updating this index.
 
-| Owner | Surface | Operation ID | Method and path |
-| --- | --- | --- | --- |
-| auth | INTERNAL | `lookupAccounts` | `POST /internal/v1/auth/accounts/lookup` |
-| auth | INTERNAL | `listActiveAdmins` | `GET /internal/v1/auth/admins` |
-| auth | INTERNAL | `introspectToken` | `POST /internal/v1/auth/introspections` |
-| auth | INTERNAL | `getResetNotificationContent` | `GET /internal/v1/auth/notification-content/{contentRef}` |
-| auth | INTERNAL | `getAuthOperation` | `GET /internal/v1/auth/operations/{operationId}` |
-| auth | INTERNAL | `getTutorGrant` | `GET /internal/v1/auth/tutor-grants/{operationId}` |
-| auth | INTERNAL | `grantTutorCapability` | `PUT /internal/v1/auth/tutor-grants/{operationId}` |
-| auth | PUBLIC | `searchAccounts` | `GET /api/admin/users` |
-| auth | PUBLIC | `getAdminAccount` | `GET /api/admin/users/{userId}` |
-| auth | PUBLIC | `restrictAccount` | `POST /api/admin/users/{userId}/restrictions` |
-| auth | PUBLIC | `login` | `POST /api/auth/login` |
-| auth | PUBLIC | `logout` | `POST /api/auth/logout` |
-| auth | PUBLIC | `getCurrentAccount` | `GET /api/auth/me` |
-| auth | PUBLIC | `confirmPasswordReset` | `POST /api/auth/password-reset/confirm` |
-| auth | PUBLIC | `requestPasswordReset` | `POST /api/auth/password-reset/request` |
-| auth | PUBLIC | `validatePasswordReset` | `POST /api/auth/password-reset/validate` |
-| auth | PUBLIC | `signup` | `POST /api/auth/signup` |
-| auth | PUBLIC | `getDemoResetContent` | `GET /api/demo/password-resets/{contentRef}` |
-| auth | PUBLIC | `getAccountSettings` | `GET /api/profiles/me/account` |
-| auth | PUBLIC | `updateAccountSettings` | `PUT /api/profiles/me/account` |
-| auth | PUBLIC | `getStudentProfile` | `GET /api/profiles/me/student` |
-| auth | PUBLIC | `putStudentProfile` | `PUT /api/profiles/me/student` |
-| gateway | PUBLIC | `getHealth` | `GET /api/health` |
-| gateway | PUBLIC | `getOperation` | `GET /api/operations/{owner}/{operationId}` |
+| Owner | Protocol | Surface | Operation ID | Method and path |
+| --- | --- | --- | --- | --- |
+| auth | GRPC | INTERNAL | `getResetNotificationContent` | `UNARY /tutor_matcher.auth.v1.AuthCollaborationService/GetResetNotificationContent` |
+| auth | GRPC | INTERNAL | `getTutorGrant` | `UNARY /tutor_matcher.auth.v1.AuthCollaborationService/GetTutorGrant` |
+| auth | GRPC | INTERNAL | `grantTutorCapability` | `UNARY /tutor_matcher.auth.v1.AuthCollaborationService/GrantTutorCapability` |
+| auth | GRPC | INTERNAL | `listActiveAdmins` | `UNARY /tutor_matcher.auth.v1.AuthCollaborationService/ListActiveAdmins` |
+| auth | GRPC | INTERNAL | `lookupAccounts` | `UNARY /tutor_matcher.auth.v1.AuthCollaborationService/LookupAccounts` |
+| auth | REST | INTERNAL | `introspectToken` | `POST /internal/v1/auth/introspections` |
+| auth | REST | INTERNAL | `getAuthOperation` | `GET /internal/v1/auth/operations/{operationId}` |
+| auth | REST | PUBLIC | `searchAccounts` | `GET /api/admin/users` |
+| auth | REST | PUBLIC | `getAdminAccount` | `GET /api/admin/users/{userId}` |
+| auth | REST | PUBLIC | `restrictAccount` | `POST /api/admin/users/{userId}/restrictions` |
+| auth | REST | PUBLIC | `login` | `POST /api/auth/login` |
+| auth | REST | PUBLIC | `logout` | `POST /api/auth/logout` |
+| auth | REST | PUBLIC | `getCurrentAccount` | `GET /api/auth/me` |
+| auth | REST | PUBLIC | `confirmPasswordReset` | `POST /api/auth/password-reset/confirm` |
+| auth | REST | PUBLIC | `requestPasswordReset` | `POST /api/auth/password-reset/request` |
+| auth | REST | PUBLIC | `validatePasswordReset` | `POST /api/auth/password-reset/validate` |
+| auth | REST | PUBLIC | `signup` | `POST /api/auth/signup` |
+| auth | REST | PUBLIC | `getDemoResetContent` | `GET /api/demo/password-resets/{contentRef}` |
+| auth | REST | PUBLIC | `getAccountSettings` | `GET /api/profiles/me/account` |
+| auth | REST | PUBLIC | `updateAccountSettings` | `PUT /api/profiles/me/account` |
+| auth | REST | PUBLIC | `getStudentProfile` | `GET /api/profiles/me/student` |
+| auth | REST | PUBLIC | `putStudentProfile` | `PUT /api/profiles/me/student` |
+| gateway | REST | PUBLIC | `getHealth` | `GET /api/health` |
+| gateway | REST | PUBLIC | `getOperation` | `GET /api/operations/{owner}/{operationId}` |

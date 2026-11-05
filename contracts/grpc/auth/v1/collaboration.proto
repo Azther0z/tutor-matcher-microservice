@@ -1,0 +1,87 @@
+syntax = "proto3";
+package tutor_matcher.auth.v1;
+import "common/v1/types.proto";
+
+// Value constraints and presence rules: contracts/grpc/README.md and operations.v1.json.
+// All scalar presence is explicit. Validate required/nullable fields after normalization.
+service AuthCollaborationService {
+  rpc LookupAccounts(LookupAccountsRequest) returns (AccountLookup);
+  rpc ListActiveAdmins(ListActiveAdminsRequest) returns (AccountLookup);
+  rpc GrantTutorCapability(GrantTutorCapabilityRequest) returns (CapabilityGrantResult);
+  rpc GetTutorGrant(GetTutorGrantRequest) returns (CapabilityGrantResult);
+  rpc GetResetNotificationContent(GetResetNotificationContentRequest) returns (NotificationContent);
+}
+
+message LookupAccountsRequest {
+  repeated string user_ids = 1; // Required after normalization.
+}
+
+message AccountLookup {
+  repeated AccountLookupItems items = 1; // Required after normalization.
+}
+
+message AccountLookupItems {
+  enum Status {
+    STATUS_UNSPECIFIED = 0;
+    ACTIVE = 1;
+    SUSPENDED = 2;
+    BANNED = 3;
+    DEACTIVATED = 4;
+  }
+  enum Capabilities {
+    CAPABILITIES_UNSPECIFIED = 0;
+    STUDENT = 1;
+    TUTOR = 2;
+    ADMIN = 3;
+  }
+  optional string id = 1; // Required after normalization.
+  optional string display_name = 2; // Required after normalization.
+  optional string email = 3; // Required after normalization.
+  optional Status status = 4; // Required after normalization.
+  repeated Capabilities capabilities = 5; // Required after normalization.
+}
+
+message ListActiveAdminsRequest {
+
+}
+
+message GrantTutorCapabilityRequest {
+  optional string operation_id = 1; // Required after normalization.
+  CapabilityGrant command = 2; // Required after normalization.
+}
+
+message CapabilityGrant {
+  optional string user_id = 1; // Required after normalization.
+  optional string submission_id = 2; // Required after normalization.
+  optional string approval_revision = 3; // Required after normalization.
+  tutor_matcher.common.v1.Admission admission = 4; // Required after normalization.
+}
+
+message CapabilityGrantResult {
+  enum Status {
+    STATUS_UNSPECIFIED = 0;
+    APPLIED = 1;
+  }
+  optional string operation_id = 1; // Required after normalization.
+  optional string user_id = 2; // Required after normalization.
+  optional string capability = 3; // Required after normalization.
+  optional Status status = 4; // Required after normalization.
+  optional string applied_at = 5; // Required after normalization.
+}
+
+message GetTutorGrantRequest {
+  optional string operation_id = 1; // Required after normalization.
+}
+
+message GetResetNotificationContentRequest {
+  optional string content_ref = 1; // Required after normalization.
+}
+
+message NotificationContent {
+  optional string content_ref = 1; // Required after normalization.
+  optional string recipient_user_id = 2; // Required after normalization.
+  optional string subject = 3; // Required after normalization.
+  optional string text = 4; // Required after normalization.
+  optional bool sensitive = 5; // Required after normalization.
+  optional string expires_at = 6; // Required after normalization.
+}

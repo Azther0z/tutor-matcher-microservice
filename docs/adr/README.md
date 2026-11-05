@@ -2,7 +2,7 @@
 
 These records preserve the numbering of ADR-001 through ADR-022 in the [Tutor Matcher PDF](../sources/tutor-matcher.pdf). The filenames use four digits.
 They were first recorded as Markdown in this checkout on 6 November 2026. That date does not claim to be the original decision date.
-The original PDF remains unchanged as historical evidence. ADR-0023–ADR-0027 record reconciliation, system-design and interface decisions.
+The original PDF remains unchanged as historical evidence. ADR-0023–ADR-0028 record reconciliation, system-design and interface decisions.
 
 Use the [requirements](../requirements.md) for delivery scope, policies, and acceptance criteria. Use the [glossary](../../GLOSSARY.md) for domain terms.
 Accepted means that a decision governs the target. It does not mean that its implementation or operational evidence is complete.
@@ -38,6 +38,8 @@ Accepted means that a decision governs the target. It does not mean that its imp
 | [ADR-0026 Use PostgreSQL for Booking consistency](0026-booking-postgresql.md) | Accepted | User-confirmed step 2 |
 
 | [ADR-0027 Define versioned contracts before parallel implementation](0027-versioned-interface-contracts.md) | Accepted | Step-3 interface design; user-confirmed SYSTEM policy |
+
+| [ADR-0028 Use gRPC for private domain collaborations](0028-private-domain-grpc.md) | Accepted | User-confirmed step-3 protocol expansion |
 
 ## Reading historical decisions
 

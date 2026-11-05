@@ -1,0 +1,158 @@
+syntax = "proto3";
+package tutor_matcher.wallet.v1;
+import "common/v1/types.proto";
+
+// Value constraints and presence rules: contracts/grpc/README.md and operations.v1.json.
+// All scalar presence is explicit. Validate required/nullable fields after normalization.
+service WalletFinanceService {
+  rpc ApplyLessonCharge(ApplyLessonChargeRequest) returns (PaymentResult);
+  rpc GetLessonCharge(GetLessonChargeRequest) returns (PaymentResult);
+  rpc ResolveOrCloseLessonCharge(ResolveOrCloseLessonChargeRequest) returns (PaymentResult);
+  rpc ApplyCancellationRefund(ApplyCancellationRefundRequest) returns (RefundResult);
+  rpc GetRefundOutcome(GetRefundOutcomeRequest) returns (RefundResult);
+  rpc RecordLessonCompletion(RecordLessonCompletionRequest) returns (FinancialRecord);
+  rpc GetBookingFinancialRecord(GetBookingFinancialRecordRequest) returns (FinancialRecord);
+}
+
+message ApplyLessonChargeRequest {
+  optional string operation_id = 1; // Required after normalization.
+  PaymentCommand command = 2; // Required after normalization.
+}
+
+message PaymentCommand {
+  optional string booking_id = 1; // Required after normalization.
+  optional string source_operation_id = 2; // Required after normalization.
+  optional string student_user_id = 3; // Required after normalization.
+  optional string tutor_user_id = 4; // Required after normalization.
+  optional string subject_id = 5; // Required after normalization.
+  tutor_matcher.common.v1.Money amount = 6; // Required after normalization.
+  optional string starts_at = 7; // Required after normalization.
+  optional string ends_at = 8; // Required after normalization.
+  optional string hold_expires_at = 9; // Required after normalization.
+  tutor_matcher.common.v1.Admission admission = 10; // Required after normalization.
+}
+
+message PaymentResult {
+  enum Status {
+    STATUS_UNSPECIFIED = 0;
+    APPLIED = 1;
+    DECLINED = 2;
+    CLOSED = 3;
+  }
+  optional string operation_id = 1; // Required after normalization.
+  optional string booking_id = 2; // Required after normalization.
+  optional Status status = 3; // Required after normalization.
+  optional string transaction_id = 4; // Absent means JSON null.
+  tutor_matcher.common.v1.Money amount = 5; // Required after normalization.
+  tutor_matcher.common.v1.Money balance = 6; // Required after normalization.
+  optional string reason = 7; // Absent means JSON null.
+  optional string decided_at = 8; // Required after normalization.
+}
+
+message GetLessonChargeRequest {
+  optional string operation_id = 1; // Required after normalization.
+}
+
+message ResolveOrCloseLessonChargeRequest {
+  optional string operation_id = 1; // Required after normalization.
+  ClosePayment command = 2; // Required after normalization.
+}
+
+message ClosePayment {
+  enum Reason {
+    REASON_UNSPECIFIED = 0;
+    CANCEL_REQUESTED = 1;
+    HOLD_EXPIRED = 2;
+    ABORT_PAYMENT = 3;
+  }
+  PaymentCommand command = 1; // Required after normalization.
+  optional Reason reason = 2; // Required after normalization.
+}
+
+message ApplyCancellationRefundRequest {
+  optional string operation_id = 1; // Required after normalization.
+  RefundCommand command = 2; // Required after normalization.
+}
+
+message RefundCommand {
+  enum Kind {
+    KIND_UNSPECIFIED = 0;
+    STUDENT_CANCEL = 1;
+    TUTOR_CANCEL = 2;
+  }
+  optional string booking_id = 1; // Required after normalization.
+  optional string payment_operation_id = 2; // Required after normalization.
+  optional string source_operation_id = 3; // Required after normalization.
+  optional string student_user_id = 4; // Required after normalization.
+  optional string tutor_user_id = 5; // Required after normalization.
+  optional string quote_id = 6; // Required after normalization.
+  optional Kind kind = 7; // Required after normalization.
+  tutor_matcher.common.v1.Money amount = 8; // Required after normalization.
+  optional string policy_version = 9; // Required after normalization.
+  tutor_matcher.common.v1.Admission admission = 10; // Required after normalization.
+}
+
+message RefundResult {
+  enum Status {
+    STATUS_UNSPECIFIED = 0;
+    APPLIED = 1;
+  }
+  optional string operation_id = 1; // Required after normalization.
+  optional string booking_id = 2; // Required after normalization.
+  optional Status status = 3; // Required after normalization.
+  tutor_matcher.common.v1.Money amount = 4; // Required after normalization.
+  tutor_matcher.common.v1.Money total_refunded = 5; // Required after normalization.
+  optional string transaction_id = 6; // Required after normalization.
+  optional string applied_at = 7; // Required after normalization.
+}
+
+message GetRefundOutcomeRequest {
+  optional string operation_id = 1; // Required after normalization.
+}
+
+message RecordLessonCompletionRequest {
+  optional string booking_id = 1; // Required after normalization.
+  CompletionCommand command = 2; // Required after normalization.
+}
+
+message CompletionCommand {
+  optional string source_operation_id = 1; // Required after normalization.
+  optional string booking_version = 2; // Required after normalization.
+  optional string tutor_confirmed_at = 3; // Required after normalization.
+  tutor_matcher.common.v1.Admission admission = 4; // Required after normalization.
+}
+
+message FinancialRecord {
+  enum Status {
+    STATUS_UNSPECIFIED = 0;
+    UNPAID = 1;
+    PAID = 2;
+    CANCELLED = 3;
+    COMPLETED = 4;
+    SETTLED = 5;
+    REFUNDED = 6;
+  }
+  enum PaymentGate {
+    PAYMENT_GATE_UNSPECIFIED = 0;
+    OPEN = 1;
+    CLOSED = 2;
+  }
+  optional string booking_id = 1; // Required after normalization.
+  optional string student_user_id = 2; // Required after normalization.
+  optional string tutor_user_id = 3; // Required after normalization.
+  tutor_matcher.common.v1.Money paid = 4; // Required after normalization.
+  tutor_matcher.common.v1.Money refunded = 5; // Required after normalization.
+  tutor_matcher.common.v1.Money pending_earning = 6; // Required after normalization.
+  tutor_matcher.common.v1.Money fee = 7; // Required after normalization.
+  optional Status status = 8; // Required after normalization.
+  optional PaymentGate payment_gate = 9; // Required after normalization.
+  optional string tutor_confirmed_at = 10; // Absent means JSON null.
+  optional string clearing_due_at = 11; // Absent means JSON null.
+  optional string dispute_id = 12; // Absent means JSON null.
+  optional bool dispute_held = 13; // Required after normalization.
+  optional string revision = 14; // Required after normalization.
+}
+
+message GetBookingFinancialRecordRequest {
+  optional string booking_id = 1; // Required after normalization.
+}

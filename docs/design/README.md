@@ -26,7 +26,7 @@ Booking owns a PostgreSQL database separate from Auth and Wallet. Tutor, Review,
 
 ## Collaborations
 
-The producer box groups existing services. The availability, catalogue, financial, and review interactions use distinct operations.
+The producer box groups existing services. The collaboration view now labels gRPC domain calls, including catalogue, financial, review, identity and reminder work. Gateway REST remains separate.
 
 ![Service collaborations](assets/collaboration.png)
 
@@ -42,7 +42,7 @@ The four business states remain separate from pending technical operation state.
 
 ## Payment recovery
 
-Recovery resolves an applied charge or closes an unexecuted operation against late execution before protected slots can be released.
+The sequence names the Wallet gRPC calls. Recovery resolves an applied charge or closes an unexecuted operation against late execution before protected slots can be released.
 
 ![Payment recovery](assets/payment-recovery.png)
 

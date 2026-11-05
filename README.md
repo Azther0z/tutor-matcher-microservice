@@ -2,7 +2,7 @@
 
 The [accepted requirements and constraints](docs/requirements.md) define the 10 November delivery for the four-person team. See the [ADR index](docs/adr/README.md), [glossary](GLOSSARY.md), [original PDFs](docs/sources/README.md), and [reference monolith](https://github.com/Azther0z/tutor-matcher).
 
-The [accepted system design](docs/system-design.md) defines the target services, database ownership, recovery, flows, and deployment. The [interface contracts](contracts/README.md) define the step-3 target REST, gRPC, events, authorization and recovery behavior. They are not implemented yet.
+The [accepted system design](docs/system-design.md) defines the target services, database ownership, recovery, flows, and deployment. The [interface contracts](contracts/README.md) define the step-3 target REST, gRPC, events, authorization and recovery behavior. The target uses 20 private domain RPCs, public REST and RabbitMQ. These interfaces are not implemented yet.
 
 The [four-member implementation handoffs](docs/handoffs/README.md) assign parallel work to Saint, Ideal, Santa and P, with UI ownership, integration checkpoints and evidence responsibilities.
 

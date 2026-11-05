@@ -237,7 +237,7 @@ System design and interface design must meet the following retained constraints:
 | Next.js for presentation and routing. Backend APIs own business rules and data access. | ADR-0001, ADR-0002 |
 | Express services in TypeScript. One monorepo with npm workspaces, shared quality commands, and one workspace lockfile. | ADR-0002, ADR-0004 |
 | Each service owns its persistence. Use separate PostgreSQL databases for Auth, Booking, and Wallet; separate MongoDB databases for Tutor, Notification, Review, and Messaging. | ADR-0015–ADR-0017, ADR-0025–ADR-0026 |
-| REST, gRPC, RabbitMQ-based asynchronous processing, and an API gateway participate in actual business journeys. | ADR-0010–ADR-0020 and course constraints |
+| Public REST, private domain gRPC, RabbitMQ-based asynchronous processing, and an API gateway participate in actual business journeys. Twenty domain RPCs replace the prior private domain HTTP operations. Gateway introspection and owner-status polling remain REST. | ADR-0010–ADR-0020, ADR-0028 and course constraints |
 | Gateway JWT verification and trustworthy downstream identity. Internal-only endpoints remain unreachable through public routing. | ADR-0013, ADR-0018 |
 | Consul registration and health checks, gateway routing to healthy instances, and fixed-name fallback when Consul is unavailable. | ADR-0021 |
 | Separate local and hosted manifests, commit-traceable images built/published with GitHub Actions, Swarm/Doco-CD deployment, and SOPS/age secrets. | ADR-0005–ADR-0008 |
@@ -289,6 +289,7 @@ Presentation dates are 11 and 15 November in the syllabus. The user-confirmed de
 | Deployment | Deferral of production tooling was proposed during discussion. | Retain hosted Swarm/Doco-CD, image publishing, SOPS/age, and local Compose fallback. Kubernetes is optional and not selected. |
 | Data access | ADR-003 describes shared Prisma/PostgreSQL transactions. | Retain it as original-version history. ADR-0015–ADR-0017 govern extracted services. |
 | Booking database | PDF ADR-017 and current code use MongoDB for Booking. | Step 2 selects a separate PostgreSQL Booking database for related slot, hold, operation, and outbox transactions. Wallet remains separate. |
+| Internal protocols | The initial step-2/step-3 target kept most private calls on REST. The user requested more gRPC after reviewing PR #3. | Move all 18 private domain operations to gRPC, retain two availability RPCs, and keep public REST, Gateway infrastructure REST and RabbitMQ unchanged. |
 | Conversations | Chat is required but has no owner in the original service map. | Add Messaging with its own MongoDB database. Retain Review and Notification as separate owners. |
 
 ## Completion and change control
