@@ -1,0 +1,36 @@
+{
+  "_comment": "Versioned Tutor Matcher topology (ADR-0019, ADR-0024). Import with `rabbitmqctl import_definitions`. Users and passwords are NOT here: create one broker user per producer (auth, tutor, booking, wallet, review, messaging) plus notification from SOPS/age runtime secrets, with the same names used below. RabbitMQ verifies the AMQP user_id property against the connected user, which is what Notification checks.",
+  "vhosts": [{ "name": "/" }],
+  "exchanges": [
+    { "name": "tutor-matcher.events", "vhost": "/", "type": "topic", "durable": true, "auto_delete": false, "internal": false, "arguments": {} },
+    { "name": "tutor-matcher.dead", "vhost": "/", "type": "direct", "durable": true, "auto_delete": false, "internal": false, "arguments": {} }
+  ],
+  "queues": [
+    {
+      "name": "notification.events.v1", "vhost": "/", "durable": true, "auto_delete": false,
+      "arguments": { "x-dead-letter-exchange": "tutor-matcher.dead", "x-dead-letter-routing-key": "notification.invalid" }
+    },
+    { "name": "notification.events.v1.dead", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {} }
+  ],
+  "bindings": [
+    { "source": "tutor-matcher.events", "vhost": "/", "destination": "notification.events.v1", "destination_type": "queue", "routing_key": "v1.#", "arguments": {} },
+    { "source": "tutor-matcher.dead", "vhost": "/", "destination": "notification.events.v1.dead", "destination_type": "queue", "routing_key": "notification.invalid", "arguments": {} }
+  ],
+  "permissions": [
+    { "user": "auth", "vhost": "/", "configure": "^$", "write": "^tutor-matcher\\.events$", "read": "^$" },
+    { "user": "tutor", "vhost": "/", "configure": "^$", "write": "^tutor-matcher\\.events$", "read": "^$" },
+    { "user": "booking", "vhost": "/", "configure": "^$", "write": "^tutor-matcher\\.events$", "read": "^$" },
+    { "user": "wallet", "vhost": "/", "configure": "^$", "write": "^tutor-matcher\\.events$", "read": "^$" },
+    { "user": "review", "vhost": "/", "configure": "^$", "write": "^tutor-matcher\\.events$", "read": "^$" },
+    { "user": "messaging", "vhost": "/", "configure": "^$", "write": "^tutor-matcher\\.events$", "read": "^$" },
+    { "user": "notification", "vhost": "/", "configure": "^(tutor-matcher\\.events|tutor-matcher\\.dead|notification\\.events\\.v1(\\.dead)?)$", "write": "^tutor-matcher\\.dead$", "read": "^(notification\\.events\\.v1(\\.dead)?|tutor-matcher\\.events)$" }
+  ],
+  "topic_permissions": [
+    { "user": "auth", "vhost": "/", "exchange": "tutor-matcher.events", "write": "^v1\\.auth\\.", "read": "^$" },
+    { "user": "tutor", "vhost": "/", "exchange": "tutor-matcher.events", "write": "^v1\\.tutor\\.", "read": "^$" },
+    { "user": "booking", "vhost": "/", "exchange": "tutor-matcher.events", "write": "^v1\\.booking\\.", "read": "^$" },
+    { "user": "wallet", "vhost": "/", "exchange": "tutor-matcher.events", "write": "^v1\\.wallet\\.", "read": "^$" },
+    { "user": "review", "vhost": "/", "exchange": "tutor-matcher.events", "write": "^v1\\.review\\.", "read": "^$" },
+    { "user": "messaging", "vhost": "/", "exchange": "tutor-matcher.events", "write": "^v1\\.messaging\\.", "read": "^$" }
+  ]
+}
