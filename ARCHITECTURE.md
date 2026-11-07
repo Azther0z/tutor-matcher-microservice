@@ -2,6 +2,10 @@
 
 > This document describes the implementation in this repository. It is a backend microservice demo, not the broader target architecture or feature set described in the project proposal.
 
+The [accepted requirements](docs/requirements.md) govern the delivery target. The [ADR index](docs/adr/README.md) records retained decisions and reconciled changes. The [source documents](docs/sources/README.md) include both original PDFs and the pinned monolith reference.
+
+The [accepted system design](docs/system-design.md) is the future target. It selects PostgreSQL for Booking and adds Review and Messaging. The [step-3 contracts](contracts/README.md) specify the target interfaces. The implementation snapshot below still describes the existing MongoDB Booking demo.
+
 ## 1. Overview
 
 Tutor Matcher is an online tutoring marketplace backend. API clients (the included Postman collections are examples) send REST requests to an API Gateway. The gateway routes requests to independently runnable Node.js services. Tutor and Booking also communicate over gRPC, while Auth, Booking, and Wallet publish events for the Notification service through RabbitMQ.

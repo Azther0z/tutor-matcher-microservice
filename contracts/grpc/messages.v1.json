@@ -1,0 +1,432 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "gRPC request/availability validation views v1",
+  "$defs": {
+    "LookupAccountsRequest": {
+      "type": "object",
+      "properties": {
+        "userIds": {
+          "type": "array",
+          "items": {
+            "$ref": "../schemas/v1.json#/$defs/Id"
+          },
+          "minItems": 1,
+          "maxItems": 100,
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "userIds"
+      ],
+      "additionalProperties": false
+    },
+    "ListActiveAdminsRequest": {
+      "type": "object",
+      "properties": {},
+      "required": [],
+      "additionalProperties": false
+    },
+    "GrantTutorCapabilityRequest": {
+      "type": "object",
+      "properties": {
+        "operationId": {
+          "$ref": "../schemas/v1.json#/$defs/Id"
+        },
+        "command": {
+          "$ref": "../schemas/v1.json#/$defs/CapabilityGrant"
+        }
+      },
+      "required": [
+        "operationId",
+        "command"
+      ],
+      "additionalProperties": false
+    },
+    "GetTutorGrantRequest": {
+      "type": "object",
+      "properties": {
+        "operationId": {
+          "$ref": "../schemas/v1.json#/$defs/Id"
+        }
+      },
+      "required": [
+        "operationId"
+      ],
+      "additionalProperties": false
+    },
+    "GetResetNotificationContentRequest": {
+      "type": "object",
+      "properties": {
+        "contentRef": {
+          "$ref": "../schemas/v1.json#/$defs/Id"
+        }
+      },
+      "required": [
+        "contentRef"
+      ],
+      "additionalProperties": false
+    },
+    "GetTutorEligibilityRequest": {
+      "type": "object",
+      "properties": {
+        "userId": {
+          "$ref": "../schemas/v1.json#/$defs/Id"
+        }
+      },
+      "required": [
+        "userId"
+      ],
+      "additionalProperties": false
+    },
+    "GetBookableSubjectRequest": {
+      "type": "object",
+      "properties": {
+        "subjectId": {
+          "$ref": "../schemas/v1.json#/$defs/Id"
+        }
+      },
+      "required": [
+        "subjectId"
+      ],
+      "additionalProperties": false
+    },
+    "GetRatingSummariesRequest": {
+      "type": "object",
+      "properties": {
+        "subjectIds": {
+          "type": "array",
+          "items": {
+            "$ref": "../schemas/v1.json#/$defs/Id"
+          },
+          "minItems": 1,
+          "maxItems": 100,
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "subjectIds"
+      ],
+      "additionalProperties": false
+    },
+    "GetReviewEligibilityRequest": {
+      "type": "object",
+      "properties": {
+        "bookingId": {
+          "$ref": "../schemas/v1.json#/$defs/Id"
+        }
+      },
+      "required": [
+        "bookingId"
+      ],
+      "additionalProperties": false
+    },
+    "GetBookingEvidenceRequest": {
+      "type": "object",
+      "properties": {
+        "bookingId": {
+          "$ref": "../schemas/v1.json#/$defs/Id"
+        }
+      },
+      "required": [
+        "bookingId"
+      ],
+      "additionalProperties": false
+    },
+    "GetReminderEligibilityRequest": {
+      "type": "object",
+      "properties": {
+        "bookingId": {
+          "$ref": "../schemas/v1.json#/$defs/Id"
+        },
+        "scheduleVersion": {
+          "$ref": "../schemas/v1.json#/$defs/Revision"
+        },
+        "offsetMinutes": {
+          "type": "integer",
+          "enum": [
+            60,
+            10
+          ]
+        }
+      },
+      "required": [
+        "bookingId",
+        "scheduleVersion",
+        "offsetMinutes"
+      ],
+      "additionalProperties": false
+    },
+    "ApplyLessonChargeRequest": {
+      "type": "object",
+      "properties": {
+        "operationId": {
+          "$ref": "../schemas/v1.json#/$defs/Id"
+        },
+        "command": {
+          "$ref": "../schemas/v1.json#/$defs/PaymentCommand"
+        }
+      },
+      "required": [
+        "operationId",
+        "command"
+      ],
+      "additionalProperties": false
+    },
+    "GetLessonChargeRequest": {
+      "type": "object",
+      "properties": {
+        "operationId": {
+          "$ref": "../schemas/v1.json#/$defs/Id"
+        }
+      },
+      "required": [
+        "operationId"
+      ],
+      "additionalProperties": false
+    },
+    "ResolveOrCloseLessonChargeRequest": {
+      "type": "object",
+      "properties": {
+        "operationId": {
+          "$ref": "../schemas/v1.json#/$defs/Id"
+        },
+        "command": {
+          "$ref": "../schemas/v1.json#/$defs/ClosePayment"
+        }
+      },
+      "required": [
+        "operationId",
+        "command"
+      ],
+      "additionalProperties": false
+    },
+    "ApplyCancellationRefundRequest": {
+      "type": "object",
+      "properties": {
+        "operationId": {
+          "$ref": "../schemas/v1.json#/$defs/Id"
+        },
+        "command": {
+          "$ref": "../schemas/v1.json#/$defs/RefundCommand"
+        }
+      },
+      "required": [
+        "operationId",
+        "command"
+      ],
+      "additionalProperties": false
+    },
+    "GetRefundOutcomeRequest": {
+      "type": "object",
+      "properties": {
+        "operationId": {
+          "$ref": "../schemas/v1.json#/$defs/Id"
+        }
+      },
+      "required": [
+        "operationId"
+      ],
+      "additionalProperties": false
+    },
+    "RecordLessonCompletionRequest": {
+      "type": "object",
+      "properties": {
+        "bookingId": {
+          "$ref": "../schemas/v1.json#/$defs/Id"
+        },
+        "command": {
+          "$ref": "../schemas/v1.json#/$defs/CompletionCommand"
+        }
+      },
+      "required": [
+        "bookingId",
+        "command"
+      ],
+      "additionalProperties": false
+    },
+    "GetBookingFinancialRecordRequest": {
+      "type": "object",
+      "properties": {
+        "bookingId": {
+          "$ref": "../schemas/v1.json#/$defs/Id"
+        }
+      },
+      "required": [
+        "bookingId"
+      ],
+      "additionalProperties": false
+    },
+    "AvailabilityQuery": {
+      "type": "object",
+      "properties": {
+        "tutorId": {
+          "$ref": "../schemas/v1.json#/$defs/Id"
+        },
+        "subjectId": {
+          "$ref": "../schemas/v1.json#/$defs/Id"
+        },
+        "from": {
+          "$ref": "../schemas/v1.json#/$defs/Timestamp"
+        },
+        "to": {
+          "$ref": "../schemas/v1.json#/$defs/Timestamp"
+        }
+      },
+      "required": [
+        "tutorId",
+        "subjectId",
+        "from",
+        "to"
+      ],
+      "additionalProperties": false
+    },
+    "GetAvailabilityRequest": {
+      "type": "object",
+      "properties": {
+        "query": {
+          "$ref": "#/$defs/AvailabilityQuery"
+        }
+      },
+      "required": [
+        "query"
+      ],
+      "additionalProperties": false
+    },
+    "BatchGetAvailabilityRequest": {
+      "type": "object",
+      "properties": {
+        "queries": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/AvailabilityQuery"
+          },
+          "minItems": 1,
+          "maxItems": 100,
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "queries"
+      ],
+      "additionalProperties": false
+    },
+    "GetAvailabilityResponse": {
+      "type": "object",
+      "properties": {
+        "slots": {
+          "type": "array",
+          "items": {
+            "allOf": [
+              {
+                "$ref": "../schemas/v1.json#/$defs/PublicSlot"
+              },
+              {
+                "properties": {
+                  "subjectIds": {
+                    "maxItems": 100
+                  }
+                }
+              }
+            ]
+          },
+          "maxItems": 4464
+        },
+        "checkedAt": {
+          "$ref": "../schemas/v1.json#/$defs/Timestamp"
+        }
+      },
+      "required": [
+        "slots",
+        "checkedAt"
+      ],
+      "additionalProperties": false
+    },
+    "AvailabilitySummary": {
+      "type": "object",
+      "properties": {
+        "queryIndex": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 99
+        },
+        "hasAvailability": {
+          "type": "boolean"
+        },
+        "nextAvailableAt": {
+          "anyOf": [
+            {
+              "$ref": "../schemas/v1.json#/$defs/Timestamp"
+            },
+            {
+              "const": ""
+            }
+          ]
+        },
+        "freeSlotCount": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4464
+        }
+      },
+      "required": [
+        "queryIndex",
+        "hasAvailability",
+        "nextAvailableAt",
+        "freeSlotCount"
+      ],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "hasAvailability": {
+                "const": false
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "nextAvailableAt": {
+                "const": ""
+              },
+              "freeSlotCount": {
+                "const": 0
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "nextAvailableAt": {
+                "$ref": "../schemas/v1.json#/$defs/Timestamp"
+              },
+              "freeSlotCount": {
+                "minimum": 1
+              }
+            }
+          }
+        }
+      ]
+    },
+    "BatchGetAvailabilityResponse": {
+      "type": "object",
+      "properties": {
+        "results": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/AvailabilitySummary"
+          },
+          "minItems": 1,
+          "maxItems": 100
+        },
+        "checkedAt": {
+          "$ref": "../schemas/v1.json#/$defs/Timestamp"
+        }
+      },
+      "required": [
+        "results",
+        "checkedAt"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

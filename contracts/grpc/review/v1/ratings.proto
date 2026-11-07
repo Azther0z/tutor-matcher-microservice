@@ -1,0 +1,23 @@
+syntax = "proto3";
+package tutor_matcher.review.v1;
+
+// Value constraints and presence rules: contracts/grpc/README.md and operations.v1.json.
+// All scalar presence is explicit. Validate required/nullable fields after normalization.
+service ReviewRatingService {
+  rpc GetRatingSummaries(GetRatingSummariesRequest) returns (RatingBatch);
+}
+
+message GetRatingSummariesRequest {
+  repeated string subject_ids = 1; // Required after normalization.
+}
+
+message RatingBatch {
+  repeated RatingSummary items = 1; // Required after normalization.
+}
+
+message RatingSummary {
+  optional string subject_id = 1; // Required after normalization.
+  optional double average = 2; // Absent means JSON null.
+  optional uint64 review_count = 3; // Required after normalization.
+  map<string, uint64> distribution = 4; // Required after normalization.
+}

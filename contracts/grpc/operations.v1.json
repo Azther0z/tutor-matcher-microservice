@@ -1,0 +1,502 @@
+{
+  "version": 1,
+  "description": "Private unary domain collaborations. Proto files own wire shape; this manifest owns caller allowlists, schema validation views, deadlines and idempotency bindings. No REST aliases are kept for these domain operations.",
+  "services": {
+    "auth": {
+      "target": "auth-service:50051",
+      "environmentVariable": "AUTH_GRPC_URL",
+      "port": 50051
+    },
+    "booking": {
+      "target": "booking-service:50052",
+      "environmentVariable": "BOOKING_GRPC_URL",
+      "port": 50052
+    },
+    "tutor": {
+      "target": "tutor-service:50053",
+      "environmentVariable": "TUTOR_GRPC_URL",
+      "port": 50053
+    },
+    "wallet": {
+      "target": "wallet-service:50054",
+      "environmentVariable": "WALLET_GRPC_URL",
+      "port": 50054
+    },
+    "review": {
+      "target": "review-service:50055",
+      "environmentVariable": "REVIEW_GRPC_URL",
+      "port": 50055
+    }
+  },
+  "operations": [
+    {
+      "operationId": "applyCancellationRefund",
+      "owner": "wallet",
+      "service": "tutor_matcher.wallet.v1.WalletFinanceService",
+      "rpc": "ApplyCancellationRefund",
+      "proto": "wallet/v1/finance.proto",
+      "requestType": "tutor_matcher.wallet.v1.ApplyCancellationRefundRequest",
+      "responseType": "tutor_matcher.wallet.v1.RefundResult",
+      "requestSchema": "messages.v1.json#/$defs/ApplyCancellationRefundRequest",
+      "responseSchema": "../schemas/v1.json#/$defs/RefundResult",
+      "authorizedCallers": [
+        "booking"
+      ],
+      "requirements": [
+        "UC06-02",
+        "UC06-03",
+        "UC09-04"
+      ],
+      "failureCodes": [
+        "REFUND_LIMIT_EXCEEDED",
+        "IDEMPOTENCY_CONFLICT"
+      ],
+      "deadlineMs": 3000,
+      "idempotencyField": "operationId",
+      "sensitive": false
+    },
+    {
+      "operationId": "applyLessonCharge",
+      "owner": "wallet",
+      "service": "tutor_matcher.wallet.v1.WalletFinanceService",
+      "rpc": "ApplyLessonCharge",
+      "proto": "wallet/v1/finance.proto",
+      "requestType": "tutor_matcher.wallet.v1.ApplyLessonChargeRequest",
+      "responseType": "tutor_matcher.wallet.v1.PaymentResult",
+      "requestSchema": "messages.v1.json#/$defs/ApplyLessonChargeRequest",
+      "responseSchema": "../schemas/v1.json#/$defs/PaymentResult",
+      "authorizedCallers": [
+        "booking"
+      ],
+      "requirements": [
+        "UC03-04",
+        "UC03-05"
+      ],
+      "failureCodes": [
+        "IDEMPOTENCY_CONFLICT",
+        "PAYMENT_GATE_CLOSED"
+      ],
+      "deadlineMs": 3000,
+      "idempotencyField": "operationId",
+      "sensitive": false
+    },
+    {
+      "operationId": "batchGetAvailability",
+      "owner": "booking",
+      "service": "tutor_matcher.booking.v1.AvailabilityService",
+      "rpc": "BatchGetAvailability",
+      "proto": "booking/v1/availability.proto",
+      "requestType": "tutor_matcher.booking.v1.BatchGetAvailabilityRequest",
+      "responseType": "tutor_matcher.booking.v1.BatchGetAvailabilityResponse",
+      "requestSchema": "messages.v1.json#/$defs/BatchGetAvailabilityRequest",
+      "responseSchema": "messages.v1.json#/$defs/BatchGetAvailabilityResponse",
+      "authorizedCallers": [
+        "tutor"
+      ],
+      "requirements": [
+        "UC03-01",
+        "UC02-04"
+      ],
+      "failureCodes": [
+        "VALIDATION_FAILED",
+        "DEPENDENCY_UNAVAILABLE"
+      ],
+      "deadlineMs": 2000,
+      "idempotencyField": null,
+      "sensitive": false
+    },
+    {
+      "operationId": "getAvailability",
+      "owner": "booking",
+      "service": "tutor_matcher.booking.v1.AvailabilityService",
+      "rpc": "GetAvailability",
+      "proto": "booking/v1/availability.proto",
+      "requestType": "tutor_matcher.booking.v1.GetAvailabilityRequest",
+      "responseType": "tutor_matcher.booking.v1.GetAvailabilityResponse",
+      "requestSchema": "messages.v1.json#/$defs/GetAvailabilityRequest",
+      "responseSchema": "messages.v1.json#/$defs/GetAvailabilityResponse",
+      "authorizedCallers": [
+        "tutor"
+      ],
+      "requirements": [
+        "UC03-01",
+        "UC02-04"
+      ],
+      "failureCodes": [
+        "VALIDATION_FAILED",
+        "DEPENDENCY_UNAVAILABLE"
+      ],
+      "deadlineMs": 2000,
+      "idempotencyField": null,
+      "sensitive": false
+    },
+    {
+      "operationId": "getBookableSubject",
+      "owner": "tutor",
+      "service": "tutor_matcher.tutor.v1.TutorCatalogueService",
+      "rpc": "GetBookableSubject",
+      "proto": "tutor/v1/catalogue.proto",
+      "requestType": "tutor_matcher.tutor.v1.GetBookableSubjectRequest",
+      "responseType": "tutor_matcher.tutor.v1.BookableSubject",
+      "requestSchema": "messages.v1.json#/$defs/GetBookableSubjectRequest",
+      "responseSchema": "../schemas/v1.json#/$defs/BookableSubject",
+      "authorizedCallers": [
+        "booking"
+      ],
+      "requirements": [
+        "UC03-02"
+      ],
+      "failureCodes": [
+        "SUBJECT_NOT_BOOKABLE"
+      ],
+      "deadlineMs": 2000,
+      "idempotencyField": null,
+      "sensitive": false
+    },
+    {
+      "operationId": "getBookingEvidence",
+      "owner": "booking",
+      "service": "tutor_matcher.booking.v1.BookingEvidenceService",
+      "rpc": "GetBookingEvidence",
+      "proto": "booking/v1/collaboration.proto",
+      "requestType": "tutor_matcher.booking.v1.GetBookingEvidenceRequest",
+      "responseType": "tutor_matcher.booking.v1.BookingEvidence",
+      "requestSchema": "messages.v1.json#/$defs/GetBookingEvidenceRequest",
+      "responseSchema": "../schemas/v1.json#/$defs/BookingEvidence",
+      "authorizedCallers": [
+        "wallet",
+        "notification"
+      ],
+      "requirements": [
+        "UC09-02",
+        "Q-06"
+      ],
+      "failureCodes": [],
+      "deadlineMs": 2000,
+      "idempotencyField": null,
+      "sensitive": false
+    },
+    {
+      "operationId": "getBookingFinancialRecord",
+      "owner": "wallet",
+      "service": "tutor_matcher.wallet.v1.WalletFinanceService",
+      "rpc": "GetBookingFinancialRecord",
+      "proto": "wallet/v1/finance.proto",
+      "requestType": "tutor_matcher.wallet.v1.GetBookingFinancialRecordRequest",
+      "responseType": "tutor_matcher.wallet.v1.FinancialRecord",
+      "requestSchema": "messages.v1.json#/$defs/GetBookingFinancialRecordRequest",
+      "responseSchema": "../schemas/v1.json#/$defs/FinancialRecord",
+      "authorizedCallers": [
+        "booking"
+      ],
+      "requirements": [
+        "UC09-02",
+        "UC05-05"
+      ],
+      "failureCodes": [],
+      "deadlineMs": 2000,
+      "idempotencyField": null,
+      "sensitive": false
+    },
+    {
+      "operationId": "getLessonCharge",
+      "owner": "wallet",
+      "service": "tutor_matcher.wallet.v1.WalletFinanceService",
+      "rpc": "GetLessonCharge",
+      "proto": "wallet/v1/finance.proto",
+      "requestType": "tutor_matcher.wallet.v1.GetLessonChargeRequest",
+      "responseType": "tutor_matcher.wallet.v1.PaymentResult",
+      "requestSchema": "messages.v1.json#/$defs/GetLessonChargeRequest",
+      "responseSchema": "../schemas/v1.json#/$defs/PaymentResult",
+      "authorizedCallers": [
+        "booking"
+      ],
+      "requirements": [
+        "UC03-05"
+      ],
+      "failureCodes": [],
+      "deadlineMs": 2000,
+      "idempotencyField": "operationId",
+      "sensitive": false
+    },
+    {
+      "operationId": "getRatingSummaries",
+      "owner": "review",
+      "service": "tutor_matcher.review.v1.ReviewRatingService",
+      "rpc": "GetRatingSummaries",
+      "proto": "review/v1/ratings.proto",
+      "requestType": "tutor_matcher.review.v1.GetRatingSummariesRequest",
+      "responseType": "tutor_matcher.review.v1.RatingBatch",
+      "requestSchema": "messages.v1.json#/$defs/GetRatingSummariesRequest",
+      "responseSchema": "../schemas/v1.json#/$defs/RatingBatch",
+      "authorizedCallers": [
+        "tutor"
+      ],
+      "requirements": [
+        "UC03-01",
+        "UC08-04"
+      ],
+      "failureCodes": [],
+      "deadlineMs": 2000,
+      "idempotencyField": null,
+      "sensitive": false
+    },
+    {
+      "operationId": "getRefundOutcome",
+      "owner": "wallet",
+      "service": "tutor_matcher.wallet.v1.WalletFinanceService",
+      "rpc": "GetRefundOutcome",
+      "proto": "wallet/v1/finance.proto",
+      "requestType": "tutor_matcher.wallet.v1.GetRefundOutcomeRequest",
+      "responseType": "tutor_matcher.wallet.v1.RefundResult",
+      "requestSchema": "messages.v1.json#/$defs/GetRefundOutcomeRequest",
+      "responseSchema": "../schemas/v1.json#/$defs/RefundResult",
+      "authorizedCallers": [
+        "booking"
+      ],
+      "requirements": [
+        "UC06-04"
+      ],
+      "failureCodes": [],
+      "deadlineMs": 2000,
+      "idempotencyField": "operationId",
+      "sensitive": false
+    },
+    {
+      "operationId": "getReminderEligibility",
+      "owner": "booking",
+      "service": "tutor_matcher.booking.v1.BookingEvidenceService",
+      "rpc": "GetReminderEligibility",
+      "proto": "booking/v1/collaboration.proto",
+      "requestType": "tutor_matcher.booking.v1.GetReminderEligibilityRequest",
+      "responseType": "tutor_matcher.booking.v1.ReminderEligibility",
+      "requestSchema": "messages.v1.json#/$defs/GetReminderEligibilityRequest",
+      "responseSchema": "../schemas/v1.json#/$defs/ReminderEligibility",
+      "authorizedCallers": [
+        "notification"
+      ],
+      "requirements": [
+        "SUP-02"
+      ],
+      "failureCodes": [],
+      "deadlineMs": 2000,
+      "idempotencyField": null,
+      "sensitive": false
+    },
+    {
+      "operationId": "getResetNotificationContent",
+      "owner": "auth",
+      "service": "tutor_matcher.auth.v1.AuthCollaborationService",
+      "rpc": "GetResetNotificationContent",
+      "proto": "auth/v1/collaboration.proto",
+      "requestType": "tutor_matcher.auth.v1.GetResetNotificationContentRequest",
+      "responseType": "tutor_matcher.auth.v1.NotificationContent",
+      "requestSchema": "messages.v1.json#/$defs/GetResetNotificationContentRequest",
+      "responseSchema": "../schemas/v1.json#/$defs/NotificationContent",
+      "authorizedCallers": [
+        "notification"
+      ],
+      "requirements": [
+        "AUTH-03"
+      ],
+      "failureCodes": [
+        "RESET_TOKEN_INVALID"
+      ],
+      "deadlineMs": 2000,
+      "idempotencyField": null,
+      "sensitive": true
+    },
+    {
+      "operationId": "getReviewEligibility",
+      "owner": "booking",
+      "service": "tutor_matcher.booking.v1.BookingEvidenceService",
+      "rpc": "GetReviewEligibility",
+      "proto": "booking/v1/collaboration.proto",
+      "requestType": "tutor_matcher.booking.v1.GetReviewEligibilityRequest",
+      "responseType": "tutor_matcher.booking.v1.ReviewEligibility",
+      "requestSchema": "messages.v1.json#/$defs/GetReviewEligibilityRequest",
+      "responseSchema": "../schemas/v1.json#/$defs/ReviewEligibility",
+      "authorizedCallers": [
+        "review"
+      ],
+      "requirements": [
+        "UC08-01"
+      ],
+      "failureCodes": [],
+      "deadlineMs": 2000,
+      "idempotencyField": null,
+      "sensitive": false
+    },
+    {
+      "operationId": "getTutorEligibility",
+      "owner": "tutor",
+      "service": "tutor_matcher.tutor.v1.TutorCatalogueService",
+      "rpc": "GetTutorEligibility",
+      "proto": "tutor/v1/catalogue.proto",
+      "requestType": "tutor_matcher.tutor.v1.GetTutorEligibilityRequest",
+      "responseType": "tutor_matcher.tutor.v1.TutorEligibility",
+      "requestSchema": "messages.v1.json#/$defs/GetTutorEligibilityRequest",
+      "responseSchema": "../schemas/v1.json#/$defs/TutorEligibility",
+      "authorizedCallers": [
+        "auth",
+        "booking",
+        "wallet",
+        "messaging"
+      ],
+      "requirements": [
+        "AUTH-04",
+        "UC02-04",
+        "UC07-01"
+      ],
+      "failureCodes": [],
+      "deadlineMs": 2000,
+      "idempotencyField": null,
+      "sensitive": false
+    },
+    {
+      "operationId": "getTutorGrant",
+      "owner": "auth",
+      "service": "tutor_matcher.auth.v1.AuthCollaborationService",
+      "rpc": "GetTutorGrant",
+      "proto": "auth/v1/collaboration.proto",
+      "requestType": "tutor_matcher.auth.v1.GetTutorGrantRequest",
+      "responseType": "tutor_matcher.auth.v1.CapabilityGrantResult",
+      "requestSchema": "messages.v1.json#/$defs/GetTutorGrantRequest",
+      "responseSchema": "../schemas/v1.json#/$defs/CapabilityGrantResult",
+      "authorizedCallers": [
+        "tutor"
+      ],
+      "requirements": [
+        "UC01-04"
+      ],
+      "failureCodes": [],
+      "deadlineMs": 2000,
+      "idempotencyField": "operationId",
+      "sensitive": false
+    },
+    {
+      "operationId": "grantTutorCapability",
+      "owner": "auth",
+      "service": "tutor_matcher.auth.v1.AuthCollaborationService",
+      "rpc": "GrantTutorCapability",
+      "proto": "auth/v1/collaboration.proto",
+      "requestType": "tutor_matcher.auth.v1.GrantTutorCapabilityRequest",
+      "responseType": "tutor_matcher.auth.v1.CapabilityGrantResult",
+      "requestSchema": "messages.v1.json#/$defs/GrantTutorCapabilityRequest",
+      "responseSchema": "../schemas/v1.json#/$defs/CapabilityGrantResult",
+      "authorizedCallers": [
+        "tutor"
+      ],
+      "requirements": [
+        "UC01-04"
+      ],
+      "failureCodes": [
+        "IDEMPOTENCY_CONFLICT"
+      ],
+      "deadlineMs": 3000,
+      "idempotencyField": "operationId",
+      "sensitive": false
+    },
+    {
+      "operationId": "listActiveAdmins",
+      "owner": "auth",
+      "service": "tutor_matcher.auth.v1.AuthCollaborationService",
+      "rpc": "ListActiveAdmins",
+      "proto": "auth/v1/collaboration.proto",
+      "requestType": "tutor_matcher.auth.v1.ListActiveAdminsRequest",
+      "responseType": "tutor_matcher.auth.v1.AccountLookup",
+      "requestSchema": "messages.v1.json#/$defs/ListActiveAdminsRequest",
+      "responseSchema": "../schemas/v1.json#/$defs/AccountLookup",
+      "authorizedCallers": [
+        "notification"
+      ],
+      "requirements": [
+        "SUP-03"
+      ],
+      "failureCodes": [],
+      "deadlineMs": 2000,
+      "idempotencyField": null,
+      "sensitive": false
+    },
+    {
+      "operationId": "lookupAccounts",
+      "owner": "auth",
+      "service": "tutor_matcher.auth.v1.AuthCollaborationService",
+      "rpc": "LookupAccounts",
+      "proto": "auth/v1/collaboration.proto",
+      "requestType": "tutor_matcher.auth.v1.LookupAccountsRequest",
+      "responseType": "tutor_matcher.auth.v1.AccountLookup",
+      "requestSchema": "messages.v1.json#/$defs/LookupAccountsRequest",
+      "responseSchema": "../schemas/v1.json#/$defs/AccountLookup",
+      "authorizedCallers": [
+        "tutor",
+        "booking",
+        "wallet",
+        "review",
+        "messaging",
+        "notification"
+      ],
+      "requirements": [
+        "AUTH-04",
+        "SUP-01",
+        "SUP-03"
+      ],
+      "failureCodes": [],
+      "deadlineMs": 2000,
+      "idempotencyField": null,
+      "sensitive": false
+    },
+    {
+      "operationId": "recordLessonCompletion",
+      "owner": "wallet",
+      "service": "tutor_matcher.wallet.v1.WalletFinanceService",
+      "rpc": "RecordLessonCompletion",
+      "proto": "wallet/v1/finance.proto",
+      "requestType": "tutor_matcher.wallet.v1.RecordLessonCompletionRequest",
+      "responseType": "tutor_matcher.wallet.v1.FinancialRecord",
+      "requestSchema": "messages.v1.json#/$defs/RecordLessonCompletionRequest",
+      "responseSchema": "../schemas/v1.json#/$defs/FinancialRecord",
+      "authorizedCallers": [
+        "booking"
+      ],
+      "requirements": [
+        "UC05-05"
+      ],
+      "failureCodes": [
+        "IDEMPOTENCY_CONFLICT",
+        "COMPLETION_CONFLICT"
+      ],
+      "deadlineMs": 3000,
+      "idempotencyField": "bookingId",
+      "sensitive": false
+    },
+    {
+      "operationId": "resolveOrCloseLessonCharge",
+      "owner": "wallet",
+      "service": "tutor_matcher.wallet.v1.WalletFinanceService",
+      "rpc": "ResolveOrCloseLessonCharge",
+      "proto": "wallet/v1/finance.proto",
+      "requestType": "tutor_matcher.wallet.v1.ResolveOrCloseLessonChargeRequest",
+      "responseType": "tutor_matcher.wallet.v1.PaymentResult",
+      "requestSchema": "messages.v1.json#/$defs/ResolveOrCloseLessonChargeRequest",
+      "responseSchema": "../schemas/v1.json#/$defs/PaymentResult",
+      "authorizedCallers": [
+        "booking"
+      ],
+      "requirements": [
+        "UC03-05"
+      ],
+      "failureCodes": [
+        "IDEMPOTENCY_CONFLICT"
+      ],
+      "deadlineMs": 3000,
+      "idempotencyField": "operationId",
+      "sensitive": false
+    }
+  ],
+  "transportDefaults": {
+    "maxSendMessageBytes": 33554432,
+    "maxReceiveMessageBytes": 33554432,
+    "reason": "Covers the bounded 93-day availability response. Per-method/schema limits still apply."
+  }
+}

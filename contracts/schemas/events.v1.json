@@ -1,0 +1,1300 @@
+{
+  "type": "object",
+  "properties": {
+    "eventId": {
+      "$ref": "./v1.json#/$defs/Id"
+    },
+    "type": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100
+    },
+    "schemaVersion": {
+      "const": 1
+    },
+    "occurredAt": {
+      "$ref": "./v1.json#/$defs/Timestamp"
+    },
+    "producer": {
+      "type": "string",
+      "enum": [
+        "auth",
+        "tutor",
+        "booking",
+        "wallet",
+        "review",
+        "messaging",
+        "notification"
+      ]
+    },
+    "aggregate": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "id": {
+          "$ref": "./v1.json#/$defs/Id"
+        },
+        "version": {
+          "$ref": "./v1.json#/$defs/Revision"
+        }
+      },
+      "required": [
+        "type",
+        "id",
+        "version"
+      ],
+      "additionalProperties": false
+    },
+    "correlationId": {
+      "$ref": "./v1.json#/$defs/Id"
+    },
+    "causationId": {
+      "$ref": "./v1.json#/$defs/Id"
+    },
+    "targets": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "USERS"
+            },
+            "userIds": {
+              "type": "array",
+              "items": {
+                "$ref": "./v1.json#/$defs/Id"
+              },
+              "uniqueItems": true,
+              "minItems": 1,
+              "maxItems": 100
+            }
+          },
+          "required": [
+            "kind",
+            "userIds"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "ADMINS"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "notificationGroup": {
+      "type": "string",
+      "enum": [
+        "BOOKING_UPDATES",
+        "LESSON_REMINDERS",
+        "NEW_MESSAGES",
+        "WALLET_PAYMENTS",
+        "PRODUCT_NEWS",
+        "SYSTEM"
+      ]
+    },
+    "data": {
+      "type": "object"
+    }
+  },
+  "required": [
+    "eventId",
+    "type",
+    "schemaVersion",
+    "occurredAt",
+    "producer",
+    "aggregate",
+    "correlationId",
+    "targets",
+    "notificationGroup",
+    "data"
+  ],
+  "additionalProperties": false,
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Tutor Matcher notification event envelope v1",
+  "oneOf": [
+    {
+      "properties": {
+        "type": {
+          "const": "auth.password-reset-requested"
+        },
+        "producer": {
+          "const": "auth"
+        },
+        "notificationGroup": {
+          "const": "SYSTEM"
+        },
+        "targets": {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "USERS"
+            },
+            "userIds": {
+              "type": "array",
+              "items": {
+                "$ref": "./v1.json#/$defs/Id"
+              },
+              "uniqueItems": true,
+              "minItems": 1,
+              "maxItems": 100
+            }
+          },
+          "required": [
+            "kind",
+            "userIds"
+          ],
+          "additionalProperties": false
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "contentRef": {
+              "$ref": "./v1.json#/$defs/Id"
+            },
+            "expiresAt": {
+              "$ref": "./v1.json#/$defs/Timestamp"
+            }
+          },
+          "required": [
+            "contentRef",
+            "expiresAt"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "properties": {
+        "type": {
+          "const": "auth.account-restricted"
+        },
+        "producer": {
+          "const": "auth"
+        },
+        "notificationGroup": {
+          "const": "SYSTEM"
+        },
+        "targets": {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "USERS"
+            },
+            "userIds": {
+              "type": "array",
+              "items": {
+                "$ref": "./v1.json#/$defs/Id"
+              },
+              "uniqueItems": true,
+              "minItems": 1,
+              "maxItems": 100
+            }
+          },
+          "required": [
+            "kind",
+            "userIds"
+          ],
+          "additionalProperties": false
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "enum": [
+                "SUSPEND",
+                "BAN",
+                "RESTORE"
+              ]
+            },
+            "reason": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 500
+            }
+          },
+          "required": [
+            "action",
+            "reason"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "properties": {
+        "type": {
+          "const": "tutor.submission-submitted"
+        },
+        "producer": {
+          "const": "tutor"
+        },
+        "notificationGroup": {
+          "const": "SYSTEM"
+        },
+        "targets": {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "ADMINS"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "additionalProperties": false
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "submissionId": {
+              "$ref": "./v1.json#/$defs/Id"
+            },
+            "applicantUserId": {
+              "$ref": "./v1.json#/$defs/Id"
+            },
+            "kind": {
+              "type": "string",
+              "enum": [
+                "APPLICATION",
+                "REVISION"
+              ]
+            }
+          },
+          "required": [
+            "submissionId",
+            "applicantUserId",
+            "kind"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "properties": {
+        "type": {
+          "const": "tutor.submission-withdrawn"
+        },
+        "producer": {
+          "const": "tutor"
+        },
+        "notificationGroup": {
+          "const": "SYSTEM"
+        },
+        "targets": {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "ADMINS"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "additionalProperties": false
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "submissionId": {
+              "$ref": "./v1.json#/$defs/Id"
+            },
+            "applicantUserId": {
+              "$ref": "./v1.json#/$defs/Id"
+            },
+            "kind": {
+              "type": "string",
+              "enum": [
+                "APPLICATION",
+                "REVISION"
+              ]
+            }
+          },
+          "required": [
+            "submissionId",
+            "applicantUserId",
+            "kind"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "properties": {
+        "type": {
+          "const": "tutor.submission-decided"
+        },
+        "producer": {
+          "const": "tutor"
+        },
+        "notificationGroup": {
+          "const": "SYSTEM"
+        },
+        "targets": {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "USERS"
+            },
+            "userIds": {
+              "type": "array",
+              "items": {
+                "$ref": "./v1.json#/$defs/Id"
+              },
+              "uniqueItems": true,
+              "minItems": 1,
+              "maxItems": 100
+            }
+          },
+          "required": [
+            "kind",
+            "userIds"
+          ],
+          "additionalProperties": false
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "submissionId": {
+              "$ref": "./v1.json#/$defs/Id"
+            },
+            "decision": {
+              "type": "string",
+              "enum": [
+                "APPROVE",
+                "REJECT"
+              ]
+            },
+            "reason": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "maxLength": 2000
+            }
+          },
+          "required": [
+            "submissionId",
+            "decision",
+            "reason"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "properties": {
+        "type": {
+          "const": "tutor.activated"
+        },
+        "producer": {
+          "const": "tutor"
+        },
+        "notificationGroup": {
+          "const": "SYSTEM"
+        },
+        "targets": {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "USERS"
+            },
+            "userIds": {
+              "type": "array",
+              "items": {
+                "$ref": "./v1.json#/$defs/Id"
+              },
+              "uniqueItems": true,
+              "minItems": 1,
+              "maxItems": 100
+            }
+          },
+          "required": [
+            "kind",
+            "userIds"
+          ],
+          "additionalProperties": false
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "submissionId": {
+              "$ref": "./v1.json#/$defs/Id"
+            },
+            "tutorId": {
+              "$ref": "./v1.json#/$defs/Id"
+            }
+          },
+          "required": [
+            "submissionId",
+            "tutorId"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "properties": {
+        "type": {
+          "const": "booking.confirmed"
+        },
+        "producer": {
+          "const": "booking"
+        },
+        "notificationGroup": {
+          "const": "BOOKING_UPDATES"
+        },
+        "targets": {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "USERS"
+            },
+            "userIds": {
+              "type": "array",
+              "items": {
+                "$ref": "./v1.json#/$defs/Id"
+              },
+              "uniqueItems": true,
+              "minItems": 1,
+              "maxItems": 100
+            }
+          },
+          "required": [
+            "kind",
+            "userIds"
+          ],
+          "additionalProperties": false
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "bookingId": {
+              "$ref": "./v1.json#/$defs/Id"
+            },
+            "scheduleVersion": {
+              "$ref": "./v1.json#/$defs/Revision"
+            },
+            "startsAt": {
+              "$ref": "./v1.json#/$defs/Timestamp"
+            },
+            "endsAt": {
+              "$ref": "./v1.json#/$defs/Timestamp"
+            }
+          },
+          "required": [
+            "bookingId",
+            "scheduleVersion",
+            "startsAt",
+            "endsAt"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "properties": {
+        "type": {
+          "const": "booking.cancelled"
+        },
+        "producer": {
+          "const": "booking"
+        },
+        "notificationGroup": {
+          "const": "BOOKING_UPDATES"
+        },
+        "targets": {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "USERS"
+            },
+            "userIds": {
+              "type": "array",
+              "items": {
+                "$ref": "./v1.json#/$defs/Id"
+              },
+              "uniqueItems": true,
+              "minItems": 1,
+              "maxItems": 100
+            }
+          },
+          "required": [
+            "kind",
+            "userIds"
+          ],
+          "additionalProperties": false
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "bookingId": {
+              "$ref": "./v1.json#/$defs/Id"
+            },
+            "cancelledBy": {
+              "type": "string",
+              "enum": [
+                "STUDENT",
+                "TUTOR",
+                "EXPIRY"
+              ]
+            },
+            "reason": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "maxLength": 500
+            },
+            "refund": {
+              "$ref": "./v1.json#/$defs/Money"
+            }
+          },
+          "required": [
+            "bookingId",
+            "cancelledBy",
+            "reason",
+            "refund"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "properties": {
+        "type": {
+          "const": "booking.completed"
+        },
+        "producer": {
+          "const": "booking"
+        },
+        "notificationGroup": {
+          "const": "BOOKING_UPDATES"
+        },
+        "targets": {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "USERS"
+            },
+            "userIds": {
+              "type": "array",
+              "items": {
+                "$ref": "./v1.json#/$defs/Id"
+              },
+              "uniqueItems": true,
+              "minItems": 1,
+              "maxItems": 100
+            }
+          },
+          "required": [
+            "kind",
+            "userIds"
+          ],
+          "additionalProperties": false
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "bookingId": {
+              "$ref": "./v1.json#/$defs/Id"
+            },
+            "tutorConfirmedAt": {
+              "$ref": "./v1.json#/$defs/Timestamp"
+            },
+            "clearingDueAt": {
+              "$ref": "./v1.json#/$defs/Timestamp"
+            }
+          },
+          "required": [
+            "bookingId",
+            "tutorConfirmedAt",
+            "clearingDueAt"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "properties": {
+        "type": {
+          "const": "booking.meeting-updated"
+        },
+        "producer": {
+          "const": "booking"
+        },
+        "notificationGroup": {
+          "const": "BOOKING_UPDATES"
+        },
+        "targets": {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "USERS"
+            },
+            "userIds": {
+              "type": "array",
+              "items": {
+                "$ref": "./v1.json#/$defs/Id"
+              },
+              "uniqueItems": true,
+              "minItems": 1,
+              "maxItems": 100
+            }
+          },
+          "required": [
+            "kind",
+            "userIds"
+          ],
+          "additionalProperties": false
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "bookingId": {
+              "$ref": "./v1.json#/$defs/Id"
+            },
+            "state": {
+              "type": "string",
+              "enum": [
+                "MISSING",
+                "READY"
+              ]
+            },
+            "changedAt": {
+              "$ref": "./v1.json#/$defs/Timestamp"
+            }
+          },
+          "required": [
+            "bookingId",
+            "state",
+            "changedAt"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "properties": {
+        "type": {
+          "const": "booking.reminder-due"
+        },
+        "producer": {
+          "const": "booking"
+        },
+        "notificationGroup": {
+          "const": "LESSON_REMINDERS"
+        },
+        "targets": {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "USERS"
+            },
+            "userIds": {
+              "type": "array",
+              "items": {
+                "$ref": "./v1.json#/$defs/Id"
+              },
+              "uniqueItems": true,
+              "minItems": 1,
+              "maxItems": 100
+            }
+          },
+          "required": [
+            "kind",
+            "userIds"
+          ],
+          "additionalProperties": false
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "bookingId": {
+              "$ref": "./v1.json#/$defs/Id"
+            },
+            "scheduleVersion": {
+              "$ref": "./v1.json#/$defs/Revision"
+            },
+            "offsetMinutes": {
+              "type": "integer",
+              "enum": [
+                60,
+                10
+              ]
+            },
+            "startsAt": {
+              "$ref": "./v1.json#/$defs/Timestamp"
+            }
+          },
+          "required": [
+            "bookingId",
+            "scheduleVersion",
+            "offsetMinutes",
+            "startsAt"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "properties": {
+        "type": {
+          "const": "wallet.topup-resolved"
+        },
+        "producer": {
+          "const": "wallet"
+        },
+        "notificationGroup": {
+          "const": "WALLET_PAYMENTS"
+        },
+        "targets": {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "USERS"
+            },
+            "userIds": {
+              "type": "array",
+              "items": {
+                "$ref": "./v1.json#/$defs/Id"
+              },
+              "uniqueItems": true,
+              "minItems": 1,
+              "maxItems": 100
+            }
+          },
+          "required": [
+            "kind",
+            "userIds"
+          ],
+          "additionalProperties": false
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "topupId": {
+              "$ref": "./v1.json#/$defs/Id"
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "SUCCEEDED",
+                "FAILED"
+              ]
+            },
+            "amount": {
+              "$ref": "./v1.json#/$defs/Money"
+            }
+          },
+          "required": [
+            "topupId",
+            "status",
+            "amount"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "properties": {
+        "type": {
+          "const": "wallet.refund-applied"
+        },
+        "producer": {
+          "const": "wallet"
+        },
+        "notificationGroup": {
+          "const": "WALLET_PAYMENTS"
+        },
+        "targets": {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "USERS"
+            },
+            "userIds": {
+              "type": "array",
+              "items": {
+                "$ref": "./v1.json#/$defs/Id"
+              },
+              "uniqueItems": true,
+              "minItems": 1,
+              "maxItems": 100
+            }
+          },
+          "required": [
+            "kind",
+            "userIds"
+          ],
+          "additionalProperties": false
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "bookingId": {
+              "$ref": "./v1.json#/$defs/Id"
+            },
+            "transactionId": {
+              "$ref": "./v1.json#/$defs/Id"
+            },
+            "amount": {
+              "$ref": "./v1.json#/$defs/Money"
+            }
+          },
+          "required": [
+            "bookingId",
+            "transactionId",
+            "amount"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "properties": {
+        "type": {
+          "const": "wallet.earning-cleared"
+        },
+        "producer": {
+          "const": "wallet"
+        },
+        "notificationGroup": {
+          "const": "WALLET_PAYMENTS"
+        },
+        "targets": {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "USERS"
+            },
+            "userIds": {
+              "type": "array",
+              "items": {
+                "$ref": "./v1.json#/$defs/Id"
+              },
+              "uniqueItems": true,
+              "minItems": 1,
+              "maxItems": 100
+            }
+          },
+          "required": [
+            "kind",
+            "userIds"
+          ],
+          "additionalProperties": false
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "bookingId": {
+              "$ref": "./v1.json#/$defs/Id"
+            },
+            "transactionId": {
+              "$ref": "./v1.json#/$defs/Id"
+            },
+            "amount": {
+              "$ref": "./v1.json#/$defs/Money"
+            }
+          },
+          "required": [
+            "bookingId",
+            "transactionId",
+            "amount"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "properties": {
+        "type": {
+          "const": "wallet.payout-resolved"
+        },
+        "producer": {
+          "const": "wallet"
+        },
+        "notificationGroup": {
+          "const": "WALLET_PAYMENTS"
+        },
+        "targets": {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "USERS"
+            },
+            "userIds": {
+              "type": "array",
+              "items": {
+                "$ref": "./v1.json#/$defs/Id"
+              },
+              "uniqueItems": true,
+              "minItems": 1,
+              "maxItems": 100
+            }
+          },
+          "required": [
+            "kind",
+            "userIds"
+          ],
+          "additionalProperties": false
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "payoutId": {
+              "$ref": "./v1.json#/$defs/Id"
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "SUCCEEDED",
+                "FAILED"
+              ]
+            },
+            "amount": {
+              "$ref": "./v1.json#/$defs/Money"
+            }
+          },
+          "required": [
+            "payoutId",
+            "status",
+            "amount"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "properties": {
+        "type": {
+          "const": "wallet.dispute-opened"
+        },
+        "producer": {
+          "const": "wallet"
+        },
+        "notificationGroup": {
+          "const": "SYSTEM"
+        },
+        "targets": {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "ADMINS"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "additionalProperties": false
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "disputeId": {
+              "$ref": "./v1.json#/$defs/Id"
+            },
+            "bookingId": {
+              "$ref": "./v1.json#/$defs/Id"
+            }
+          },
+          "required": [
+            "disputeId",
+            "bookingId"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "properties": {
+        "type": {
+          "const": "wallet.dispute-held"
+        },
+        "producer": {
+          "const": "wallet"
+        },
+        "notificationGroup": {
+          "const": "SYSTEM"
+        },
+        "targets": {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "USERS"
+            },
+            "userIds": {
+              "type": "array",
+              "items": {
+                "$ref": "./v1.json#/$defs/Id"
+              },
+              "uniqueItems": true,
+              "minItems": 1,
+              "maxItems": 100
+            }
+          },
+          "required": [
+            "kind",
+            "userIds"
+          ],
+          "additionalProperties": false
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "disputeId": {
+              "$ref": "./v1.json#/$defs/Id"
+            },
+            "bookingId": {
+              "$ref": "./v1.json#/$defs/Id"
+            }
+          },
+          "required": [
+            "disputeId",
+            "bookingId"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "properties": {
+        "type": {
+          "const": "wallet.dispute-decided"
+        },
+        "producer": {
+          "const": "wallet"
+        },
+        "notificationGroup": {
+          "const": "SYSTEM"
+        },
+        "targets": {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "USERS"
+            },
+            "userIds": {
+              "type": "array",
+              "items": {
+                "$ref": "./v1.json#/$defs/Id"
+              },
+              "uniqueItems": true,
+              "minItems": 1,
+              "maxItems": 100
+            }
+          },
+          "required": [
+            "kind",
+            "userIds"
+          ],
+          "additionalProperties": false
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "disputeId": {
+              "$ref": "./v1.json#/$defs/Id"
+            },
+            "bookingId": {
+              "$ref": "./v1.json#/$defs/Id"
+            },
+            "decision": {
+              "type": "string",
+              "enum": [
+                "APPROVE_FULL_REMAINDER",
+                "REJECT"
+              ]
+            },
+            "reason": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2000
+            },
+            "refund": {
+              "$ref": "./v1.json#/$defs/Money"
+            }
+          },
+          "required": [
+            "disputeId",
+            "bookingId",
+            "decision",
+            "reason",
+            "refund"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "properties": {
+        "type": {
+          "const": "review.flagged"
+        },
+        "producer": {
+          "const": "review"
+        },
+        "notificationGroup": {
+          "const": "SYSTEM"
+        },
+        "targets": {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "ADMINS"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "additionalProperties": false
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "reviewId": {
+              "$ref": "./v1.json#/$defs/Id"
+            },
+            "flagId": {
+              "$ref": "./v1.json#/$defs/Id"
+            }
+          },
+          "required": [
+            "reviewId",
+            "flagId"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "properties": {
+        "type": {
+          "const": "review.moderated"
+        },
+        "producer": {
+          "const": "review"
+        },
+        "notificationGroup": {
+          "const": "SYSTEM"
+        },
+        "targets": {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "USERS"
+            },
+            "userIds": {
+              "type": "array",
+              "items": {
+                "$ref": "./v1.json#/$defs/Id"
+              },
+              "uniqueItems": true,
+              "minItems": 1,
+              "maxItems": 100
+            }
+          },
+          "required": [
+            "kind",
+            "userIds"
+          ],
+          "additionalProperties": false
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "reviewId": {
+              "$ref": "./v1.json#/$defs/Id"
+            },
+            "decision": {
+              "type": "string",
+              "enum": [
+                "KEEP",
+                "HIDE",
+                "REMOVE"
+              ]
+            },
+            "reason": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2000
+            }
+          },
+          "required": [
+            "reviewId",
+            "decision",
+            "reason"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "properties": {
+        "type": {
+          "const": "messaging.message-sent"
+        },
+        "producer": {
+          "const": "messaging"
+        },
+        "notificationGroup": {
+          "const": "NEW_MESSAGES"
+        },
+        "targets": {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "USERS"
+            },
+            "userIds": {
+              "type": "array",
+              "items": {
+                "$ref": "./v1.json#/$defs/Id"
+              },
+              "uniqueItems": true,
+              "minItems": 1,
+              "maxItems": 100
+            }
+          },
+          "required": [
+            "kind",
+            "userIds"
+          ],
+          "additionalProperties": false
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "messageId": {
+              "$ref": "./v1.json#/$defs/Id"
+            },
+            "conversationId": {
+              "$ref": "./v1.json#/$defs/Id"
+            },
+            "senderUserId": {
+              "$ref": "./v1.json#/$defs/Id"
+            }
+          },
+          "required": [
+            "messageId",
+            "conversationId",
+            "senderUserId"
+          ],
+          "additionalProperties": false
+        }
+      }
+    }
+  ]
+}

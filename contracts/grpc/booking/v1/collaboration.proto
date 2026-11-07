@@ -1,0 +1,62 @@
+syntax = "proto3";
+package tutor_matcher.booking.v1;
+
+// Value constraints and presence rules: contracts/grpc/README.md and operations.v1.json.
+// All scalar presence is explicit. Validate required/nullable fields after normalization.
+service BookingEvidenceService {
+  rpc GetReviewEligibility(GetReviewEligibilityRequest) returns (ReviewEligibility);
+  rpc GetBookingEvidence(GetBookingEvidenceRequest) returns (BookingEvidence);
+  rpc GetReminderEligibility(GetReminderEligibilityRequest) returns (ReminderEligibility);
+}
+
+message GetReviewEligibilityRequest {
+  optional string booking_id = 1; // Required after normalization.
+}
+
+message ReviewEligibility {
+  optional string booking_id = 1; // Required after normalization.
+  optional string student_user_id = 2; // Required after normalization.
+  optional string tutor_id = 3; // Required after normalization.
+  optional string tutor_user_id = 4; // Required after normalization.
+  optional string subject_id = 5; // Required after normalization.
+  optional string completed_at = 6; // Absent means JSON null.
+  optional string booking_revision = 7; // Required after normalization.
+  optional bool eligible = 8; // Required after normalization.
+}
+
+message GetBookingEvidenceRequest {
+  optional string booking_id = 1; // Required after normalization.
+}
+
+message BookingEvidence {
+  enum Status {
+    STATUS_UNSPECIFIED = 0;
+    PAYMENT_DUE = 1;
+    CONFIRMED = 2;
+    COMPLETED = 3;
+    CANCELLED = 4;
+  }
+  optional string booking_id = 1; // Required after normalization.
+  optional Status status = 2; // Required after normalization.
+  optional string student_user_id = 3; // Required after normalization.
+  optional string tutor_user_id = 4; // Required after normalization.
+  optional string subject_id = 5; // Required after normalization.
+  optional string starts_at = 6; // Required after normalization.
+  optional string ends_at = 7; // Required after normalization.
+  optional string completed_at = 8; // Absent means JSON null.
+  optional string cancelled_at = 9; // Absent means JSON null.
+  optional string revision = 10; // Required after normalization.
+}
+
+message GetReminderEligibilityRequest {
+  optional string booking_id = 1; // Required after normalization.
+  optional string schedule_version = 2; // Required after normalization.
+  optional uint64 offset_minutes = 3; // Required after normalization.
+}
+
+message ReminderEligibility {
+  optional string booking_id = 1; // Required after normalization.
+  optional bool eligible = 2; // Required after normalization.
+  optional string reason = 3; // Absent means JSON null.
+  optional string checked_at = 4; // Required after normalization.
+}

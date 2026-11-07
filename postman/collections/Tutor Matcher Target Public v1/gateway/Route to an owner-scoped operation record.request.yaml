@@ -1,0 +1,31 @@
+$kind: http-request
+description: 'The owner path is a fixed allowlist, not a hostname. Gateway dispatches without storing workflow state. Owner
+  authorizes the initiating user, affected resource owner, or responsible admin.See contracts/README.md for semantic invariants,
+  privacy, retries and pending outcomes.
+
+  Derived target request. Use synthetic IDs and runtime credentials. See contracts/examples/cases.json; target behavior is
+  not implemented yet.'
+url: '{{baseUrl}}/operations/:owner/:operationId'
+method: GET
+headers:
+- key: X-Request-Id
+  value: '{{requestId}}'
+  disabled: false
+  description: X-Request-Id
+- key: Accept
+  value: application/json
+pathVariables:
+- key: owner
+  value: booking
+  disabled: false
+  description: (Required) owner
+- key: operationId
+  value: '{{operationId}}'
+  disabled: false
+  description: (Required) operationId
+auth:
+  type: bearer
+  credentials:
+    token: '{{bearerToken}}'
+settings: {}
+order: 2000

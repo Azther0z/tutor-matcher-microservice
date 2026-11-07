@@ -1,0 +1,22 @@
+$kind: http-request
+description: 'Use a JSON body, never a token query parameter. Never log the body.See contracts/README.md for semantic invariants,
+  privacy, retries and pending outcomes.
+
+  Derived target request. Use synthetic IDs and runtime credentials. See contracts/examples/cases.json; target behavior is
+  not implemented yet.'
+url: '{{baseUrl}}/auth/password-reset/validate'
+method: POST
+headers:
+- key: X-Request-Id
+  value: '{{requestId}}'
+  disabled: false
+  description: X-Request-Id
+- key: Content-Type
+  value: application/json
+- key: Accept
+  value: application/json
+body:
+  type: json
+  content: "{\n  \"token\": \"<set-at-runtime>\"\n}"
+settings: {}
+order: 6000

@@ -1,0 +1,16 @@
+$kind: http-request
+description: 'See contracts/README.md for semantic invariants, privacy, retries and pending outcomes.
+
+  Derived target request. Use synthetic IDs and runtime credentials. See contracts/examples/cases.json; target behavior is
+  not implemented yet.'
+url: '{{baseUrl}}/discovery/price-range'
+method: GET
+headers:
+- key: X-Request-Id
+  value: '{{requestId}}'
+  disabled: false
+  description: X-Request-Id
+- key: Accept
+  value: application/json
+settings: {}
+order: 19000

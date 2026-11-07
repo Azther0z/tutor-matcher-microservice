@@ -1,0 +1,33 @@
+$kind: http-request
+description: 'See contracts/README.md for semantic invariants, privacy, retries and pending outcomes.
+
+  Derived target request. Use synthetic IDs and runtime credentials. See contracts/examples/cases.json; target behavior is
+  not implemented yet.'
+url: '{{baseUrl}}/reviews?page=1&pageSize=20&tutorId=00000002-1111-4111-8111-111111111111&subjectId=00000003-1111-4111-8111-111111111111'
+method: GET
+headers:
+- key: X-Request-Id
+  value: '{{requestId}}'
+  disabled: false
+  description: X-Request-Id
+- key: Accept
+  value: application/json
+queryParams:
+- key: page
+  value: '1'
+  disabled: false
+  description: page
+- key: pageSize
+  value: '20'
+  disabled: false
+  description: pageSize
+- key: tutorId
+  value: 00000002-1111-4111-8111-111111111111
+  disabled: false
+  description: (Required) tutorId
+- key: subjectId
+  value: 00000003-1111-4111-8111-111111111111
+  disabled: false
+  description: subjectId
+settings: {}
+order: 2000

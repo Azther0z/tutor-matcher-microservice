@@ -1,0 +1,2236 @@
+{
+  "openapi": "3.1.1",
+  "info": {
+    "title": "Tutor Matcher Internal Collaborations",
+    "version": "1.0.0",
+    "description": "Private REST infrastructure only: Gateway-to-Auth introspection and Gateway-to-owner operation polling. All private domain collaborations use the versioned gRPC contracts. Public REST is unchanged."
+  },
+  "paths": {
+    "/auth/introspections": {
+      "post": {
+        "operationId": "introspectToken",
+        "summary": "Resolve current account and session permissions",
+        "description": "See contracts/README.md for semantic invariants, privacy, retries and pending outcomes.",
+        "tags": [
+          "auth"
+        ],
+        "security": [
+          {
+            "WorkloadBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Request-Id",
+            "in": "header",
+            "required": false,
+            "description": "X-Request-Id",
+            "schema": {
+              "$ref": "#/components/schemas/Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Committed result.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Introspection"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed JSON or unsupported request syntax.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid authentication.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Authenticated caller lacks permission or current account is restricted.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource unavailable or not visible to this caller.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Business transition, quote, or idempotency conflict.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "All applicable field validation errors.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit; honor Retry-After.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              },
+              "Retry-After": {
+                "description": "Seconds before another admission attempt.",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dependency or current authorization unavailable. Retry only under the same operation identity.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-owner": "auth",
+        "x-requirements": [
+          "AUTH-04",
+          "SUP-04"
+        ],
+        "x-failure-codes": [
+          "TOKEN_INVALID",
+          "ACCOUNT_RESTRICTED"
+        ],
+        "x-idempotency": "NONE",
+        "x-authorized-callers": [
+          "gateway"
+        ],
+        "servers": [
+          {
+            "url": "http://auth-service:4002/internal/v1",
+            "description": "Private target owner address, never gateway routed."
+          }
+        ],
+        "x-actor-context": "No actor assertion for introspection: the Gateway workload submits the user token for current validation.",
+        "requestBody": {
+          "required": true,
+          "description": "Only declared request fields are accepted.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IntrospectWrite"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/operations/{operationId}": {
+      "get": {
+        "operationId": "getAuthOperation",
+        "summary": "Read a auth owned durable operation",
+        "description": "Gateway dispatches the public owner allowlist to this fixed private path. Validate the actor assertion and authorize the initiating user, affected owner or responsible admin. Missing or invisible operation is 404.",
+        "tags": [
+          "auth"
+        ],
+        "security": [
+          {
+            "WorkloadBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Request-Id",
+            "in": "header",
+            "required": false,
+            "description": "X-Request-Id",
+            "schema": {
+              "$ref": "#/components/schemas/Id"
+            }
+          },
+          {
+            "name": "operationId",
+            "in": "path",
+            "required": true,
+            "description": "operationId",
+            "schema": {
+              "$ref": "#/components/schemas/Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Committed result.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Operation"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed JSON or unsupported request syntax.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid authentication.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Authenticated caller lacks permission or current account is restricted.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource unavailable or not visible to this caller.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Business transition, quote, or idempotency conflict.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "All applicable field validation errors.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit; honor Retry-After.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              },
+              "Retry-After": {
+                "description": "Seconds before another admission attempt.",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dependency or current authorization unavailable. Retry only under the same operation identity.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-owner": "auth",
+        "x-requirements": [
+          "Q-06"
+        ],
+        "x-failure-codes": [],
+        "x-idempotency": "NONE",
+        "x-authorized-callers": [
+          "gateway"
+        ],
+        "servers": [
+          {
+            "url": "http://auth-service:4002/internal/v1",
+            "description": "Private owner address."
+          }
+        ],
+        "x-actor-context": "Require the current Gateway-signed actor assertion and authorize the owner-scoped operation read."
+      }
+    },
+    "/tutor/operations/{operationId}": {
+      "get": {
+        "operationId": "getTutorOperation",
+        "summary": "Read a tutor owned durable operation",
+        "description": "Gateway dispatches the public owner allowlist to this fixed private path. Validate the actor assertion and authorize the initiating user, affected owner or responsible admin. Missing or invisible operation is 404.",
+        "tags": [
+          "tutor"
+        ],
+        "security": [
+          {
+            "WorkloadBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Request-Id",
+            "in": "header",
+            "required": false,
+            "description": "X-Request-Id",
+            "schema": {
+              "$ref": "#/components/schemas/Id"
+            }
+          },
+          {
+            "name": "operationId",
+            "in": "path",
+            "required": true,
+            "description": "operationId",
+            "schema": {
+              "$ref": "#/components/schemas/Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Committed result.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Operation"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed JSON or unsupported request syntax.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid authentication.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Authenticated caller lacks permission or current account is restricted.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource unavailable or not visible to this caller.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Business transition, quote, or idempotency conflict.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "All applicable field validation errors.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit; honor Retry-After.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              },
+              "Retry-After": {
+                "description": "Seconds before another admission attempt.",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dependency or current authorization unavailable. Retry only under the same operation identity.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-owner": "tutor",
+        "x-requirements": [
+          "Q-06"
+        ],
+        "x-failure-codes": [],
+        "x-idempotency": "NONE",
+        "x-authorized-callers": [
+          "gateway"
+        ],
+        "servers": [
+          {
+            "url": "http://tutor-service:4001/internal/v1",
+            "description": "Private owner address."
+          }
+        ],
+        "x-actor-context": "Require the current Gateway-signed actor assertion and authorize the owner-scoped operation read."
+      }
+    },
+    "/booking/operations/{operationId}": {
+      "get": {
+        "operationId": "getBookingOperation",
+        "summary": "Read a booking owned durable operation",
+        "description": "Gateway dispatches the public owner allowlist to this fixed private path. Validate the actor assertion and authorize the initiating user, affected owner or responsible admin. Missing or invisible operation is 404.",
+        "tags": [
+          "booking"
+        ],
+        "security": [
+          {
+            "WorkloadBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Request-Id",
+            "in": "header",
+            "required": false,
+            "description": "X-Request-Id",
+            "schema": {
+              "$ref": "#/components/schemas/Id"
+            }
+          },
+          {
+            "name": "operationId",
+            "in": "path",
+            "required": true,
+            "description": "operationId",
+            "schema": {
+              "$ref": "#/components/schemas/Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Committed result.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Operation"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed JSON or unsupported request syntax.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid authentication.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Authenticated caller lacks permission or current account is restricted.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource unavailable or not visible to this caller.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Business transition, quote, or idempotency conflict.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "All applicable field validation errors.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit; honor Retry-After.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              },
+              "Retry-After": {
+                "description": "Seconds before another admission attempt.",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dependency or current authorization unavailable. Retry only under the same operation identity.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-owner": "booking",
+        "x-requirements": [
+          "Q-06"
+        ],
+        "x-failure-codes": [],
+        "x-idempotency": "NONE",
+        "x-authorized-callers": [
+          "gateway"
+        ],
+        "servers": [
+          {
+            "url": "http://booking-service:4004/internal/v1",
+            "description": "Private owner address."
+          }
+        ],
+        "x-actor-context": "Require the current Gateway-signed actor assertion and authorize the owner-scoped operation read."
+      }
+    },
+    "/wallet/operations/{operationId}": {
+      "get": {
+        "operationId": "getWalletOperation",
+        "summary": "Read a wallet owned durable operation",
+        "description": "Gateway dispatches the public owner allowlist to this fixed private path. Validate the actor assertion and authorize the initiating user, affected owner or responsible admin. Missing or invisible operation is 404.",
+        "tags": [
+          "wallet"
+        ],
+        "security": [
+          {
+            "WorkloadBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Request-Id",
+            "in": "header",
+            "required": false,
+            "description": "X-Request-Id",
+            "schema": {
+              "$ref": "#/components/schemas/Id"
+            }
+          },
+          {
+            "name": "operationId",
+            "in": "path",
+            "required": true,
+            "description": "operationId",
+            "schema": {
+              "$ref": "#/components/schemas/Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Committed result.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Operation"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed JSON or unsupported request syntax.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid authentication.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Authenticated caller lacks permission or current account is restricted.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource unavailable or not visible to this caller.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Business transition, quote, or idempotency conflict.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "All applicable field validation errors.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit; honor Retry-After.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              },
+              "Retry-After": {
+                "description": "Seconds before another admission attempt.",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dependency or current authorization unavailable. Retry only under the same operation identity.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-owner": "wallet",
+        "x-requirements": [
+          "Q-06"
+        ],
+        "x-failure-codes": [],
+        "x-idempotency": "NONE",
+        "x-authorized-callers": [
+          "gateway"
+        ],
+        "servers": [
+          {
+            "url": "http://wallet-service:4003/internal/v1",
+            "description": "Private owner address."
+          }
+        ],
+        "x-actor-context": "Require the current Gateway-signed actor assertion and authorize the owner-scoped operation read."
+      }
+    },
+    "/review/operations/{operationId}": {
+      "get": {
+        "operationId": "getReviewOperation",
+        "summary": "Read a review owned durable operation",
+        "description": "Gateway dispatches the public owner allowlist to this fixed private path. Validate the actor assertion and authorize the initiating user, affected owner or responsible admin. Missing or invisible operation is 404.",
+        "tags": [
+          "review"
+        ],
+        "security": [
+          {
+            "WorkloadBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Request-Id",
+            "in": "header",
+            "required": false,
+            "description": "X-Request-Id",
+            "schema": {
+              "$ref": "#/components/schemas/Id"
+            }
+          },
+          {
+            "name": "operationId",
+            "in": "path",
+            "required": true,
+            "description": "operationId",
+            "schema": {
+              "$ref": "#/components/schemas/Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Committed result.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Operation"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed JSON or unsupported request syntax.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid authentication.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Authenticated caller lacks permission or current account is restricted.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource unavailable or not visible to this caller.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Business transition, quote, or idempotency conflict.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "All applicable field validation errors.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit; honor Retry-After.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              },
+              "Retry-After": {
+                "description": "Seconds before another admission attempt.",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dependency or current authorization unavailable. Retry only under the same operation identity.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-owner": "review",
+        "x-requirements": [
+          "Q-06"
+        ],
+        "x-failure-codes": [],
+        "x-idempotency": "NONE",
+        "x-authorized-callers": [
+          "gateway"
+        ],
+        "servers": [
+          {
+            "url": "http://review-service:4005/internal/v1",
+            "description": "Private owner address."
+          }
+        ],
+        "x-actor-context": "Require the current Gateway-signed actor assertion and authorize the owner-scoped operation read."
+      }
+    },
+    "/messaging/operations/{operationId}": {
+      "get": {
+        "operationId": "getMessagingOperation",
+        "summary": "Read a messaging owned durable operation",
+        "description": "Gateway dispatches the public owner allowlist to this fixed private path. Validate the actor assertion and authorize the initiating user, affected owner or responsible admin. Missing or invisible operation is 404.",
+        "tags": [
+          "messaging"
+        ],
+        "security": [
+          {
+            "WorkloadBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Request-Id",
+            "in": "header",
+            "required": false,
+            "description": "X-Request-Id",
+            "schema": {
+              "$ref": "#/components/schemas/Id"
+            }
+          },
+          {
+            "name": "operationId",
+            "in": "path",
+            "required": true,
+            "description": "operationId",
+            "schema": {
+              "$ref": "#/components/schemas/Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Committed result.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Operation"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed JSON or unsupported request syntax.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid authentication.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Authenticated caller lacks permission or current account is restricted.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource unavailable or not visible to this caller.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Business transition, quote, or idempotency conflict.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "All applicable field validation errors.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit; honor Retry-After.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              },
+              "Retry-After": {
+                "description": "Seconds before another admission attempt.",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dependency or current authorization unavailable. Retry only under the same operation identity.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-owner": "messaging",
+        "x-requirements": [
+          "Q-06"
+        ],
+        "x-failure-codes": [],
+        "x-idempotency": "NONE",
+        "x-authorized-callers": [
+          "gateway"
+        ],
+        "servers": [
+          {
+            "url": "http://messaging-service:4006/internal/v1",
+            "description": "Private owner address."
+          }
+        ],
+        "x-actor-context": "Require the current Gateway-signed actor assertion and authorize the owner-scoped operation read."
+      }
+    },
+    "/notification/operations/{operationId}": {
+      "get": {
+        "operationId": "getNotificationOperation",
+        "summary": "Read a notification owned durable operation",
+        "description": "Gateway dispatches the public owner allowlist to this fixed private path. Validate the actor assertion and authorize the initiating user, affected owner or responsible admin. Missing or invisible operation is 404.",
+        "tags": [
+          "notification"
+        ],
+        "security": [
+          {
+            "WorkloadBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Request-Id",
+            "in": "header",
+            "required": false,
+            "description": "X-Request-Id",
+            "schema": {
+              "$ref": "#/components/schemas/Id"
+            }
+          },
+          {
+            "name": "operationId",
+            "in": "path",
+            "required": true,
+            "description": "operationId",
+            "schema": {
+              "$ref": "#/components/schemas/Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Committed result.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Operation"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed JSON or unsupported request syntax.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid authentication.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Authenticated caller lacks permission or current account is restricted.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource unavailable or not visible to this caller.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Business transition, quote, or idempotency conflict.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "All applicable field validation errors.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit; honor Retry-After.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              },
+              "Retry-After": {
+                "description": "Seconds before another admission attempt.",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dependency or current authorization unavailable. Retry only under the same operation identity.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-owner": "notification",
+        "x-requirements": [
+          "Q-06"
+        ],
+        "x-failure-codes": [],
+        "x-idempotency": "NONE",
+        "x-authorized-callers": [
+          "gateway"
+        ],
+        "servers": [
+          {
+            "url": "http://notification-service:4007/internal/v1",
+            "description": "Private owner address."
+          }
+        ],
+        "x-actor-context": "Require the current Gateway-signed actor assertion and authorize the owner-scoped operation read."
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Id": {
+        "$ref": "./schemas/v1.json#/$defs/Id"
+      },
+      "Timestamp": {
+        "$ref": "./schemas/v1.json#/$defs/Timestamp"
+      },
+      "Date": {
+        "$ref": "./schemas/v1.json#/$defs/Date"
+      },
+      "BangkokTime": {
+        "$ref": "./schemas/v1.json#/$defs/BangkokTime"
+      },
+      "Revision": {
+        "$ref": "./schemas/v1.json#/$defs/Revision"
+      },
+      "Amount": {
+        "$ref": "./schemas/v1.json#/$defs/Amount"
+      },
+      "PositiveAmount": {
+        "$ref": "./schemas/v1.json#/$defs/PositiveAmount"
+      },
+      "TransferAmount": {
+        "$ref": "./schemas/v1.json#/$defs/TransferAmount"
+      },
+      "HourlyRate": {
+        "$ref": "./schemas/v1.json#/$defs/HourlyRate"
+      },
+      "Money": {
+        "$ref": "./schemas/v1.json#/$defs/Money"
+      },
+      "PositiveMoney": {
+        "$ref": "./schemas/v1.json#/$defs/PositiveMoney"
+      },
+      "HttpsUrl": {
+        "$ref": "./schemas/v1.json#/$defs/HttpsUrl"
+      },
+      "Email": {
+        "$ref": "./schemas/v1.json#/$defs/Email"
+      },
+      "LearningArea": {
+        "$ref": "./schemas/v1.json#/$defs/LearningArea"
+      },
+      "Error": {
+        "$ref": "./schemas/v1.json#/$defs/Error"
+      },
+      "PageMeta": {
+        "$ref": "./schemas/v1.json#/$defs/PageMeta"
+      },
+      "AuditEntry": {
+        "$ref": "./schemas/v1.json#/$defs/AuditEntry"
+      },
+      "ResourceRef": {
+        "$ref": "./schemas/v1.json#/$defs/ResourceRef"
+      },
+      "OperationRef": {
+        "$ref": "./schemas/v1.json#/$defs/OperationRef"
+      },
+      "PendingOperationRef": {
+        "$ref": "./schemas/v1.json#/$defs/PendingOperationRef"
+      },
+      "Operation": {
+        "$ref": "./schemas/v1.json#/$defs/Operation"
+      },
+      "Account": {
+        "$ref": "./schemas/v1.json#/$defs/Account"
+      },
+      "AuthSession": {
+        "$ref": "./schemas/v1.json#/$defs/AuthSession"
+      },
+      "Signup": {
+        "$ref": "./schemas/v1.json#/$defs/Signup"
+      },
+      "Login": {
+        "$ref": "./schemas/v1.json#/$defs/Login"
+      },
+      "ResetRequest": {
+        "$ref": "./schemas/v1.json#/$defs/ResetRequest"
+      },
+      "ResetToken": {
+        "$ref": "./schemas/v1.json#/$defs/ResetToken"
+      },
+      "ResetConfirm": {
+        "$ref": "./schemas/v1.json#/$defs/ResetConfirm"
+      },
+      "Acknowledgement": {
+        "$ref": "./schemas/v1.json#/$defs/Acknowledgement"
+      },
+      "ResetValidation": {
+        "$ref": "./schemas/v1.json#/$defs/ResetValidation"
+      },
+      "AccountUpdate": {
+        "$ref": "./schemas/v1.json#/$defs/AccountUpdate"
+      },
+      "StudentProfileWrite": {
+        "$ref": "./schemas/v1.json#/$defs/StudentProfileWrite"
+      },
+      "StudentProfile": {
+        "$ref": "./schemas/v1.json#/$defs/StudentProfile"
+      },
+      "RestrictionWrite": {
+        "$ref": "./schemas/v1.json#/$defs/RestrictionWrite"
+      },
+      "AccountDetail": {
+        "$ref": "./schemas/v1.json#/$defs/AccountDetail"
+      },
+      "TutorDraftWrite": {
+        "$ref": "./schemas/v1.json#/$defs/TutorDraftWrite"
+      },
+      "TutorSubmit": {
+        "$ref": "./schemas/v1.json#/$defs/TutorSubmit"
+      },
+      "TutorWithdraw": {
+        "$ref": "./schemas/v1.json#/$defs/TutorWithdraw"
+      },
+      "PublicationWrite": {
+        "$ref": "./schemas/v1.json#/$defs/PublicationWrite"
+      },
+      "TutorSubmission": {
+        "$ref": "./schemas/v1.json#/$defs/TutorSubmission"
+      },
+      "TutorWorkspace": {
+        "$ref": "./schemas/v1.json#/$defs/TutorWorkspace"
+      },
+      "TutorReviewWrite": {
+        "$ref": "./schemas/v1.json#/$defs/TutorReviewWrite"
+      },
+      "SubjectWrite": {
+        "$ref": "./schemas/v1.json#/$defs/SubjectWrite"
+      },
+      "Subject": {
+        "$ref": "./schemas/v1.json#/$defs/Subject"
+      },
+      "RatingSummary": {
+        "$ref": "./schemas/v1.json#/$defs/RatingSummary"
+      },
+      "PublicTutor": {
+        "$ref": "./schemas/v1.json#/$defs/PublicTutor"
+      },
+      "SearchItem": {
+        "$ref": "./schemas/v1.json#/$defs/SearchItem"
+      },
+      "SubjectPage": {
+        "$ref": "./schemas/v1.json#/$defs/SubjectPage"
+      },
+      "LearningAreas": {
+        "$ref": "./schemas/v1.json#/$defs/LearningAreas"
+      },
+      "PriceRange": {
+        "$ref": "./schemas/v1.json#/$defs/PriceRange"
+      },
+      "SlotWrite": {
+        "$ref": "./schemas/v1.json#/$defs/SlotWrite"
+      },
+      "OwnedSlot": {
+        "$ref": "./schemas/v1.json#/$defs/OwnedSlot"
+      },
+      "PublicSlot": {
+        "$ref": "./schemas/v1.json#/$defs/PublicSlot"
+      },
+      "AvailabilityDay": {
+        "$ref": "./schemas/v1.json#/$defs/AvailabilityDay"
+      },
+      "AvailabilityCalendar": {
+        "$ref": "./schemas/v1.json#/$defs/AvailabilityCalendar"
+      },
+      "BookingCreate": {
+        "$ref": "./schemas/v1.json#/$defs/BookingCreate"
+      },
+      "SubjectSnapshot": {
+        "$ref": "./schemas/v1.json#/$defs/SubjectSnapshot"
+      },
+      "MeetingAccess": {
+        "$ref": "./schemas/v1.json#/$defs/MeetingAccess"
+      },
+      "Booking": {
+        "$ref": "./schemas/v1.json#/$defs/Booking"
+      },
+      "CancellationQuote": {
+        "$ref": "./schemas/v1.json#/$defs/CancellationQuote"
+      },
+      "CancellationWrite": {
+        "$ref": "./schemas/v1.json#/$defs/CancellationWrite"
+      },
+      "TutorCancellationWrite": {
+        "$ref": "./schemas/v1.json#/$defs/TutorCancellationWrite"
+      },
+      "MeetingWrite": {
+        "$ref": "./schemas/v1.json#/$defs/MeetingWrite"
+      },
+      "WalletOverview": {
+        "$ref": "./schemas/v1.json#/$defs/WalletOverview"
+      },
+      "WalletTransaction": {
+        "$ref": "./schemas/v1.json#/$defs/WalletTransaction"
+      },
+      "TopupCreate": {
+        "$ref": "./schemas/v1.json#/$defs/TopupCreate"
+      },
+      "Topup": {
+        "$ref": "./schemas/v1.json#/$defs/Topup"
+      },
+      "PayoutAccountCreate": {
+        "$ref": "./schemas/v1.json#/$defs/PayoutAccountCreate"
+      },
+      "PayoutAccount": {
+        "$ref": "./schemas/v1.json#/$defs/PayoutAccount"
+      },
+      "BankList": {
+        "$ref": "./schemas/v1.json#/$defs/BankList"
+      },
+      "PayoutCreate": {
+        "$ref": "./schemas/v1.json#/$defs/PayoutCreate"
+      },
+      "Payout": {
+        "$ref": "./schemas/v1.json#/$defs/Payout"
+      },
+      "DisputeCreate": {
+        "$ref": "./schemas/v1.json#/$defs/DisputeCreate"
+      },
+      "DisputeDecision": {
+        "$ref": "./schemas/v1.json#/$defs/DisputeDecision"
+      },
+      "Dispute": {
+        "$ref": "./schemas/v1.json#/$defs/Dispute"
+      },
+      "ReviewCreate": {
+        "$ref": "./schemas/v1.json#/$defs/ReviewCreate"
+      },
+      "ReviewReply": {
+        "$ref": "./schemas/v1.json#/$defs/ReviewReply"
+      },
+      "FlagCreate": {
+        "$ref": "./schemas/v1.json#/$defs/FlagCreate"
+      },
+      "ModerationWrite": {
+        "$ref": "./schemas/v1.json#/$defs/ModerationWrite"
+      },
+      "Review": {
+        "$ref": "./schemas/v1.json#/$defs/Review"
+      },
+      "ReviewFlag": {
+        "$ref": "./schemas/v1.json#/$defs/ReviewFlag"
+      },
+      "MessageWrite": {
+        "$ref": "./schemas/v1.json#/$defs/MessageWrite"
+      },
+      "ReadCursorWrite": {
+        "$ref": "./schemas/v1.json#/$defs/ReadCursorWrite"
+      },
+      "Message": {
+        "$ref": "./schemas/v1.json#/$defs/Message"
+      },
+      "Conversation": {
+        "$ref": "./schemas/v1.json#/$defs/Conversation"
+      },
+      "ThreadPage": {
+        "$ref": "./schemas/v1.json#/$defs/ThreadPage"
+      },
+      "PreferencesWrite": {
+        "$ref": "./schemas/v1.json#/$defs/PreferencesWrite"
+      },
+      "Preferences": {
+        "$ref": "./schemas/v1.json#/$defs/Preferences"
+      },
+      "DeliveryReceipt": {
+        "$ref": "./schemas/v1.json#/$defs/DeliveryReceipt"
+      },
+      "DemoOutcome": {
+        "$ref": "./schemas/v1.json#/$defs/DemoOutcome"
+      },
+      "Health": {
+        "$ref": "./schemas/v1.json#/$defs/Health"
+      },
+      "AccountPage": {
+        "$ref": "./schemas/v1.json#/$defs/AccountPage"
+      },
+      "SubjectList": {
+        "$ref": "./schemas/v1.json#/$defs/SubjectList"
+      },
+      "SearchPage": {
+        "$ref": "./schemas/v1.json#/$defs/SearchPage"
+      },
+      "BookingPage": {
+        "$ref": "./schemas/v1.json#/$defs/BookingPage"
+      },
+      "TransactionPage": {
+        "$ref": "./schemas/v1.json#/$defs/TransactionPage"
+      },
+      "PayoutPage": {
+        "$ref": "./schemas/v1.json#/$defs/PayoutPage"
+      },
+      "DisputePage": {
+        "$ref": "./schemas/v1.json#/$defs/DisputePage"
+      },
+      "ReviewPage": {
+        "$ref": "./schemas/v1.json#/$defs/ReviewPage"
+      },
+      "FlagPage": {
+        "$ref": "./schemas/v1.json#/$defs/FlagPage"
+      },
+      "ConversationPage": {
+        "$ref": "./schemas/v1.json#/$defs/ConversationPage"
+      },
+      "ReceiptPage": {
+        "$ref": "./schemas/v1.json#/$defs/ReceiptPage"
+      },
+      "SubmissionPage": {
+        "$ref": "./schemas/v1.json#/$defs/SubmissionPage"
+      },
+      "PayoutAccountList": {
+        "$ref": "./schemas/v1.json#/$defs/PayoutAccountList"
+      },
+      "Admission": {
+        "$ref": "./schemas/v1.json#/$defs/Admission"
+      },
+      "Introspection": {
+        "$ref": "./schemas/v1.json#/$defs/Introspection"
+      },
+      "IntrospectWrite": {
+        "$ref": "./schemas/v1.json#/$defs/IntrospectWrite"
+      },
+      "AccountLookupWrite": {
+        "$ref": "./schemas/v1.json#/$defs/AccountLookupWrite"
+      },
+      "AccountLookup": {
+        "$ref": "./schemas/v1.json#/$defs/AccountLookup"
+      },
+      "CapabilityGrant": {
+        "$ref": "./schemas/v1.json#/$defs/CapabilityGrant"
+      },
+      "CapabilityGrantResult": {
+        "$ref": "./schemas/v1.json#/$defs/CapabilityGrantResult"
+      },
+      "TutorEligibility": {
+        "$ref": "./schemas/v1.json#/$defs/TutorEligibility"
+      },
+      "BookableSubject": {
+        "$ref": "./schemas/v1.json#/$defs/BookableSubject"
+      },
+      "RatingBatchWrite": {
+        "$ref": "./schemas/v1.json#/$defs/RatingBatchWrite"
+      },
+      "RatingBatch": {
+        "$ref": "./schemas/v1.json#/$defs/RatingBatch"
+      },
+      "ReviewEligibility": {
+        "$ref": "./schemas/v1.json#/$defs/ReviewEligibility"
+      },
+      "ReminderEligibility": {
+        "$ref": "./schemas/v1.json#/$defs/ReminderEligibility"
+      },
+      "PaymentCommand": {
+        "$ref": "./schemas/v1.json#/$defs/PaymentCommand"
+      },
+      "ClosePayment": {
+        "$ref": "./schemas/v1.json#/$defs/ClosePayment"
+      },
+      "PaymentResult": {
+        "$ref": "./schemas/v1.json#/$defs/PaymentResult"
+      },
+      "RefundCommand": {
+        "$ref": "./schemas/v1.json#/$defs/RefundCommand"
+      },
+      "RefundResult": {
+        "$ref": "./schemas/v1.json#/$defs/RefundResult"
+      },
+      "CompletionCommand": {
+        "$ref": "./schemas/v1.json#/$defs/CompletionCommand"
+      },
+      "FinancialRecord": {
+        "$ref": "./schemas/v1.json#/$defs/FinancialRecord"
+      },
+      "BookingEvidence": {
+        "$ref": "./schemas/v1.json#/$defs/BookingEvidence"
+      },
+      "NotificationContent": {
+        "$ref": "./schemas/v1.json#/$defs/NotificationContent"
+      },
+      "AdminDisputeDetail": {
+        "$ref": "./schemas/v1.json#/$defs/AdminDisputeDetail"
+      },
+      "AdminReviewFlag": {
+        "$ref": "./schemas/v1.json#/$defs/AdminReviewFlag"
+      },
+      "PublicReview": {
+        "$ref": "./schemas/v1.json#/$defs/PublicReview"
+      }
+    },
+    "securitySchemes": {
+      "UserBearer": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Auth-issued session token; protected new actions also check current Auth state."
+      },
+      "WorkloadBearer": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Per-caller opaque workload token from encrypted runtime configuration. Receiver maps it to a caller identity and enforces the operation allowlist. Never a browser token."
+      },
+      "ActorAssertion": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-Actor-Context",
+        "description": "RS256 gateway-signed short-lived actor admission JWT. Not a client-controlled JSON header. See identity rules in README."
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "gateway",
+      "description": "Gateway owned operations."
+    },
+    {
+      "name": "auth",
+      "description": "Auth owned operations."
+    },
+    {
+      "name": "tutor",
+      "description": "Tutor owned operations."
+    },
+    {
+      "name": "booking",
+      "description": "Booking owned operations."
+    },
+    {
+      "name": "wallet",
+      "description": "Wallet owned operations."
+    },
+    {
+      "name": "review",
+      "description": "Review owned operations."
+    },
+    {
+      "name": "messaging",
+      "description": "Messaging owned operations."
+    },
+    {
+      "name": "notification",
+      "description": "Notification owned operations."
+    }
+  ]
+}

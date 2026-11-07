@@ -1,0 +1,39 @@
+$kind: http-request
+description: 'Caller must satisfy current account and capability checks plus owner/resource checks. See contracts/README.md
+  for semantic invariants, privacy, retries and pending outcomes.
+
+  Derived target request. Use synthetic IDs and runtime credentials. See contracts/examples/cases.json; target behavior is
+  not implemented yet.'
+url: '{{baseUrl}}/admin/disputes/:disputeId/decision'
+method: POST
+headers:
+- key: X-Request-Id
+  value: '{{requestId}}'
+  disabled: false
+  description: X-Request-Id
+- key: Idempotency-Key
+  value: '{{idempotencyKey}}'
+  disabled: false
+  description: (Required) Stable for retries of one logical action. Resolve authorized replay before checking a stale revision.
+- key: If-Match
+  value: '"{{revision}}"'
+  disabled: false
+  description: (Required) Quoted decimal revision from the current resource ETag.
+- key: Content-Type
+  value: application/json
+- key: Accept
+  value: application/json
+pathVariables:
+- key: disputeId
+  value: '{{disputeId}}'
+  disabled: false
+  description: (Required) disputeId
+body:
+  type: json
+  content: "{\n  \"decision\": \"APPROVE_FULL_REMAINDER\",\n  \"reason\": \"Synthetic evidence accepted\"\n}"
+auth:
+  type: bearer
+  credentials:
+    token: '{{bearerToken}}'
+settings: {}
+order: 19000
