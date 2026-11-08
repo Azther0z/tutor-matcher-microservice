@@ -64,5 +64,7 @@ jobs:
         if: failure()
         with:
           name: saint-browser-failure
-          path: web/test-results/
+          path: |
+            web/test-results/
+            .cache/gateway/*.log
           if-no-files-found: ignore
