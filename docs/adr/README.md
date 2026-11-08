@@ -2,7 +2,7 @@
 
 These records preserve the numbering of ADR-001 through ADR-022 in the [Tutor Matcher PDF](../sources/tutor-matcher.pdf). The filenames use four digits.
 They were first recorded as Markdown in this checkout on 6 November 2026. That date does not claim to be the original decision date.
-The original PDF remains unchanged as historical evidence. ADR-0023–ADR-0028 record reconciliation, system-design and interface decisions.
+The original PDF remains unchanged as historical evidence. ADR-0023–ADR-0028 record reconciliation, system-design and interface decisions. ADR-0029 records the 8 November gateway/discovery replacement.
 
 Use the [requirements](../requirements.md) for delivery scope, policies, and acceptance criteria. Use the [glossary](../../GLOSSARY.md) for domain terms.
 Accepted means that a decision governs the target. It does not mean that its implementation or operational evidence is complete.
@@ -30,7 +30,7 @@ Accepted means that a decision governs the target. It does not mean that its imp
 | [ADR-0018 API gateway with centralized authentication](0018-gateway-authentication.md) | Accepted | Tutor Matcher PDF pp. 17 |
 | [ADR-0019 RabbitMQ for asynchronous events](0019-rabbitmq-events.md) | Accepted | Tutor Matcher PDF pp. 17 |
 | [ADR-0020 Synchronous money decisions and asynchronous side effects](0020-payment-calls-and-side-effects.md) | Accepted | Tutor Matcher PDF pp. 18 |
-| [ADR-0021 Consul discovery and health-aware gateway routing](0021-consul-discovery.md) | Accepted | Tutor Matcher PDF pp. 18 |
+| [ADR-0021 Consul discovery and health-aware gateway routing](0021-consul-discovery.md) | Superseded by ADR-0029 | Tutor Matcher PDF pp. 18 |
 | [ADR-0022 Measure tutor search scalability with k6](0022-measure-scalability.md) | Accepted | Tutor Matcher PDF pp. 18–19 |
 | [ADR-0023 Course delivery scope and behavioral baseline](0023-course-delivery-baseline.md) | Accepted | User-confirmed reconciliation |
 | [ADR-0024 Recover notifications after committed business actions](0024-recoverable-notifications.md) | Accepted | User-confirmed reconciliation |
@@ -40,6 +40,7 @@ Accepted means that a decision governs the target. It does not mean that its imp
 | [ADR-0027 Define versioned contracts before parallel implementation](0027-versioned-interface-contracts.md) | Accepted | Step-3 interface design; user-confirmed SYSTEM policy |
 
 | [ADR-0028 Use gRPC for private domain collaborations](0028-private-domain-grpc.md) | Accepted | User-confirmed step-3 protocol expansion |
+| [ADR-0029 Traefik gateway and Swarm discovery](0029-traefik-swarm-discovery.md) | Accepted | Explicit user decision, 8 November 2026 |
 
 ## Reading historical decisions
 

@@ -11,7 +11,7 @@ Use the [pinned monolith](https://github.com/Azther0z/tutor-matcher/tree/ce3ec82
 The [source index](../sources/README.md) links both original PDFs.
 Use the same approved baseline commit before creating implementation branches. It must include the requirements, design, contracts and handoffs.
 
-Existing code starts in `auth-service/src/`, `api-gateway/src/` and `shared/consul.js`.
+Existing code starts in `auth-service/src/`, `api-gateway/routes.yaml`, `shared/runtime-env.js` and `deploy/compose.yaml`.
 The current services use JavaScript. Their existing behavior is not the complete target.
 
 | Area | Your implementation ownership |
@@ -56,7 +56,7 @@ Check current session/account state for new protected requests. A valid but revo
 Record restriction reasons and notify the affected account. Preserve paid bookings and financial history.
 Tutor decides approval. Auth applies the original approved grant once and exposes its outcome for recovery.
 
-Implement the [identity contract](../../contracts/README.md#identity-capability-and-privacy) in Gateway and shared adapters.
+Implement the [identity contract](../../contracts/README.md#identity-capability-and-privacy) through Traefik ForwardAuth and the private Auth admission adapter. The adapter owns full token/session/capability validation and signed admission; Traefik owns routing and trusted header forwarding.
 Strip client identity headers, sign actor admission, and require current capabilities.
 Each private caller has its own workload identity and operation allowlist.
 Recovery of a recorded action must not depend on an expired browser session.
@@ -65,7 +65,7 @@ The service owner still enforces resource ownership after Gateway authentication
 Route the exact public method/path inventory to the correct owner.
 Keep fixed routes before identifier routes. Keep internal paths outside public routing.
 Route operation polling through the fixed owner allowlist to each owner's private status endpoint.
-Use Consul health routing and the agreed fixed-name fallback. Register reachable private addresses on Swarm.
+Use Traefik Swarm discovery, explicit public routes and backend health checks. Test last-discovered routing during Docker API failure and its restart/detection limits. Services do not self-register. See [ADR-0029](../adr/0029-traefik-swarm-discovery.md).
 
 Own the simulated reset-content access control and its Admin-only page.
 Keep reset material out of events, logs, ordinary receipts and screenshots with actual data.
@@ -80,7 +80,7 @@ P owns Notification acceptance, jobs and delivery. That does not cover Auth's pr
 Prepare reproducible local Compose and hosted Swarm/Doco-CD configuration.
 Add all target services, three PostgreSQL databases and four MongoDB databases with owner access boundaries.
 Configure the persistent MongoDB replica set required by the other owners' transactions.
-Preserve persistent storage, appropriate host placement, broker queues and reachable Consul addresses.
+Preserve persistent storage, appropriate host placement, broker queues and reachable private Swarm task addresses.
 Only the web entry becomes public in the hosted target.
 
 Collect each owner's ports, environment variable names, migrations, health checks and volume needs before merging manifests.
@@ -116,7 +116,7 @@ Use the same shared baseline and the endpoint inventory below. Do not introduce 
 - Prove Ideal can resume one approval grant after Auth downtime.
 - Prove Auth events survive broker downtime without duplicate delivery effects.
 - Prove Gateway rejects internal paths and unauthorized demo outcome requests.
-- Prove Gateway handles one failed Tutor replica and Consul downtime within the documented limits.
+- Prove Gateway handles one failed Tutor replica and Docker discovery API downtime within the documented limits.
 - Prove local startup, persistent restart, isolated restoration and the authorized hosted smoke test.
 
 Save commands, tested revision, environment, outcomes and unresolved failures in your evidence directory.

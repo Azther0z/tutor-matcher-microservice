@@ -1,0 +1,153 @@
+# Shared by local Compose (docker provider) and hosted Swarm (swarm provider).
+# Discovery supplies service addresses; only this file defines public routes.
+http:
+  middlewares:
+    strip-identity:
+      headers:
+        customRequestHeaders:
+          X-User-Id: ""
+          X-User-Email: ""
+          X-Actor-Context: ""
+          X-Caller-Id: ""
+          X-Workload-Authorization: ""
+    drop-browser-token:
+      headers:
+        customRequestHeaders:
+          Authorization: ""
+    authorize:
+      forwardAuth:
+        # This listener is bound to loopback inside Traefik. It uses the
+        # discovered, health-checked Auth pool and returns 503 when empty.
+        address: http://127.0.0.1:8081/internal/gateway/authorize
+        trustForwardHeader: false
+        authRequestHeaders:
+          - Authorization
+        authResponseHeaders:
+          - X-User-Id
+          - X-User-Email
+    public:
+      chain:
+        middlewares: [strip-identity, drop-browser-token]
+    protected:
+      chain:
+        middlewares: [strip-identity, authorize, drop-browser-token]
+    retry-read:
+      retry:
+        attempts: 2
+        initialInterval: 50ms
+        status: ["502-504"]
+  services:
+    unavailable:
+      loadBalancer:
+        servers: []
+  routers:
+    auth-check: &auth-check
+      entryPoints: [auth]
+      rule: Path(`/internal/gateway/authorize`) && Method(`GET`)
+      service: auth-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
+    auth-public: &auth-public
+      entryPoints: [web]
+      rule: ((Path(`/auth/register`) || Path(`/auth/register/`) || Path(`/auth/login`) || Path(`/auth/login/`))) && Method(`POST`)
+      middlewares: [public]
+      service: auth-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
+    auth-me: &auth-me
+      entryPoints: [web]
+      rule: (Path(`/auth/me`) || Path(`/auth/me/`)) && (Method(`GET`) || Method(`HEAD`))
+      middlewares: [protected, retry-read]
+      service: auth-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
+    tutors-read: &tutors-read
+      entryPoints: [web]
+      rule: ((Path(`/tutors`) || Path(`/tutors/`)) || PathRegexp(`^/tutors/[^/]+/?$`)) && (Method(`GET`) || Method(`HEAD`))
+      middlewares: [public, retry-read]
+      service: tutor-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
+    tutors-create: &tutors-create
+      entryPoints: [web]
+      rule: (Path(`/tutors`) || Path(`/tutors/`)) && Method(`POST`)
+      middlewares: [protected]
+      service: tutor-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
+    tutors-edit: &tutors-edit
+      entryPoints: [web]
+      rule: PathRegexp(`^/tutors/[^/]+/?$`) && (Method(`PUT`) || Method(`DELETE`))
+      middlewares: [protected]
+      service: tutor-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
+    availability: &availability
+      entryPoints: [web]
+      rule: (Path(`/availability`) || Path(`/availability/`)) && Method(`POST`)
+      middlewares: [protected]
+      service: booking-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
+    bookings: &bookings
+      entryPoints: [web]
+      rule: (Path(`/bookings`) || Path(`/bookings/`)) && (Method(`GET`) || Method(`HEAD`) || Method(`POST`))
+      middlewares: [protected]
+      service: booking-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
+    booking-read: &booking-read
+      entryPoints: [web]
+      rule: PathRegexp(`^/bookings/[^/]+/?$`) && (Method(`GET`) || Method(`HEAD`))
+      middlewares: [protected, retry-read]
+      service: booking-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
+    booking-action: &booking-action
+      entryPoints: [web]
+      rule: PathRegexp(`^/bookings/[^/]+/(pay|cancel)/?$`) && Method(`POST`)
+      middlewares: [protected]
+      service: booking-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
+    wallet: &wallet
+      entryPoints: [web]
+      rule: (Path(`/wallet`) || Path(`/wallet/`)) && (Method(`GET`) || Method(`HEAD`))
+      middlewares: [protected, retry-read]
+      service: wallet-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
+    topups: &topups
+      entryPoints: [web]
+      rule: ((Path(`/wallet/topups`) || Path(`/wallet/topups/`)) || PathRegexp(`^/wallet/topups/[^/]+/confirm/?$`)) && Method(`POST`)
+      middlewares: [protected]
+      service: wallet-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
+
+    # If a provider has no tasks, its service disappears. These lower-priority
+    # routes keep known API operations at 503 rather than an accidental 404.
+    auth-check-unavailable:
+      <<: *auth-check
+      priority: 1
+      service: unavailable
+    auth-public-unavailable:
+      <<: *auth-public
+      priority: 1
+      service: unavailable
+    auth-me-unavailable:
+      <<: *auth-me
+      priority: 1
+      service: unavailable
+    tutors-read-unavailable:
+      <<: *tutors-read
+      priority: 1
+      service: unavailable
+    tutors-create-unavailable:
+      <<: *tutors-create
+      priority: 1
+      service: unavailable
+    tutors-edit-unavailable:
+      <<: *tutors-edit
+      priority: 1
+      service: unavailable
+    availability-unavailable:
+      <<: *availability
+      priority: 1
+      service: unavailable
+    bookings-unavailable:
+      <<: *bookings
+      priority: 1
+      service: unavailable
+    booking-read-unavailable:
+      <<: *booking-read
+      priority: 1
+      service: unavailable
+    booking-action-unavailable:
+      <<: *booking-action
+      priority: 1
+      service: unavailable
+    wallet-unavailable:
+      <<: *wallet
+      priority: 1
+      service: unavailable
+    topups-unavailable:
+      <<: *topups
+      priority: 1
+      service: unavailable

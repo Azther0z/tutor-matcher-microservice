@@ -1,7 +1,8 @@
 require('dotenv').config();
+require('../../shared/runtime-env').loadRuntimeEnv();
 const express = require('express');
 const { pool, migrate } = require('./db');
-const { registerService } = require('../../shared/consul');
+const { createGatewayAuthorization } = require('./gateway-auth');
 const authRoutes = require('./auth.routes');
 
 async function main() {
@@ -12,6 +13,7 @@ async function main() {
 
   const app = express();
   app.use(express.json());
+  app.get('/internal/gateway/authorize', createGatewayAuthorization({ pool, jwtSecret: process.env.JWT_SECRET }));
   app.get('/health', async (_req, res) => {
     try {
       await pool.query('SELECT 1');
@@ -29,7 +31,6 @@ async function main() {
 
   const port = Number(process.env.PORT || 4002);
   app.listen(port, () => console.log(`[Auth] REST listening on http://127.0.0.1:${port}`));
-  await registerService({ name: 'auth-service', port, tag: 'Auth' });
 }
 
 main().catch((error) => {

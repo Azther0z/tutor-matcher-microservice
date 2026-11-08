@@ -5,7 +5,7 @@ recorded: 2026-11-06
 
 # API gateway with centralized authentication
 
-Keep the API gateway as the public entry point. It verifies Auth-issued JWTs and forwards trustworthy identity. Internal operations must remain unavailable through public gateway routing.
+Keep the API gateway as the public entry point. Traefik delegates Auth-issued JWT/current-account checks to a private Auth ForwardAuth adapter and forwards trustworthy identity, as amended by [ADR-0029](0029-traefik-swarm-discovery.md). Internal operations must remain unavailable through public gateway routing.
 
 Services still enforce ownership and capabilities. Public client headers cannot establish identity. Hosted network boundaries must prevent clients from calling trusted internal endpoints directly.
 

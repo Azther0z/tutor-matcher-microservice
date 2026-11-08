@@ -18,7 +18,7 @@ An arrow represents a request or event sent in the arrow's direction. The databa
 
 ```mermaid
 flowchart LR
-    Client["API client<br/>e.g. Postman"] -->|REST / JSON| Gateway["API Gateway<br/>:8080"]
+    Client["API client<br/>e.g. Postman"] -->|REST / JSON| Gateway["Traefik Gateway<br/>:8080"]
 
     subgraph Services[Application services]
         Auth["Auth Service<br/>REST :4002"]
@@ -53,18 +53,18 @@ flowchart LR
 
 | Component | Interface | Owns | Persistence |
 | --- | --- | --- | --- |
-| **API Gateway** | REST, port `8080` | Public routing, JWT verification, and forwarding authenticated user identity | None |
-| **Auth Service** | REST, port `4002` | Account registration, password verification, and JWT issuance | PostgreSQL `auth_db` |
+| **API Gateway** | REST, port `8080` | Public allowlisted routing, healthy backends, and Auth ForwardAuth | None |
+| **Auth Service** | REST, port `4002` | Account registration, password verification, JWT issuance and private gateway authorization | PostgreSQL `auth_db` |
 | **Tutor Service** | REST, port `4001` | Tutor profiles, publication status, subject offerings, rates, and tutor search | MongoDB `tutor_db` |
 | **Booking Service** | REST, port `4004`; gRPC, port `50052` | Availability slots, booking lifecycle, booking price and cancellation state | MongoDB `booking_db` |
 | **Wallet Service** | REST, port `4003` | Wallet balances, top-ups, lesson charges, refunds, and transaction history | PostgreSQL `wallet_db` |
 | **Notification Service** | RabbitMQ consumer; no public HTTP API | Event-to-message rendering and delivery records | MongoDB `notification_db` |
 
-Each service has its own package manifest and lockfile. Services communicate through their APIs or events; they do not read another service's database directly. The service boundaries are separate processes and Docker containers in Compose, while MongoDB, PostgreSQL, and RabbitMQ are shared infrastructure instances in the local stack.
+Each Node.js business service has its own package manifest and lockfile. Traefik is configured under `api-gateway/` and has no Node package. Services communicate through their APIs or events; they do not read another service's database directly. The service boundaries are separate processes and Docker containers in Compose, while MongoDB, PostgreSQL, and RabbitMQ are shared infrastructure instances in the local stack.
 
 ### API Gateway and authentication
 
-The Gateway routes `/auth/*`, `/tutors/*`, `/availability/*`, `/bookings/*`, and `/wallet/*` to their owning services. Registration and login are public. Tutor reads are public; writes to tutors, availability, bookings, and wallet routes require a valid Bearer token. The Gateway verifies the JWT and forwards the user's ID and email in `x-user-id` and `x-user-email` headers.
+Traefik routes the explicit current public methods/paths under `/auth`, `/tutors`, `/availability`, `/bookings` and `/wallet` to their owners. Registration/login and tutor reads are public. Protected routes use a private Auth ForwardAuth check that verifies the JWT and current account existence. Traefik strips client identity headers, copies Auth's verified `x-user-id`/`x-user-email`, removes the browser token and forwards. Private routes are not public gateway routes. Auth database failure or an empty known Auth pool returns 503 before admission. See [gateway behavior](api-gateway/README.md).
 
 Auth stores password hashes (bcrypt) in PostgreSQL and issues JWTs with a two-hour lifetime. The token subject (`sub`) is the account ID. The current account model does not define student, tutor, or admin role claims; there is no separate admin authorization workflow in this codebase.
 
@@ -139,11 +139,11 @@ Booking and Wallet use different databases and communicate synchronously over RE
 
 ## 6. Runtime and Repository Layout
 
-The root [`compose.yaml`](compose.yaml) defines the local stack. It builds the API Gateway and five domain/worker services, and starts MongoDB, PostgreSQL, RabbitMQ, and Adminer. Only the Gateway is the application entry point exposed to API clients (`127.0.0.1:8080`); database and RabbitMQ management ports are bound to loopback for local development. PostgreSQL hosts `auth_db` and `wallet_db`; MongoDB hosts `tutor_db`, `booking_db`, and `notification_db`.
+The root [`compose.yaml`](compose.yaml) defines the local stack. It builds five domain/worker services and starts Traefik, a restricted Docker API proxy, MongoDB, PostgreSQL, RabbitMQ, and Adminer. [Hosted Swarm configuration](deploy/README.md) consumes published application images and mounted secrets. Traefik uses Docker discovery locally and Swarm discovery when hosted; Consul is removed. Only the Gateway is the application entry point exposed to API clients (`127.0.0.1:8080`); database and RabbitMQ management ports are bound to loopback for local development. PostgreSQL hosts `auth_db` and `wallet_db`; MongoDB hosts `tutor_db`, `booking_db`, and `notification_db`.
 
 | Path | Contents |
 | --- | --- |
-| `api-gateway/` | REST routing and JWT verification |
+| `api-gateway/` | Traefik route allowlist, ForwardAuth and discovery documentation |
 | `auth-service/` | Account API and PostgreSQL access |
 | `tutor-service/` | Tutor API, search, and gRPC client for availability |
 | `booking-service/` | Booking REST API, availability gRPC server, and service clients |
