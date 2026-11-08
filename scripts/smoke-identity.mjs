@@ -58,7 +58,7 @@ function validate(name, value) {
 const { migrate, pool } = await import("../auth-service/dist/db.js");
 await migrate();
 const { createAuthApp } = await import("../auth-service/dist/index.js");
-const { createGatewayApp } = await import("../api-gateway/dist/index.js");
+const { startTestGateway } = await import("./traefik-test-runtime.mjs");
 const listen = (app) =>
   new Promise((resolve) => {
     const server = app.listen(0, "127.0.0.1", () => resolve(server));
@@ -68,8 +68,11 @@ let gateway;
 try {
   auth = await listen(createAuthApp());
   process.env.AUTH_URL = `http://127.0.0.1:${auth.address().port}`;
-  gateway = await listen(createGatewayApp());
-  const base = `http://127.0.0.1:${gateway.address().port}/api`;
+  gateway = await startTestGateway({
+    authUrl: process.env.AUTH_URL,
+    workloadCredential: process.env.GATEWAY_WORKLOAD_CREDENTIAL,
+  });
+  const base = `${gateway.url}/api`;
   const call = async (
     path,
     { method = "GET", token, body, revision, key, status = 200, schema } = {},
@@ -85,11 +88,20 @@ try {
       headers,
       body: body === undefined ? undefined : JSON.stringify(body),
     });
+    const raw = response.status === 204 ? "" : await response.text();
+    let value;
+    try {
+      value = raw ? JSON.parse(raw) : undefined;
+    } catch {
+      value = undefined;
+    }
+    const safeDetail = value?.code
+      ? ` (${value.code}; ${value.message}; ${(value.fields ?? []).map((field) => field.path ?? field.field ?? field.pointer).join(",")})`
+      : "";
     check(
       response.status === status,
-      `${method} ${path.split("?")[0]}: expected HTTP ${status}, received ${response.status}`,
+      `${method} ${path.split("?")[0]}: expected HTTP ${status}, received ${response.status}${safeDetail}`,
     );
-    const value = response.status === 204 ? undefined : await response.json();
     if (schema) validate(schema, value);
     if (response.status >= 400) validate("Error", value);
     return { response, value };
@@ -317,13 +329,14 @@ try {
     "Direct forged identity bypassed owner authorization",
   );
   console.log(
-    `PASS: integrated real Auth + Gateway + PostgreSQL identity flow (${assertions} status/schema/invariant checks).`,
+    `PASS: integrated real Auth + Traefik + PostgreSQL identity flow (${assertions} status/schema/invariant checks).`,
   );
   console.log(
     "Broker delivery, peers, browser UI and hosted deployment are separate evidence.",
   );
 } finally {
-  for (const server of [gateway, auth])
+  await gateway?.close();
+  for (const server of [auth])
     if (server) {
       server.closeAllConnections();
       await new Promise((resolve) => server.close(resolve));

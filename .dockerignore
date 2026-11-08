@@ -9,3 +9,4 @@ docs
 postman
 loadtest/results
 *.log
+.cache

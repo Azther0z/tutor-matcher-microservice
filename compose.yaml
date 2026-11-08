@@ -1,9 +1,4 @@
 name: tutor-matcher
-x-app:
-  restart: unless-stopped
-  init: true
-  networks: &id001
-  - private
 services:
   postgres:
     image: postgres:16-alpine
@@ -24,7 +19,7 @@ services:
       timeout: 3s
       retries: 30
     networks:
-    - private
+    - backend
   rabbitmq:
     image: rabbitmq:4.3.6-management
     environment:
@@ -42,24 +37,12 @@ services:
       timeout: 5s
       retries: 30
     networks:
-    - private
-  consul:
-    image: hashicorp/consul:1.21.4
-    command: agent -dev -client=0.0.0.0 -ui
-    networks:
-    - private
-    healthcheck:
-      test:
-      - CMD
-      - consul
-      - members
-      interval: 5s
-      timeout: 3s
-      retries: 20
+    - backend
   auth-service:
     restart: unless-stopped
     init: true
-    networks: *id001
+    networks:
+    - backend
     build:
       context: .
       dockerfile: docker/workspace.Dockerfile
@@ -67,7 +50,6 @@ services:
         WORKSPACE: auth-service
     environment:
       ACTOR_ASSERTION_PUBLIC_KEY: ${ACTOR_ASSERTION_PUBLIC_KEY:?supply actor verification key}
-      CONSUL_URL: http://consul:8500
       DEMO_MODE: 'true'
       PORT: '4002'
       GRPC_PORT: '50051'
@@ -86,57 +68,84 @@ services:
       REVIEW_WORKLOAD_CREDENTIAL: ${REVIEW_WORKLOAD_CREDENTIAL:?supply distinct workload credential}
       MESSAGING_WORKLOAD_CREDENTIAL: ${MESSAGING_WORKLOAD_CREDENTIAL:?supply distinct workload credential}
       NOTIFICATION_WORKLOAD_CREDENTIAL: ${NOTIFICATION_WORKLOAD_CREDENTIAL:?supply distinct workload credential}
-      SERVICE_ADVERTISE_ADDRESS: auth-service
       AUTH_SYNTHETIC_EMAILS: ${AUTH_SYNTHETIC_EMAILS:-}
       AUTH_SYNTHETIC_USER_IDS: ${AUTH_SYNTHETIC_USER_IDS:-}
       AUTH_DEMO_PASSWORD: ${AUTH_DEMO_PASSWORD:-}
+      ACTOR_ASSERTION_PRIVATE_KEY: ${ACTOR_ASSERTION_PRIVATE_KEY:?supply actor signing key}
     depends_on:
       postgres:
-        condition: service_healthy
-      consul:
         condition: service_healthy
     healthcheck:
       test:
       - CMD
       - node
       - -e
-      - fetch('http://localhost:4002/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))
+      - fetch('http://127.0.0.1:4002/health',{signal:AbortSignal.timeout(1000)}).then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))
       interval: 5s
-      timeout: 3s
-      retries: 30
+      timeout: 2s
+      retries: 3
+      start_period: 30s
+    labels:
+      traefik.enable: 'true'
+      tutor-matcher.gateway: 'true'
+      traefik.http.services.auth-service.loadbalancer.server.port: '4002'
+      traefik.http.services.auth-service.loadbalancer.healthcheck.path: /health
+      traefik.http.services.auth-service.loadbalancer.healthcheck.interval: 2s
+      traefik.http.services.auth-service.loadbalancer.healthcheck.timeout: 1s
   api-gateway:
-    restart: unless-stopped
-    init: true
-    networks: *id001
-    build:
-      context: .
-      dockerfile: docker/workspace.Dockerfile
-      args:
-        WORKSPACE: api-gateway
+    image: traefik:v3.7.17
+    command:
+    - --entrypoints.web.address=:8080
+    - --entrypoints.auth.address=127.0.0.1:8081
+    - --entrypoints.auth.forwardedHeaders.trustedIPs=127.0.0.1/32,::1/128
+    - --entrypoints.traefik.address=127.0.0.1:8082
+    - --ping=true
+    - --api.dashboard=false
+    - --providers.file.filename=/etc/traefik/dynamic/routes.yaml
+    - --providers.file.watch=true
+    - --serversTransport.forwardingTimeouts.dialTimeout=2s
+    - --serversTransport.forwardingTimeouts.responseHeaderTimeout=5s
+    - --accesslog=true
+    - --accesslog.format=json
+    - --accesslog.fields.headers.defaultmode=drop
+    - --providers.docker.endpoint=tcp://docker-api:2375
+    - --providers.docker.exposedbydefault=false
+    - --providers.docker.constraints=Label(`tutor-matcher.gateway`, `true`)
+    - --providers.docker.defaultRule=PathRegexp(`a^`)
+    - --providers.docker.allowEmptyServices=true
+    - --providers.docker.network=${COMPOSE_PROJECT_NAME:-tutor-matcher}_backend
+    environment:
+      TRAEFIK_DISCOVERY_PROVIDER: docker
+      GATEWAY_WORKLOAD_CREDENTIAL: ${GATEWAY_WORKLOAD_CREDENTIAL:?supply distinct workload credential}
     ports:
     - 127.0.0.1:8080:8080
-    environment:
-      ACTOR_ASSERTION_PUBLIC_KEY: ${ACTOR_ASSERTION_PUBLIC_KEY:?supply actor verification key}
-      CONSUL_URL: http://consul:8500
-      DEMO_MODE: 'true'
-      PORT: '8080'
-      JWT_SECRET: ${JWT_SECRET}
-      ACTOR_ASSERTION_PRIVATE_KEY: ${ACTOR_ASSERTION_PRIVATE_KEY:?supply actor signing key}
-      AUTH_URL: http://auth-service:4002
-      TUTOR_URL: http://tutor-service:4001
-      BOOKING_URL: http://booking-service:4004
-      WALLET_URL: http://wallet-service:4003
-      REVIEW_URL: http://review-service:4005
-      MESSAGING_URL: http://messaging-service:4006
-      NOTIFICATION_URL: http://notification-service:4007
-      GATEWAY_WORKLOAD_CREDENTIAL: ${GATEWAY_WORKLOAD_CREDENTIAL:?supply distinct workload credential}
+    volumes:
+    - ./api-gateway/routes.yaml:/etc/traefik/dynamic/routes.yaml:ro
+    - ./docker/traefik-start.sh:/usr/local/bin/traefik-start.sh:ro
+    networks:
+    - backend
+    - socket
     depends_on:
-      auth-service:
-        condition: service_healthy
+    - docker-api
+    healthcheck:
+      test:
+      - CMD
+      - traefik
+      - healthcheck
+      - --ping
+      - --entrypoints.traefik.address=127.0.0.1:8082
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    restart: on-failure
+    entrypoint:
+    - /bin/sh
+    - /usr/local/bin/traefik-start.sh
   web:
     restart: unless-stopped
     init: true
-    networks: *id001
+    networks:
+    - backend
     build:
       context: .
       dockerfile: docker/workspace.Dockerfile
@@ -161,12 +170,12 @@ services:
     - /bin/bash
     - -ec
     command:
-    - printf "%s" "$$MONGO_CLUSTER_KEY" > /tmp/replica-key; chmod 400 /tmp/replica-key; chown mongodb /tmp/replica-key;
-      exec docker-entrypoint.sh mongod --replSet rs0 --bind_ip_all --keyFile /tmp/replica-key
+    - printf "%s" "$$MONGO_CLUSTER_KEY" > /tmp/replica-key; chmod 400 /tmp/replica-key; chown mongodb /tmp/replica-key; exec
+      docker-entrypoint.sh mongod --replSet rs0 --bind_ip_all --keyFile /tmp/replica-key
     volumes:
     - mongo-data:/data/db
     networks:
-    - private
+    - backend
   mongo-init:
     image: mongo:7
     profiles:
@@ -190,17 +199,17 @@ services:
     volumes:
     - ./docker/mongo-init.js:/setup/mongo-init.js:ro
     networks:
-    - private
+    - backend
   tutor-service:
     restart: unless-stopped
     init: true
-    networks: *id001
+    networks:
+    - backend
     profiles:
     - target
     image: ${TUTOR_IMAGE:-tutor-matcher-tutor:pending}
     environment:
       ACTOR_ASSERTION_PUBLIC_KEY: ${ACTOR_ASSERTION_PUBLIC_KEY:?supply actor verification key}
-      CONSUL_URL: http://consul:8500
       DEMO_MODE: 'true'
       PORT: '4001'
       GRPC_PORT: '50053'
@@ -217,16 +226,33 @@ services:
     depends_on:
       mongo-init:
         condition: service_completed_successfully
+    healthcheck:
+      test:
+      - CMD
+      - node
+      - -e
+      - fetch('http://127.0.0.1:4001/health',{signal:AbortSignal.timeout(1000)}).then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))
+      interval: 5s
+      timeout: 2s
+      retries: 3
+      start_period: 30s
+    labels:
+      traefik.enable: 'true'
+      tutor-matcher.gateway: 'true'
+      traefik.http.services.tutor-service.loadbalancer.server.port: '4001'
+      traefik.http.services.tutor-service.loadbalancer.healthcheck.path: /health
+      traefik.http.services.tutor-service.loadbalancer.healthcheck.interval: 2s
+      traefik.http.services.tutor-service.loadbalancer.healthcheck.timeout: 1s
   booking-service:
     restart: unless-stopped
     init: true
-    networks: *id001
+    networks:
+    - backend
     profiles:
     - target
     image: ${BOOKING_IMAGE:-tutor-matcher-booking:pending}
     environment:
       ACTOR_ASSERTION_PUBLIC_KEY: ${ACTOR_ASSERTION_PUBLIC_KEY:?supply actor verification key}
-      CONSUL_URL: http://consul:8500
       DEMO_MODE: 'true'
       HTTP_PORT: '4004'
       GRPC_PORT: '50052'
@@ -240,16 +266,33 @@ services:
       REVIEW_WORKLOAD_CREDENTIAL: ${REVIEW_WORKLOAD_CREDENTIAL:?supply distinct workload credential}
       NOTIFICATION_WORKLOAD_CREDENTIAL: ${NOTIFICATION_WORKLOAD_CREDENTIAL:?supply distinct workload credential}
       GATEWAY_WORKLOAD_CREDENTIAL: ${GATEWAY_WORKLOAD_CREDENTIAL:?supply distinct workload credential}
+    healthcheck:
+      test:
+      - CMD
+      - node
+      - -e
+      - fetch('http://127.0.0.1:4004/health',{signal:AbortSignal.timeout(1000)}).then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))
+      interval: 5s
+      timeout: 2s
+      retries: 3
+      start_period: 30s
+    labels:
+      traefik.enable: 'true'
+      tutor-matcher.gateway: 'true'
+      traefik.http.services.booking-service.loadbalancer.server.port: '4004'
+      traefik.http.services.booking-service.loadbalancer.healthcheck.path: /health
+      traefik.http.services.booking-service.loadbalancer.healthcheck.interval: 2s
+      traefik.http.services.booking-service.loadbalancer.healthcheck.timeout: 1s
   wallet-service:
     restart: unless-stopped
     init: true
-    networks: *id001
+    networks:
+    - backend
     profiles:
     - target
     image: ${WALLET_IMAGE:-tutor-matcher-wallet:pending}
     environment:
       ACTOR_ASSERTION_PUBLIC_KEY: ${ACTOR_ASSERTION_PUBLIC_KEY:?supply actor verification key}
-      CONSUL_URL: http://consul:8500
       DEMO_MODE: 'true'
       PORT: '4003'
       GRPC_PORT: '50054'
@@ -260,16 +303,33 @@ services:
       WALLET_WORKLOAD_CREDENTIAL: ${WALLET_WORKLOAD_CREDENTIAL:?supply distinct workload credential}
       BOOKING_WORKLOAD_CREDENTIAL: ${BOOKING_WORKLOAD_CREDENTIAL:?supply distinct workload credential}
       GATEWAY_WORKLOAD_CREDENTIAL: ${GATEWAY_WORKLOAD_CREDENTIAL:?supply distinct workload credential}
+    healthcheck:
+      test:
+      - CMD
+      - node
+      - -e
+      - fetch('http://127.0.0.1:4003/health',{signal:AbortSignal.timeout(1000)}).then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))
+      interval: 5s
+      timeout: 2s
+      retries: 3
+      start_period: 30s
+    labels:
+      traefik.enable: 'true'
+      tutor-matcher.gateway: 'true'
+      traefik.http.services.wallet-service.loadbalancer.server.port: '4003'
+      traefik.http.services.wallet-service.loadbalancer.healthcheck.path: /health
+      traefik.http.services.wallet-service.loadbalancer.healthcheck.interval: 2s
+      traefik.http.services.wallet-service.loadbalancer.healthcheck.timeout: 1s
   review-service:
     restart: unless-stopped
     init: true
-    networks: *id001
+    networks:
+    - backend
     profiles:
     - target
     image: ${REVIEW_IMAGE:-tutor-matcher-review:pending}
     environment:
       ACTOR_ASSERTION_PUBLIC_KEY: ${ACTOR_ASSERTION_PUBLIC_KEY:?supply actor verification key}
-      CONSUL_URL: http://consul:8500
       DEMO_MODE: 'true'
       PORT: '4005'
       GRPC_PORT: '50055'
@@ -282,16 +342,33 @@ services:
     depends_on:
       mongo-init:
         condition: service_completed_successfully
+    healthcheck:
+      test:
+      - CMD
+      - node
+      - -e
+      - fetch('http://127.0.0.1:4005/health',{signal:AbortSignal.timeout(1000)}).then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))
+      interval: 5s
+      timeout: 2s
+      retries: 3
+      start_period: 30s
+    labels:
+      traefik.enable: 'true'
+      tutor-matcher.gateway: 'true'
+      traefik.http.services.review-service.loadbalancer.server.port: '4005'
+      traefik.http.services.review-service.loadbalancer.healthcheck.path: /health
+      traefik.http.services.review-service.loadbalancer.healthcheck.interval: 2s
+      traefik.http.services.review-service.loadbalancer.healthcheck.timeout: 1s
   messaging-service:
     restart: unless-stopped
     init: true
-    networks: *id001
+    networks:
+    - backend
     profiles:
     - target
     image: ${MESSAGING_IMAGE:-tutor-matcher-messaging:pending}
     environment:
       ACTOR_ASSERTION_PUBLIC_KEY: ${ACTOR_ASSERTION_PUBLIC_KEY:?supply actor verification key}
-      CONSUL_URL: http://consul:8500
       DEMO_MODE: 'true'
       PORT: '4006'
       MONGO_URI: mongodb://messaging_owner:${MESSAGING_DB_PASSWORD}@mongo:27017/messaging_db?authSource=messaging_db&replicaSet=rs0
@@ -302,16 +379,33 @@ services:
     depends_on:
       mongo-init:
         condition: service_completed_successfully
+    healthcheck:
+      test:
+      - CMD
+      - node
+      - -e
+      - fetch('http://127.0.0.1:4006/health',{signal:AbortSignal.timeout(1000)}).then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))
+      interval: 5s
+      timeout: 2s
+      retries: 3
+      start_period: 30s
+    labels:
+      traefik.enable: 'true'
+      tutor-matcher.gateway: 'true'
+      traefik.http.services.messaging-service.loadbalancer.server.port: '4006'
+      traefik.http.services.messaging-service.loadbalancer.healthcheck.path: /health
+      traefik.http.services.messaging-service.loadbalancer.healthcheck.interval: 2s
+      traefik.http.services.messaging-service.loadbalancer.healthcheck.timeout: 1s
   notification-service:
     restart: unless-stopped
     init: true
-    networks: *id001
+    networks:
+    - backend
     profiles:
     - target
     image: ${NOTIFICATION_IMAGE:-tutor-matcher-notification:pending}
     environment:
       ACTOR_ASSERTION_PUBLIC_KEY: ${ACTOR_ASSERTION_PUBLIC_KEY:?supply actor verification key}
-      CONSUL_URL: http://consul:8500
       DEMO_MODE: 'true'
       PORT: '4007'
       MONGO_URI: mongodb://notification_owner:${NOTIFICATION_DB_PASSWORD}@mongo:27017/notification_db?authSource=notification_db&replicaSet=rs0
@@ -322,8 +416,40 @@ services:
     depends_on:
       mongo-init:
         condition: service_completed_successfully
+    healthcheck:
+      test:
+      - CMD
+      - node
+      - -e
+      - fetch('http://127.0.0.1:4007/health',{signal:AbortSignal.timeout(1000)}).then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))
+      interval: 5s
+      timeout: 2s
+      retries: 3
+      start_period: 30s
+    labels:
+      traefik.enable: 'true'
+      tutor-matcher.gateway: 'true'
+      traefik.http.services.notification-service.loadbalancer.server.port: '4007'
+      traefik.http.services.notification-service.loadbalancer.healthcheck.path: /health
+      traefik.http.services.notification-service.loadbalancer.healthcheck.interval: 2s
+      traefik.http.services.notification-service.loadbalancer.healthcheck.timeout: 1s
+  docker-api:
+    image: tecnativa/docker-socket-proxy:v0.5.0
+    environment:
+      CONTAINERS: '1'
+      NETWORKS: '1'
+      EVENTS: '1'
+      POST: '0'
+      LOG_LEVEL: warning
+    volumes:
+    - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+    - socket
+    restart: on-failure
 networks:
-  private: {}
+  backend: {}
+  socket:
+    internal: true
 volumes:
   postgres-data: {}
   mongo-data: {}

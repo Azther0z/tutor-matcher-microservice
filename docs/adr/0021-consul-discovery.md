@@ -1,9 +1,11 @@
 ---
-status: accepted
+status: superseded
 recorded: 2026-11-06
 ---
 
 # Consul discovery and health-aware gateway routing
+
+Superseded on 8 November 2026 by [ADR-0029 Traefik and Swarm discovery](0029-traefik-swarm-discovery.md), following the user's explicit replacement decision. The original decision below is retained as history.
 
 Retain Consul registration and automatic service health checks. The gateway selects healthy instances and uses fixed service names when Consul is unavailable.
 

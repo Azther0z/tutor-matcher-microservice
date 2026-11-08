@@ -1,5 +1,6 @@
 # Tutor Matcher rendered design views
 
+The deployment SVG/PNG assets predate [ADR-0029](../adr/0029-traefik-swarm-discovery.md) and still show the superseded Consul topology. They are historical images, not renderings of the current Traefik/Swarm source. Use the current [system-design deployment view](../system-design.md#deployment-and-operational-limits) and [hosted manifest](../../deploy/README.md) until the rendered images are regenerated and checked.
 These views are generated from the Mermaid blocks in the [accepted system design](../system-design.md).
 That document is the editable source. Regenerate these assets when a source diagram changes.
 The images describe the target design, not the currently deployed or implemented system.

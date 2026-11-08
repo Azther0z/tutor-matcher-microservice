@@ -1,3 +1,4 @@
+import './runtime-config';
 import { readFile, readdir } from 'node:fs/promises';
 import path from 'node:path';
 import { Pool, type PoolClient, type QueryResultRow } from 'pg';

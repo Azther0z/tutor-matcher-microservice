@@ -1,19 +1,19 @@
 # Platform and identity implementation evidence
 
-Date: 8 November 2026, Asia/Bangkok. Base revision: `c28ba3b`; implementation is a local uncommitted worktree change. No image publication, remote CI, PR update or server deployment is claimed.
+Date: 8 November 2026, Asia/Bangkok. Base revision: `c28ba3b`; this record describes Saint's identity slice before it was stacked with PR4's Traefik gateway. It is local implementation evidence, not verification of the integrated stack. See the [Traefik integration record](traefik-integration.md) for the current verification boundary. No image publication, remote CI, PR update or server deployment is claimed.
 
 Three GPT-6 Luna subagents implemented Auth, Gateway/shared adapters and the web identity shell in separate directories. The parent integrated their work and prepared workspace, deployment and CI files. This is Saint's slice; it does not replace the other three handoffs.
 
 ## Verification record
 
-The checks below ran against the local worktree after integration. A contract fixture or test against a peer stand-in is not evidence that a peer service exists. Auth database tests used isolated PostgreSQL 16 databases in a disposable rootless Podman container, with separate databases for unit, HTTP, browser, broker and restore checks. No existing application database was used.
+The checks below ran against the recorded `c28ba3b` worktree before the PR4 Traefik stack was integrated. A contract fixture or test against a peer stand-in is not evidence that a peer service exists. Auth database tests used isolated PostgreSQL 16 databases in a disposable rootless Podman container, with separate databases for unit, HTTP, browser, broker and restore checks. No existing application database was used.
 
 | Check | Verified result |
 | --- | --- |
 | Workspace type checks and production builds | Shared, Auth, Gateway and Next.js build/typecheck commands pass. |
-| Shared and Gateway tests | Nine shared tests and seven Gateway tests pass. These include schema field paths, fail-closed workload identity, signed actor assertions, explicit routing, current-session checks, conditional headers and discovery fallback. Gateway peer/Consul fixtures are stand-ins, not hosted services. |
+| Shared and Gateway tests | The shared tests and seven TypeScript Gateway tests passed on the recorded base. The TypeScript Gateway is being removed from the stacked architecture; its route, identity-admission and discovery results are historical and do not establish current Traefik behavior. Gateway peer/Consul fixtures were stand-ins, not hosted services. |
 | Auth database/gRPC integration suite | Pass with no skip. Covers concurrent signup replay, stable error codes, password hashing, session revocation, restriction/restoration, injected reset expiry/replacement, gRPC caller permissions and durable tutor-grant recovery, terminal operation reads, seed stability and revision ETags. |
-| Real HTTP integration | `npm run test:integrated` passes 72 status/schema/invariant checks through real Auth, real Gateway and PostgreSQL. Includes idempotent profile replay and operation polling. |
+| Real HTTP integration (recorded base) | `npm run test:integrated` passed 72 status/schema/invariant checks through real Auth, the then-current TypeScript Gateway and PostgreSQL. Includes idempotent profile replay and operation polling. This does not verify the stacked Traefik gateway. |
 | Browser component journeys | All 14 Playwright tests pass against explicitly intercepted API responses. |
 | Real browser integration | `npm run smoke:browser` passes without API interception: signup, account/profile reads, revision-based profile save, password change, revoked access, rejected old password and login with the new password. |
 | Broker interruption/recovery | `npm run smoke:outbox` passes against real Auth, PostgreSQL and disposable RabbitMQ 4.3.6. Work persists during outage, publishes with confirms/mandatory routing after recovery and is not republished after publisher restart. The harness acknowledges the event; Notification delivery is not claimed. See [broker evidence](outbox.md). |
@@ -22,9 +22,11 @@ The checks below ran against the local worktree after integration. A contract fi
 | Contract consistency | Existing schema/examples, all 114 operation IDs, 20 RPC descriptors/codecs and all 86 target Postman requests pass the contract checker. Only Auth's five domain RPCs are implemented in this slice. |
 | Style | Formatting and whitespace checks pass. Lint exits successfully with zero errors and 39 explicit-`any` warnings; these warnings remain technical debt. |
 
-Docker's local Compose and Swarm parsers accept both manifests with synthetic interpolation values. The local homelab export command also prepares its app bundle without replacing existing files. No runtime environment values were printed. The Docker daemon was unavailable: individual local images and fixtures use rootless Podman; full Compose startup and Swarm rollout were not executed.
+The earlier HTTP and browser integration checks exercised the TypeScript Gateway implementation. They remain evidence for Auth and the identity UI behavior they covered, but do not establish that Traefik now routes all 86 public operations or that the current ForwardAuth boundary issues and forwards the actor assertion. Those integrated checks are pending in [the Traefik integration record](traefik-integration.md).
 
-The image build uses Node.js 22, compiles the selected workspace and shared package, removes development dependencies and runs a production dependency smoke check. Local Auth, Gateway and web image builds passed. Auth's HTTP factory/gRPC descriptors load, Gateway's private health request succeeds and the production web login page responds. No registry publication is claimed. The final tags use `localhost/tutor-matcher-{auth,gateway,web}:saint-local`.
+At that recorded revision, Docker's local Compose and Swarm parsers accepted both manifests with synthetic interpolation values. The local homelab export command also prepared its app bundle without replacing existing files. No runtime environment values were printed. The Docker daemon was unavailable: individual local images and fixtures used rootless Podman; full Compose startup and Swarm rollout were not executed. These parse/export results need to be rerun against the stacked manifest.
+
+The image build at the recorded revision used Node.js 22, compiled the selected workspace and shared package, removed development dependencies and ran a production dependency smoke check. Local Auth, the then-current custom Gateway, and web image builds passed. Auth's HTTP factory/gRPC descriptors loaded, the custom Gateway's private health request succeeded and the production web login page responded. The Gateway image and its results are historical; Traefik uses its official pinned image. No registry publication is claimed. The old local tags were `localhost/tutor-matcher-{auth,gateway,web}:saint-local`.
 
 The same checks also passed when running the final images as their configured non-root `node` user. Local image IDs are `4c86bf55c945` (Auth), `90740fc3eeaf` (Gateway) and `e6ddf296183b` (web). These are local image IDs, not published registry digests.
 
@@ -46,7 +48,7 @@ CI definitions were prepared but were not executed remotely. The private image p
 | --- | --- | --- |
 | C-01 live UI | Identity shell and Auth journeys | Other owners' nine business journeys and hosted demonstration |
 | C-02 service protocols | Auth/Gateway HTTP and Auth domain gRPC | Real cross-owner calls and all 20 RPCs |
-| C-03 discovery | Gateway Consul routing and failure tests | Actual Tutor replicas and hosted registration |
+| C-03 discovery | PR4 standalone Traefik provider and proxy tests; integrated proof is pending | Current 86-route `/api` integration, actual owner replicas and hosted task discovery |
 | C-04 relational/NoSQL | Auth PostgreSQL migration and transactions | Other owners' actual Mongo/PostgreSQL records and flows |
 | C-05 two load-test types | Workspace supports owner test commands | Ideal's final measurements on the integrated revision |
 | C-06 risk matrix | Server capacity, ingress, simulation acceptance and recovery gaps | P's consolidated matrix with at least three issues |

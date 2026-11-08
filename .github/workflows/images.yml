@@ -35,7 +35,7 @@ jobs:
           command -v buildctl >/dev/null
           release_dir="$RUNNER_TEMP/tutor-matcher-release"
           mkdir -p "$release_dir"
-          for workspace in auth-service api-gateway web; do
+          for workspace in auth-service web; do
             image="$REGISTRY/tutor-matcher-microservice/$workspace:$REVISION"
             buildctl build \
               --frontend dockerfile.v0 \
@@ -49,7 +49,7 @@ jobs:
           import fs from 'node:fs';
           const [directory,registry,revision]=process.argv.slice(2);
           const images={};
-          for(const workspace of ['auth-service','api-gateway','web']) {
+          for(const workspace of ['auth-service','web']) {
             const digest=JSON.parse(fs.readFileSync(`${directory}/${workspace}.json`,'utf8'))['containerimage.digest'];
             if(!/^sha256:[0-9a-f]{64}$/.test(digest))throw new Error('Missing immutable image digest');
             images[workspace]=`${registry}/tutor-matcher-microservice/${workspace}@${digest}`;

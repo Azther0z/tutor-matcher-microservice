@@ -1,6 +1,7 @@
 # Step-3 validation record
 
-Implementation follow-up, 8 November 2026: dependencies are now installed and the protobuf codec check passes in this worktree. The missing-dependency note in the account-lifecycle section below is historical. See the [implementation evidence](../docs/evidence/saint/README.md) for real Auth/Gateway/database/browser/broker checks and their limits. The full 20-RPC target is not deployed.
+Implementation follow-up, 8 November 2026: dependencies are now installed and the protobuf codec check passes in this worktree. The missing-dependency note in the account-lifecycle section below is historical. See the [implementation evidence](../docs/evidence/saint/README.md) for the earlier Auth/TypeScript-Gateway/database/browser/broker checks and their limits. The full 20-RPC target is not deployed.
+These contract checks establish schema, inventory and codec consistency. They do not establish the stacked Traefik routes, the private ForwardAuth exchange, or owner-side runtime behavior; see the [Traefik integration evidence](../docs/evidence/saint/traefik-integration.md).
 
 Verified locally on 6 November 2026 on the PR branch. Target services were not executed or deployed.
 The latest user-confirmed split replaces 18 private domain HTTP operations with gRPC and retains the two availability methods.

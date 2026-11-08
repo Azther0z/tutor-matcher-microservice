@@ -12,22 +12,6 @@ if (workspace === "auth-service") {
   console.log(
     "Auth production dependencies, HTTP factory and gRPC descriptors load.",
   );
-} else if (workspace === "api-gateway") {
-  const { createGatewayApp } = await import("../api-gateway/dist/index.js");
-  const server = createGatewayApp().listen(0, "127.0.0.1");
-  await new Promise((resolve) => server.once("listening", resolve));
-  try {
-    const response = await fetch(
-      `http://127.0.0.1:${server.address().port}/health`,
-    );
-    if (!response.ok) throw new Error("Gateway production health failed");
-    console.log(
-      "Gateway production dependencies and private health request pass.",
-    );
-  } finally {
-    server.closeAllConnections();
-    await new Promise((resolve) => server.close(resolve));
-  }
 } else if (workspace === "web") {
   const reserve = createServer().listen(0, "127.0.0.1");
   await new Promise((resolve) => reserve.once("listening", resolve));
@@ -80,4 +64,4 @@ if (workspace === "auth-service") {
       await new Promise((resolve) => child.once("exit", resolve));
     }
   }
-} else throw new Error("Choose auth-service, api-gateway or web");
+} else throw new Error("Choose auth-service or web");

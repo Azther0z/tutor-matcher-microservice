@@ -1,8 +1,8 @@
 require('dotenv').config();
+require('../../shared/runtime-env').loadRuntimeEnv();
 const express = require('express');
 const mongoose = require('mongoose');
 const tutorRoutes = require('./tutor.routes');
-const { registerService } = require('../../shared/consul');
 
 async function main() {
   const mongoUri = process.env.MONGO_URI?.trim();
@@ -25,7 +25,6 @@ async function main() {
 
   const port = Number(process.env.PORT || 4001);
   app.listen(port, () => console.log(`[Tutor] REST listening on http://127.0.0.1:${port}`));
-  await registerService({ name: 'tutor-service', port, tag: 'Tutor' });
 }
 
 main().catch((error) => {

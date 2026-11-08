@@ -4,8 +4,8 @@ import { spawnSync } from "node:child_process";
 for (const [path, command] of [
   ["compose.yaml", ["compose", "-f", "compose.yaml", "config", "--quiet"]],
   [
-    "docker/hosted/stack.yaml",
-    ["stack", "config", "--compose-file", "docker/hosted/stack.yaml"],
+    "deploy/compose.yaml",
+    ["stack", "config", "--compose-file", "deploy/compose.yaml"],
   ],
 ]) {
   const env = { ...process.env };

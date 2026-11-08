@@ -3,7 +3,6 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 COPY shared/package.json shared/package.json
 COPY auth-service/package.json auth-service/package.json
-COPY api-gateway/package.json api-gateway/package.json
 COPY web/package.json web/package.json
 COPY tutor-service/package.json tutor-service/package.json
 COPY booking-service/package.json booking-service/package.json

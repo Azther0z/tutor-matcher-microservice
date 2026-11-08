@@ -1,0 +1,24 @@
+name: gateway-routing
+purpose: Verify real Traefik forwarding against controlled HTTP business services.
+sources:
+  - postman/d4-demo.postman_collection.json
+  - api-gateway/routes.yaml
+  - deploy/compose.yaml
+  - contracts/public.openapi.json
+  - tests/gateway.test.cjs
+  - https://github.com/Azther0z/tutor-matcher-microservice/blob/23db6f8ae4debcd68aa94128eb93880652623930/auth-service/src/gateway-auth.js
+assumptions:
+  - The business mock echoes requests to observe routing; it does not implement business rules.
+  - Historical PR4 tests ran the old Auth handler with a synthetic account lookup. Current gateway tests use controlled Auth HTTP responses; separate identity integration uses real Auth and PostgreSQL.
+  - The reusable simulation supports target /discovery/tutors and historical paths as echo probes only. Its hasAuthorization field does not distinguish browser and workload tokens.
+  - A controlled Docker API fixture reports services and tasks using the deployed labels.
+  - Per-instance local adapters supply the mock routing header and simulate transport failure.
+  - All accounts and payloads are synthetic; no live providers or external accounts are used.
+verification:
+  - Inspect Postman request events to establish that business traffic reached the mock.
+  - Exercise public and protected paths, identity stripping, query/body forwarding and no write retries.
+  - Exercise health exclusion, task changes, discovery outage and Auth rejection/outage.
+limits:
+  - Does not prove a real Swarm manager, socket proxy, overlay network, persistent volume or image rollout works.
+  - Does not establish business correctness, full target authorization, throughput or hosted availability.
+  - No external owner-mock search or workspace publication is needed for these repository-owned test dependencies.

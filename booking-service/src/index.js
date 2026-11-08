@@ -1,4 +1,5 @@
 require('dotenv').config();
+require('../../shared/runtime-env').loadRuntimeEnv();
 const path = require('node:path');
 const grpc = require('@grpc/grpc-js');
 const protoLoader = require('@grpc/proto-loader');
@@ -6,7 +7,6 @@ const mongoose = require('mongoose');
 const express = require('express');
 const handlers = require('./availability.handlers');
 const { availabilityRouter, bookingRouter } = require('./booking.routes');
-const { registerService } = require('../../shared/consul');
 
 async function main() {
   const mongoUri = process.env.MONGO_URI?.trim();
@@ -43,7 +43,6 @@ async function main() {
   });
   const httpPort = Number(process.env.HTTP_PORT || 4004);
   app.listen(httpPort, () => console.log(`[Booking] REST listening on http://127.0.0.1:${httpPort}`));
-  await registerService({ name: 'booking-service', port: httpPort, tag: 'Booking' });
 }
 
 main().catch((error) => {

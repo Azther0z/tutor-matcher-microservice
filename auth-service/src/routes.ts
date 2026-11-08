@@ -98,14 +98,18 @@ function checkPasswordPair(password: unknown, confirm: unknown): asserts passwor
 
 function markNoStore(_req: Request, res: Response, next: NextFunction) { res.setHeader('Cache-Control', 'no-store'); next(); }
 router.get('/health', async (_req, res) => {
-  try { await pool.query('SELECT 1'); res.json({ status: 'ok' }); }
+  try { await pool.query('SELECT 1'); res.json({ status: 'OK', service: 'auth-service' }); }
   catch { throw new AppError(503,'DEPENDENCY_UNAVAILABLE','Auth storage is unavailable.',undefined,true); }
 });
 
 // The public namespace is only reachable through Gateway, including anonymous credential flows.
 router.use((req,_res,next)=>{
-  if(req.path.startsWith('/internal/v1/auth/'))return next();
+  if(req.path==='/internal/gateway/authorize'||req.path.startsWith('/internal/v1/auth/'))return next();
   try{authenticateWorkload(req,['gateway']);next();}catch(error){next(error);}
+});
+
+router.get('/internal/gateway/authorize', (req, res, next) => {
+  void import('./admission').then(({ authorizeGateway }) => authorizeGateway(req, res, next)).catch(next);
 });
 
 router.post('/auth/signup', markNoStore, async (req, res) => {

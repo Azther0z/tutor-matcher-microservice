@@ -1,6 +1,6 @@
-# Saint handoff: platform, Auth and Gateway
+# Saint handoff: platform, Auth and Traefik
 
-Own the shared application foundation, Auth and Gateway. Deliver their UI, tests and operational files.
+Own the shared application foundation, Auth and Traefik configuration. Deliver the UI, tests and operational files.
 Your work lets the other three members connect independently built features.
 Publish a small usable foundation first, then complete the remaining platform work.
 
@@ -11,8 +11,8 @@ Use the [pinned monolith](https://github.com/Azther0z/tutor-matcher/tree/ce3ec82
 The [source index](../sources/README.md) links both original PDFs.
 Use the same approved baseline commit before creating implementation branches. It must include the requirements, design, contracts and handoffs.
 
-Existing code starts in `auth-service/src/`, `api-gateway/src/` and `shared/consul.js`.
-The starting snapshot used JavaScript. Local Auth/Gateway, shared adapters, workspace, identity UI and deployment templates have since been implemented; the [evidence record](../evidence/saint/README.md) states what passed. Cross-owner integration and the authorized hosted rollout remain required before this whole handoff is complete.
+Existing code starts in `auth-service/src/`, `api-gateway/routes.yaml`, `shared/runtime-env.js` and `deploy/compose.yaml`.
+Auth, shared adapters, the workspace, identity UI and deployment templates have local implementations. Traefik replaces the former Node gateway and Consul. The [evidence record](../evidence/saint/README.md) distinguishes earlier checks from integration verification. Cross-owner integration and an authorized hosted rollout remain required before this whole handoff is complete.
 
 | Area | Your implementation ownership |
 | --- | --- |
@@ -59,16 +59,17 @@ Check current session/account state for new protected requests. A valid but revo
 Record restriction reasons and notify the affected account. Preserve paid bookings and financial history.
 Tutor decides approval. Auth applies the original approved grant once and exposes its outcome for recovery.
 
-Implement the [identity contract](../../contracts/README.md#identity-capability-and-privacy) in Gateway and shared adapters.
-Strip client identity headers, sign actor admission, and require current capabilities.
+Implement the [identity contract](../../contracts/README.md#identity-capability-and-privacy) through Traefik ForwardAuth and Auth's private admission adapter. The control-plane endpoint is `GET /internal/gateway/authorize`, separate from the eight-operation internal REST inventory. For protected routes, Traefik passes the browser token in `Authorization: Bearer <JWT>` and Gateway workload proof in `X-Workload-Authorization: Bearer <credential>`. Auth verifies proof, current session/account state and operation capability, then returns `X-Actor-Context` and `X-Request-Id` with a 60-second RS256 actor assertion (`iss=api-gateway`). Traefik removes the browser token and proof header, then forwards the assertion and `Authorization: Bearer <gateway credential>` to the owner.
+Auth returns the standard top-level JSON Error DTO with `X-Request-Id`: 400 for invalid request metadata, 401 for missing or invalid proof/session, 403 for restricted account or missing capability, and 503 when Auth storage is unavailable. Native Traefik 404/502/503/504 errors can be plain text and may omit a request ID. Do not claim the application Error DTO for those ingress responses.
+Strip caller-supplied identity and workload headers before admission. Owner services validate body, actor capability and resource ownership. Auth signs actor admission and checks current capabilities. The route allowlist comes from all 86 public OpenAPI operations under `/api`; public routes do not all use ForwardAuth. No UUID Traefik plugin is used: anonymous owners validate or generate request IDs, while protected admission normalizes the ID before signing it.
 Each private caller has its own workload identity and operation allowlist.
 Recovery of a recorded action must not depend on an expired browser session.
 The service owner still enforces resource ownership after Gateway authentication.
 
-Route the exact public method/path inventory to the correct owner.
+Route the exact 86-operation public method/path inventory to the correct owner.
 Keep fixed routes before identifier routes. Keep internal paths outside public routing.
 Route operation polling through the fixed owner allowlist to each owner's private status endpoint.
-Use Consul health routing and the agreed fixed-name fallback. Register reachable private addresses on Swarm.
+Use Traefik Swarm discovery, explicit public routes and backend health checks. Test last-discovered routing during Docker API failure and its restart/detection limits. Services do not self-register. See [ADR-0029](../adr/0029-traefik-swarm-discovery.md).
 
 Own the simulated reset-content access control and its Admin-only page.
 Keep reset material out of events, logs, ordinary receipts and screenshots with actual data.
@@ -83,7 +84,7 @@ P owns Notification acceptance, jobs and delivery. That does not cover Auth's pr
 Prepare reproducible local Compose and hosted Swarm/Doco-CD configuration.
 Add all target services, three PostgreSQL databases and four MongoDB databases with owner access boundaries.
 Configure the persistent MongoDB replica set required by the other owners' transactions.
-Preserve persistent storage, appropriate host placement, broker queues and reachable Consul addresses.
+Preserve persistent storage, appropriate host placement, broker queues and reachable private Swarm task addresses.
 Only the web entry becomes public in the hosted target.
 
 Collect each owner's ports, environment variable names, migrations, health checks and volume needs before merging manifests.
@@ -96,7 +97,7 @@ Coordinate the first authorized hosted smoke test while feature development cont
 Prepare backup/restore and local fallback procedures before the final rehearsal.
 Each database owner verifies their records and pending work after restoration.
 
-Serve the five Auth methods on private port 50051. Keep Gateway introspection and owner-status routing on REST.
+Serve the five Auth methods on private port 50051. Retain the Auth introspection operation in the internal REST inventory, although Traefik uses the separate ForwardAuth endpoint. Keep owner-status routing on REST.
 Publish the shared gRPC normalization/error adapters early, without moving owner business rules into them.
 
 ## Interfaces and parallel work
@@ -122,7 +123,7 @@ Use the same shared baseline and the endpoint inventory below. Do not introduce 
 - Prove Ideal can resume one approval grant after Auth downtime.
 - Prove Auth events survive broker downtime without duplicate delivery effects.
 - Prove Gateway rejects internal paths and unauthorized demo outcome requests.
-- Prove Gateway handles one failed Tutor replica and Consul downtime within the documented limits.
+- Prove Gateway handles one failed Tutor replica and Docker discovery API downtime within the documented limits.
 - Prove local startup, persistent restart, isolated restoration and the authorized hosted smoke test.
 
 Save commands, tested revision, environment, outcomes and unresolved failures in your evidence directory.

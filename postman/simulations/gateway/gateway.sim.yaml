@@ -1,0 +1,6 @@
+simulation: gateway-routing
+routing: header
+mocks:
+  - name: gateway-business
+    routeKey: business
+    path: postman/mocks/gateway-business

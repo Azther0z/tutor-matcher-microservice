@@ -221,7 +221,7 @@ Evidence: PDF pp. 7–9, [messaging PR #76](https://github.com/Azther0z/tutor-ma
 | Q-01 Correctness | No overlapping sale, double spending, duplicate financial credit, duplicate earning, or premature release of uncertain funds. | Concurrent, retry, and interrupted-operation checks across booking, payment, cancellation, settlement, payout, and disputes. |
 | Q-02 Money and time | THB amounts support satang precision. Direct amount inputs accept at most two decimals. Display dates and calendars consistently in Asia/Bangkok. | Price, fee, refund, and balance examples agree across UI, stored history, and services. The interface design must specify consistent decimal arithmetic and rounding. |
 | Q-03 Scalability | With 50 concurrent users for 30 seconds, adding Tutor replicas raises search throughput, with p95 latency below 500 ms and errors below 1%. | Comparable one-replica and three-replica runs, saved scripts/results, fixed resource limits, and interpretation of bottlenecks. |
-| Q-04 Resilience | The gateway continues serving when one Tutor instance fails or Consul becomes unavailable. Notifications cannot reverse successful business decisions. | Failure demonstrations with observed errors, delays, recovery, and the limits of fallback routing. |
+| Q-04 Resilience | The gateway continues serving when one Tutor instance fails or the Docker discovery API becomes unavailable. Notifications cannot reverse successful business decisions. | Failure demonstrations with observed errors, delays, recovery, and the limits of fallback routing. |
 | Q-05 Authorization | Enforce account capabilities, ownership, private document access, payout privacy, and participant-only meeting access on the backend. | Cross-user and cross-role negative checks, including direct requests that bypass UI controls. |
 | Q-06 Recovery | Retain uncertain payment/payout attempts and required notification work. Reconcile outcomes before releasing funds or slot holds. | Recovery after committed writes, lost responses, broker outages, and repeated callbacks. |
 | Q-07 Deployment | Separate local and hosted deployment configuration. Persist service data and document infrastructure dependencies. | Clean startup, restart with data retained, documented configuration, and a local fallback rehearsal. |
@@ -245,8 +245,8 @@ System design and interface design must meet the following retained constraints:
 | Express services in TypeScript. One monorepo with npm workspaces, shared quality commands, and one workspace lockfile. | ADR-0002, ADR-0004 |
 | Each service owns its persistence. Use separate PostgreSQL databases for Auth, Booking, and Wallet; separate MongoDB databases for Tutor, Notification, Review, and Messaging. | ADR-0015–ADR-0017, ADR-0025–ADR-0026 |
 | Public REST, private domain gRPC, RabbitMQ-based asynchronous processing, and an API gateway participate in actual business journeys. Twenty domain RPCs replace the prior private domain HTTP operations. Gateway introspection and owner-status polling remain REST. | ADR-0010–ADR-0020, ADR-0028 and course constraints |
-| Gateway JWT verification and trustworthy downstream identity. Internal-only endpoints remain unreachable through public routing. | ADR-0013, ADR-0018 |
-| Consul registration and health checks, gateway routing to healthy instances, and fixed-name fallback when Consul is unavailable. | ADR-0021 |
+| Traefik delegates token/current-account admission to Auth ForwardAuth and forwards trustworthy identity. Internal-only endpoints remain unreachable through public routing. | ADR-0013, ADR-0018, ADR-0029 |
+| Traefik gateway, native Docker Swarm discovery, backend health checks, and tested last-discovered routing during Docker API failure. No Consul or application-side registration. | ADR-0029; supersedes ADR-0021 |
 | Separate local and hosted manifests, commit-traceable images built/published with GitHub Actions, Swarm/Doco-CD deployment, and SOPS/age secrets. | ADR-0005–ADR-0008 |
 | Booking/Wallet recovery and recoverable asynchronous notification work replace assumptions about a shared transaction. | ADR-0011, ADR-0020, ADR-0024 |
 
@@ -317,3 +317,5 @@ Instructor acceptance of simulated providers and the exact deadline time remain 
 [tutor-policy]: https://github.com/Azther0z/tutor-matcher/blob/ce3ec82672d7dac5da8b846ecdb6725dcc7e5ca1/docs/sources/book-4-policy-confirmation.md
 [tutor-only-policy]: https://github.com/Azther0z/tutor-matcher/blob/ce3ec82672d7dac5da8b846ecdb6725dcc7e5ca1/docs/sources/prof-7-tutor-only-confirmation.md
 [meeting-adr]: https://github.com/Azther0z/tutor-matcher/blob/ce3ec82672d7dac5da8b846ecdb6725dcc7e5ca1/docs/adr/0004-google-meet-lesson-links.md
+
+On 8 November 2026 the user selected Traefik and native Docker Swarm discovery to replace the custom Express gateway and Consul. [ADR-0029](adr/0029-traefik-swarm-discovery.md) records the amended gateway/discovery decision. Other scope and authorization requirements remain unchanged.

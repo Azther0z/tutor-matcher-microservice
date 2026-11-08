@@ -55,9 +55,7 @@ const { migrate, pool } = require(
 const { createAuthApp } = require(
   path.join(root, "auth-service", "dist", "index.js"),
 );
-const { createGatewayApp } = require(
-  path.join(root, "api-gateway", "dist", "index.js"),
-);
+const { startTestGateway } = await import("./traefik-test-runtime.mjs");
 const { chromium, expect } = require("@playwright/test");
 
 let authServer;
@@ -153,8 +151,8 @@ async function run() {
   process.env.REVIEW_URL = "http://127.0.0.1:9";
   process.env.MESSAGING_URL = "http://127.0.0.1:9";
   process.env.NOTIFICATION_URL = "http://127.0.0.1:9";
-  gatewayServer = await listen(createGatewayApp());
-  const gatewayUrl = `http://127.0.0.1:${listeningPort(gatewayServer)}`;
+  gatewayServer = await startTestGateway({ authUrl, workloadCredential });
+  const gatewayUrl = gatewayServer.url;
   process.env.API_GATEWAY_URL = gatewayUrl;
 
   phase = "Next.js startup";
@@ -180,7 +178,9 @@ async function run() {
 
   browser = await chromium.launch({
     headless: true,
-    executablePath: process.env.CHROME_BIN || "/usr/bin/google-chrome",
+    ...(process.env.CHROME_BIN
+      ? { executablePath: process.env.CHROME_BIN }
+      : {}),
   });
   context = await browser.newContext({
     viewport: { width: 1440, height: 1000 },
@@ -339,7 +339,7 @@ async function run() {
     "A successful login must establish a tab session.",
   );
   console.log(
-    "Browser/Auth/Gateway/PostgreSQL smoke passed; screenshots saved under docs/evidence/saint/visual.",
+    "Browser/Auth/Traefik/PostgreSQL smoke passed; screenshots saved under docs/evidence/saint/visual.",
   );
 }
 
@@ -357,7 +357,7 @@ try {
   await run();
 } catch (error) {
   console.error(
-    `Browser/Auth/Gateway/PostgreSQL smoke failed during ${phase}.`,
+    `Browser/Auth/Traefik/PostgreSQL smoke failed during ${phase}.`,
     error instanceof Error ? error.name : "Unknown error",
     failureDetail,
   );
@@ -366,7 +366,7 @@ try {
   await context?.close().catch(() => undefined);
   await browser?.close().catch(() => undefined);
   await stopProcess(nextProcess).catch(() => undefined);
-  await stopServer(gatewayServer).catch(() => undefined);
+  await gatewayServer?.close().catch(() => undefined);
   await stopServer(authServer).catch(() => undefined);
   try {
     await pool.end();

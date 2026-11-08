@@ -1,14 +1,31 @@
 # Tutor Matcher — Implementation Architecture
 
-The platform/identity implementation adds TypeScript Auth and Gateway, a shared transport package, and a Next.js shell. Auth owns PostgreSQL sessions, account/profile data, resets, grants, restrictions and its producer outbox. Gateway uses the public contract inventory, current Auth introspection and signed downstream actor context. Auth's domain collaboration interface uses the five agreed gRPC methods; public operations remain REST. The [platform guide](docs/platform.md) records startup, deployment templates and integration responsibilities. The [evidence record](docs/evidence/saint/README.md) distinguishes actual checks from pending work.
+The current stack combines PR4's Traefik OSS 3.7.17 gateway with Saint's TypeScript Auth and Next.js identity implementation. There is no custom Node/Express request gateway or Consul registry. The [platform guide](docs/platform.md) records local Compose and hosted Swarm setup. [Identity evidence](docs/evidence/saint/README.md) and [Traefik integration evidence](docs/evidence/saint/traefik-integration.md) separate completed earlier checks from pending stacked verification.
 
 The [accepted requirements](docs/requirements.md) govern the delivery target. The [ADR index](docs/adr/README.md) records retained decisions and reconciled changes. The [source documents](docs/sources/README.md) include both original PDFs and the pinned monolith reference.
 
-The [accepted system design](docs/system-design.md) remains the full delivery target. It selects PostgreSQL for Booking and adds Review and Messaging. The [contracts](contracts/README.md) specify the target interfaces. Other owners' services still need migration and integration; the full target is not implemented.
+The [accepted system design](docs/system-design.md) remains the full delivery target. It selects PostgreSQL for Booking and adds Review and Messaging. The [contracts](contracts/README.md) specify 86 public REST operations, eight private REST inventory operations, and 20 private gRPC methods. The ForwardAuth control-plane endpoint is separate from those operation counts. Other owners' services still need migration and integration; the full target is not implemented.
 
-## Historical backend snapshot
+## Current integrated architecture
 
-The remaining sections describe the earlier backend demo before this platform/identity change. They are historical evidence, including the old Auth/Gateway routing, MongoDB Booking and absence of a web UI. They do not describe the new slice or its deployment. Existing target diagrams remain design documents until demonstrated by integrated services.
+The public API uses exact method/path routes from the public OpenAPI inventory under `/api`. Traefik strips caller-supplied identity headers and performs ForwardAuth only for protected routes. Auth's private `GET /internal/gateway/authorize` verifies Gateway workload proof, the browser session, current account state and the operation capability, then issues a 60-second RS256 actor assertion with logical issuer `api-gateway`. Traefik removes the browser token and forwards the actor assertion with its Gateway workload credential to the owning service. The owner validates the request body, resource ownership and business rules.
+
+```mermaid
+flowchart LR
+    Web["Next.js identity UI"] -->|"REST /api"| Edge["Traefik OSS 3.7.17"]
+    Edge -->|"Private ForwardAuth"| Auth["TypeScript Auth"]
+    Edge -->|"Exact OpenAPI routes<br/>verified actor + Gateway workload"| Owners["Six peer owners<br/>Tutor · Booking · Wallet<br/>Review · Messaging · Notification"]
+    Auth --> AuthDB[("PostgreSQL<br/>Auth sessions and outbox")]
+    Owners --> Stores[("Owner databases")]
+    Auth -->|"Durable events"| Rabbit[("RabbitMQ")]
+    Owners -->|"Durable events"| Rabbit
+```
+
+Root Compose starts the identity slice by default; the `target` profile requires real peer-owner images. Hosted deployment uses Traefik Swarm discovery through a restricted Docker API proxy and the existing Doco-CD/Cloudflare path. The existing monolith route on host port `3333` remains reserved; `3334` is a candidate origin only and is not deployed. The full target and hosted rollout are not verified by this documentation update.
+
+## Historical standalone backend demo
+
+The remaining sections preserve the earlier standalone backend demo, including legacy paths without `/api`, MongoDB Booking, former Gateway behavior and the absence of a web UI. Treat them as history, not current routing or deployment instructions. The current target is described above and in [system design](docs/system-design.md).
 
 ## 1. Overview
 
@@ -22,7 +39,7 @@ An arrow represents a request or event sent in the arrow's direction. The databa
 
 ```mermaid
 flowchart LR
-    Client["API client<br/>e.g. Postman"] -->|REST / JSON| Gateway["API Gateway<br/>:8080"]
+    Client["API client<br/>e.g. Postman"] -->|REST / JSON| Gateway["Traefik Gateway<br/>:8080"]
 
     subgraph Services[Application services]
         Auth["Auth Service<br/>REST :4002"]
@@ -57,18 +74,18 @@ flowchart LR
 
 | Component | Interface | Owns | Persistence |
 | --- | --- | --- | --- |
-| **API Gateway** | REST, port `8080` | Public routing, JWT verification, and forwarding authenticated user identity | None |
-| **Auth Service** | REST, port `4002` | Account registration, password verification, and JWT issuance | PostgreSQL `auth_db` |
+| **API Gateway** | REST, port `8080` | Public allowlisted routing, healthy backends, and Auth ForwardAuth | None |
+| **Auth Service** | REST, port `4002` | Account registration, password verification, JWT issuance and private gateway authorization | PostgreSQL `auth_db` |
 | **Tutor Service** | REST, port `4001` | Tutor profiles, publication status, subject offerings, rates, and tutor search | MongoDB `tutor_db` |
 | **Booking Service** | REST, port `4004`; gRPC, port `50052` | Availability slots, booking lifecycle, booking price and cancellation state | MongoDB `booking_db` |
 | **Wallet Service** | REST, port `4003` | Wallet balances, top-ups, lesson charges, refunds, and transaction history | PostgreSQL `wallet_db` |
 | **Notification Service** | RabbitMQ consumer; no public HTTP API | Event-to-message rendering and delivery records | MongoDB `notification_db` |
 
-Each service has its own package manifest and lockfile. Services communicate through their APIs or events; they do not read another service's database directly. The service boundaries are separate processes and Docker containers in Compose, while MongoDB, PostgreSQL, and RabbitMQ are shared infrastructure instances in the local stack.
+Each Node.js business service has its own package manifest and lockfile. Traefik is configured under `api-gateway/` and has no Node package. Services communicate through their APIs or events; they do not read another service's database directly. The service boundaries are separate processes and Docker containers in Compose, while MongoDB, PostgreSQL, and RabbitMQ are shared infrastructure instances in the local stack.
 
 ### API Gateway and authentication
 
-The Gateway routes `/auth/*`, `/tutors/*`, `/availability/*`, `/bookings/*`, and `/wallet/*` to their owning services. Registration and login are public. Tutor reads are public; writes to tutors, availability, bookings, and wallet routes require a valid Bearer token. The Gateway verifies the JWT and forwards the user's ID and email in `x-user-id` and `x-user-email` headers.
+Traefik routes the explicit current public methods/paths under `/auth`, `/tutors`, `/availability`, `/bookings` and `/wallet` to their owners. Registration/login and tutor reads are public. Protected routes use a private Auth ForwardAuth check that verifies the JWT and current account existence. Traefik strips client identity headers, copies Auth's verified `x-user-id`/`x-user-email`, removes the browser token and forwards. Private routes are not public gateway routes. Auth database failure or an empty known Auth pool returns 503 before admission. See [gateway behavior](api-gateway/README.md).
 
 Auth stores password hashes (bcrypt) in PostgreSQL and issues JWTs with a two-hour lifetime. The token subject (`sub`) is the account ID. The current account model does not define student, tutor, or admin role claims; there is no separate admin authorization workflow in this codebase.
 
@@ -143,11 +160,11 @@ Booking and Wallet use different databases and communicate synchronously over RE
 
 ## 6. Runtime and Repository Layout
 
-The root [`compose.yaml`](compose.yaml) defines the local stack. It builds the API Gateway and five domain/worker services, and starts MongoDB, PostgreSQL, RabbitMQ, and Adminer. Only the Gateway is the application entry point exposed to API clients (`127.0.0.1:8080`); database and RabbitMQ management ports are bound to loopback for local development. PostgreSQL hosts `auth_db` and `wallet_db`; MongoDB hosts `tutor_db`, `booking_db`, and `notification_db`.
+The root [`compose.yaml`](compose.yaml) defines the local stack. It builds five domain/worker services and starts Traefik, a restricted Docker API proxy, MongoDB, PostgreSQL, RabbitMQ, and Adminer. [Hosted Swarm configuration](deploy/README.md) consumes published application images and mounted secrets. Traefik uses Docker discovery locally and Swarm discovery when hosted; Consul is removed. Only the Gateway is the application entry point exposed to API clients (`127.0.0.1:8080`); database and RabbitMQ management ports are bound to loopback for local development. PostgreSQL hosts `auth_db` and `wallet_db`; MongoDB hosts `tutor_db`, `booking_db`, and `notification_db`.
 
 | Path | Contents |
 | --- | --- |
-| `api-gateway/` | REST routing and JWT verification |
+| `api-gateway/` | Traefik route allowlist, ForwardAuth and discovery documentation |
 | `auth-service/` | Account API and PostgreSQL access |
 | `tutor-service/` | Tutor API, search, and gRPC client for availability |
 | `booking-service/` | Booking REST API, availability gRPC server, and service clients |
