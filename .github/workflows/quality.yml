@@ -16,7 +16,7 @@ jobs:
           POSTGRES_DB: saint_test
         ports: ['5432:5432']
         options: >-
-          --health-cmd 'pg_isready -U postgres -d saint_test'
+          --health-cmd "pg_isready -U postgres -d saint_test"
           --health-interval 5s --health-timeout 5s --health-retries 20
     env:
       TEST_DATABASE_URL: postgresql://postgres@127.0.0.1:5432/saint_test
