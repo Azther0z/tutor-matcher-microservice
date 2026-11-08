@@ -1,0 +1,460 @@
+# Homelab review template: host cloudflared -> candidate port 3334 -> web.
+# Existing monolith port 3333 is reserved. No host changes were executed.
+version: '3.8'
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?supply database administrator credential}
+      AUTH_DB_PASSWORD: ${AUTH_DB_PASSWORD:?supply owner credential}
+      BOOKING_DB_PASSWORD: ${BOOKING_DB_PASSWORD:?supply owner credential}
+      WALLET_DB_PASSWORD: ${WALLET_DB_PASSWORD:?supply owner credential}
+    volumes:
+    - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+      - CMD-SHELL
+      - pg_isready -U postgres
+      interval: 3s
+      timeout: 3s
+      retries: 30
+    networks:
+    - private
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+      update_config:
+        parallelism: 1
+        order: stop-first
+        failure_action: rollback
+      placement:
+        constraints:
+        - node.labels.tutor_matcher_storage == true
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 768M
+    configs:
+    - source: postgres-init
+      target: /docker-entrypoint-initdb.d/00-owned-databases.sh
+      mode: 292
+  rabbitmq:
+    image: rabbitmq:4.3.6-management
+    environment:
+      RABBITMQ_DEFAULT_USER: auth
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_AUTH_PASSWORD:?supply broker producer credential}
+    volumes:
+    - rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test:
+      - CMD
+      - rabbitmq-diagnostics
+      - -q
+      - ping
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    networks:
+    - private
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+      update_config:
+        parallelism: 1
+        order: stop-first
+        failure_action: rollback
+      placement:
+        constraints:
+        - node.labels.tutor_matcher_storage == true
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+  consul:
+    image: hashicorp/consul:1.21.4
+    command: agent -dev -client=0.0.0.0 -ui
+    networks:
+    - private
+    healthcheck:
+      test:
+      - CMD
+      - consul
+      - members
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+      update_config:
+        parallelism: 1
+        order: stop-first
+        failure_action: rollback
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128M
+  auth-service:
+    networks: &id001
+    - private
+    environment:
+      ACTOR_ASSERTION_PUBLIC_KEY: ${ACTOR_ASSERTION_PUBLIC_KEY:?supply actor verification key}
+      CONSUL_URL: http://consul:8500
+      DEMO_MODE: 'true'
+      PORT: '4002'
+      GRPC_PORT: '50051'
+      DATABASE_URL: postgresql://auth_owner:${AUTH_DB_PASSWORD}@postgres:5432/auth_db
+      JWT_SECRET: ${JWT_SECRET:?supply session signing key}
+      RESET_CONTENT_KEY: ${RESET_CONTENT_KEY:?supply reset content encryption key}
+      IDEMPOTENCY_SECRET: ${IDEMPOTENCY_SECRET:?supply replay fingerprint key}
+      ADMIN_SIGNUP_KEY: ${ADMIN_SIGNUP_KEY:-}
+      RABBITMQ_URL: amqp://auth:${RABBITMQ_AUTH_PASSWORD}@rabbitmq:5672
+      RESET_BASE_URL: ${PUBLIC_BASE_URL:?supply approved HTTPS demo base URL}/password-reset
+      AUTH_WORKLOAD_CREDENTIAL: ${AUTH_WORKLOAD_CREDENTIAL:?supply distinct workload credential}
+      GATEWAY_WORKLOAD_CREDENTIAL: ${GATEWAY_WORKLOAD_CREDENTIAL:?supply distinct workload credential}
+      TUTOR_WORKLOAD_CREDENTIAL: ${TUTOR_WORKLOAD_CREDENTIAL:?supply distinct workload credential}
+      BOOKING_WORKLOAD_CREDENTIAL: ${BOOKING_WORKLOAD_CREDENTIAL:?supply distinct workload credential}
+      WALLET_WORKLOAD_CREDENTIAL: ${WALLET_WORKLOAD_CREDENTIAL:?supply distinct workload credential}
+      REVIEW_WORKLOAD_CREDENTIAL: ${REVIEW_WORKLOAD_CREDENTIAL:?supply distinct workload credential}
+      MESSAGING_WORKLOAD_CREDENTIAL: ${MESSAGING_WORKLOAD_CREDENTIAL:?supply distinct workload credential}
+      NOTIFICATION_WORKLOAD_CREDENTIAL: ${NOTIFICATION_WORKLOAD_CREDENTIAL:?supply distinct workload credential}
+      SERVICE_ADVERTISE_ADDRESS: auth-service
+      AUTH_SYNTHETIC_EMAILS: ${AUTH_SYNTHETIC_EMAILS:-}
+      AUTH_SYNTHETIC_USER_IDS: ${AUTH_SYNTHETIC_USER_IDS:-}
+      AUTH_DEMO_PASSWORD: ${AUTH_DEMO_PASSWORD:-}
+    healthcheck:
+      test:
+      - CMD
+      - node
+      - -e
+      - fetch('http://localhost:4002/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    image: ${AUTH_IMAGE:?supply reviewed commit image}
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+      update_config:
+        parallelism: 1
+        order: stop-first
+        failure_action: rollback
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 384M
+  api-gateway:
+    networks: *id001
+    environment:
+      ACTOR_ASSERTION_PUBLIC_KEY: ${ACTOR_ASSERTION_PUBLIC_KEY:?supply actor verification key}
+      CONSUL_URL: http://consul:8500
+      DEMO_MODE: 'true'
+      PORT: '8080'
+      JWT_SECRET: ${JWT_SECRET}
+      ACTOR_ASSERTION_PRIVATE_KEY: ${ACTOR_ASSERTION_PRIVATE_KEY:?supply actor signing key}
+      AUTH_URL: http://auth-service:4002
+      TUTOR_URL: http://tutor-service:4001
+      BOOKING_URL: http://booking-service:4004
+      WALLET_URL: http://wallet-service:4003
+      REVIEW_URL: http://review-service:4005
+      MESSAGING_URL: http://messaging-service:4006
+      NOTIFICATION_URL: http://notification-service:4007
+      GATEWAY_WORKLOAD_CREDENTIAL: ${GATEWAY_WORKLOAD_CREDENTIAL:?supply distinct workload credential}
+    image: ${GATEWAY_IMAGE:?supply reviewed commit image}
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+      update_config:
+        parallelism: 1
+        order: stop-first
+        failure_action: rollback
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+  web:
+    networks:
+    - private
+    environment:
+      API_GATEWAY_URL: http://api-gateway:8080
+      NEXT_TELEMETRY_DISABLED: '1'
+    image: ${WEB_IMAGE:?supply reviewed commit image}
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+      update_config:
+        parallelism: 1
+        order: stop-first
+        failure_action: rollback
+      placement:
+        constraints:
+        - node.labels.tutor_matcher_storage == true
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+    ports:
+    - target: 3000
+      published: 3334
+      protocol: tcp
+      mode: host
+  mongo:
+    image: mongo:7
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: mongo_admin
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD:?supply Mongo administrator credential}
+      MONGO_CLUSTER_KEY: ${MONGO_CLUSTER_KEY:?supply replica-set key}
+    entrypoint:
+    - /bin/bash
+    - -ec
+    command:
+    - printf "%s" "$$MONGO_CLUSTER_KEY" > /tmp/replica-key; chmod 400 /tmp/replica-key; chown mongodb /tmp/replica-key;
+      exec docker-entrypoint.sh mongod --replSet rs0 --bind_ip_all --keyFile /tmp/replica-key
+    volumes:
+    - mongo-data:/data/db
+    networks:
+    - private
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+      update_config:
+        parallelism: 1
+        order: stop-first
+        failure_action: rollback
+      placement:
+        constraints:
+        - node.labels.tutor_matcher_storage == true
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1024M
+  mongo-init:
+    image: mongo:7
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: mongo_admin
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
+      TUTOR_DB_PASSWORD: ${TUTOR_DB_PASSWORD:?supply owner credential}
+      REVIEW_DB_PASSWORD: ${REVIEW_DB_PASSWORD:?supply owner credential}
+      MESSAGING_DB_PASSWORD: ${MESSAGING_DB_PASSWORD:?supply owner credential}
+      NOTIFICATION_DB_PASSWORD: ${NOTIFICATION_DB_PASSWORD:?supply owner credential}
+    entrypoint:
+    - mongosh
+    - --host
+    - mongo
+    - --quiet
+    - /setup/mongo-init.js
+    networks:
+    - private
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+      mode: replicated-job
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 384M
+    configs:
+    - source: mongo-init
+      target: /setup/mongo-init.js
+  tutor-service:
+    networks: *id001
+    image: ${TUTOR_IMAGE:?supply reviewed immutable owner image}
+    environment:
+      ACTOR_ASSERTION_PUBLIC_KEY: ${ACTOR_ASSERTION_PUBLIC_KEY:?supply actor verification key}
+      CONSUL_URL: http://consul:8500
+      DEMO_MODE: 'true'
+      PORT: '4001'
+      GRPC_PORT: '50053'
+      MONGO_URI: mongodb://tutor_owner:${TUTOR_DB_PASSWORD}@mongo:27017/tutor_db?authSource=tutor_db&replicaSet=rs0
+      BOOKING_GRPC_URL: booking-service:50052
+      AUTH_GRPC_URL: auth-service:50051
+      REVIEW_GRPC_URL: review-service:50055
+      TUTOR_WORKLOAD_CREDENTIAL: ${TUTOR_WORKLOAD_CREDENTIAL:?supply distinct workload credential}
+      AUTH_WORKLOAD_CREDENTIAL: ${AUTH_WORKLOAD_CREDENTIAL:?supply distinct workload credential}
+      BOOKING_WORKLOAD_CREDENTIAL: ${BOOKING_WORKLOAD_CREDENTIAL:?supply distinct workload credential}
+      WALLET_WORKLOAD_CREDENTIAL: ${WALLET_WORKLOAD_CREDENTIAL:?supply distinct workload credential}
+      MESSAGING_WORKLOAD_CREDENTIAL: ${MESSAGING_WORKLOAD_CREDENTIAL:?supply distinct workload credential}
+      GATEWAY_WORKLOAD_CREDENTIAL: ${GATEWAY_WORKLOAD_CREDENTIAL:?supply distinct workload credential}
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+      update_config:
+        parallelism: 1
+        order: stop-first
+        failure_action: rollback
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 384M
+  booking-service:
+    networks: *id001
+    image: ${BOOKING_IMAGE:?supply reviewed immutable owner image}
+    environment:
+      ACTOR_ASSERTION_PUBLIC_KEY: ${ACTOR_ASSERTION_PUBLIC_KEY:?supply actor verification key}
+      CONSUL_URL: http://consul:8500
+      DEMO_MODE: 'true'
+      HTTP_PORT: '4004'
+      GRPC_PORT: '50052'
+      DATABASE_URL: postgresql://booking_owner:${BOOKING_DB_PASSWORD}@postgres:5432/booking_db
+      TUTOR_GRPC_URL: tutor-service:50053
+      WALLET_GRPC_URL: wallet-service:50054
+      AUTH_GRPC_URL: auth-service:50051
+      BOOKING_WORKLOAD_CREDENTIAL: ${BOOKING_WORKLOAD_CREDENTIAL:?supply distinct workload credential}
+      TUTOR_WORKLOAD_CREDENTIAL: ${TUTOR_WORKLOAD_CREDENTIAL:?supply distinct workload credential}
+      WALLET_WORKLOAD_CREDENTIAL: ${WALLET_WORKLOAD_CREDENTIAL:?supply distinct workload credential}
+      REVIEW_WORKLOAD_CREDENTIAL: ${REVIEW_WORKLOAD_CREDENTIAL:?supply distinct workload credential}
+      NOTIFICATION_WORKLOAD_CREDENTIAL: ${NOTIFICATION_WORKLOAD_CREDENTIAL:?supply distinct workload credential}
+      GATEWAY_WORKLOAD_CREDENTIAL: ${GATEWAY_WORKLOAD_CREDENTIAL:?supply distinct workload credential}
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+      update_config:
+        parallelism: 1
+        order: stop-first
+        failure_action: rollback
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 384M
+  wallet-service:
+    networks: *id001
+    image: ${WALLET_IMAGE:?supply reviewed immutable owner image}
+    environment:
+      ACTOR_ASSERTION_PUBLIC_KEY: ${ACTOR_ASSERTION_PUBLIC_KEY:?supply actor verification key}
+      CONSUL_URL: http://consul:8500
+      DEMO_MODE: 'true'
+      PORT: '4003'
+      GRPC_PORT: '50054'
+      DATABASE_URL: postgresql://wallet_owner:${WALLET_DB_PASSWORD}@postgres:5432/wallet_db
+      AUTH_GRPC_URL: auth-service:50051
+      BOOKING_GRPC_URL: booking-service:50052
+      TUTOR_GRPC_URL: tutor-service:50053
+      WALLET_WORKLOAD_CREDENTIAL: ${WALLET_WORKLOAD_CREDENTIAL:?supply distinct workload credential}
+      BOOKING_WORKLOAD_CREDENTIAL: ${BOOKING_WORKLOAD_CREDENTIAL:?supply distinct workload credential}
+      GATEWAY_WORKLOAD_CREDENTIAL: ${GATEWAY_WORKLOAD_CREDENTIAL:?supply distinct workload credential}
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+      update_config:
+        parallelism: 1
+        order: stop-first
+        failure_action: rollback
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 384M
+  review-service:
+    networks: *id001
+    image: ${REVIEW_IMAGE:?supply reviewed immutable owner image}
+    environment:
+      ACTOR_ASSERTION_PUBLIC_KEY: ${ACTOR_ASSERTION_PUBLIC_KEY:?supply actor verification key}
+      CONSUL_URL: http://consul:8500
+      DEMO_MODE: 'true'
+      PORT: '4005'
+      GRPC_PORT: '50055'
+      MONGO_URI: mongodb://review_owner:${REVIEW_DB_PASSWORD}@mongo:27017/review_db?authSource=review_db&replicaSet=rs0
+      AUTH_GRPC_URL: auth-service:50051
+      BOOKING_GRPC_URL: booking-service:50052
+      REVIEW_WORKLOAD_CREDENTIAL: ${REVIEW_WORKLOAD_CREDENTIAL:?supply distinct workload credential}
+      TUTOR_WORKLOAD_CREDENTIAL: ${TUTOR_WORKLOAD_CREDENTIAL:?supply distinct workload credential}
+      GATEWAY_WORKLOAD_CREDENTIAL: ${GATEWAY_WORKLOAD_CREDENTIAL:?supply distinct workload credential}
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+      update_config:
+        parallelism: 1
+        order: stop-first
+        failure_action: rollback
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 384M
+  messaging-service:
+    networks: *id001
+    image: ${MESSAGING_IMAGE:?supply reviewed immutable owner image}
+    environment:
+      ACTOR_ASSERTION_PUBLIC_KEY: ${ACTOR_ASSERTION_PUBLIC_KEY:?supply actor verification key}
+      CONSUL_URL: http://consul:8500
+      DEMO_MODE: 'true'
+      PORT: '4006'
+      MONGO_URI: mongodb://messaging_owner:${MESSAGING_DB_PASSWORD}@mongo:27017/messaging_db?authSource=messaging_db&replicaSet=rs0
+      AUTH_GRPC_URL: auth-service:50051
+      TUTOR_GRPC_URL: tutor-service:50053
+      MESSAGING_WORKLOAD_CREDENTIAL: ${MESSAGING_WORKLOAD_CREDENTIAL:?supply distinct workload credential}
+      GATEWAY_WORKLOAD_CREDENTIAL: ${GATEWAY_WORKLOAD_CREDENTIAL:?supply distinct workload credential}
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+      update_config:
+        parallelism: 1
+        order: stop-first
+        failure_action: rollback
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 384M
+  notification-service:
+    networks: *id001
+    image: ${NOTIFICATION_IMAGE:?supply reviewed immutable owner image}
+    environment:
+      ACTOR_ASSERTION_PUBLIC_KEY: ${ACTOR_ASSERTION_PUBLIC_KEY:?supply actor verification key}
+      CONSUL_URL: http://consul:8500
+      DEMO_MODE: 'true'
+      PORT: '4007'
+      MONGO_URI: mongodb://notification_owner:${NOTIFICATION_DB_PASSWORD}@mongo:27017/notification_db?authSource=notification_db&replicaSet=rs0
+      AUTH_GRPC_URL: auth-service:50051
+      BOOKING_GRPC_URL: booking-service:50052
+      NOTIFICATION_WORKLOAD_CREDENTIAL: ${NOTIFICATION_WORKLOAD_CREDENTIAL:?supply distinct workload credential}
+      GATEWAY_WORKLOAD_CREDENTIAL: ${GATEWAY_WORKLOAD_CREDENTIAL:?supply distinct workload credential}
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+      update_config:
+        parallelism: 1
+        order: stop-first
+        failure_action: rollback
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 384M
+networks:
+  private:
+    driver: overlay
+volumes:
+  postgres-data: {}
+  mongo-data: {}
+  rabbitmq-data: {}
+configs:
+  postgres-init:
+    file: ../postgres-owned-databases.sh
+  mongo-init:
+    file: ../mongo-init.js

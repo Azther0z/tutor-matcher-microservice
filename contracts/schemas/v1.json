@@ -749,7 +749,7 @@
       "required": [],
       "additionalProperties": false,
       "minProperties": 1,
-      "description": "Account Update. See contracts/README.md for authorization and cross-field invariants."
+      "description": "Account settings update. Password changes and deactivation revoke every session; name/email edits preserve sessions. Deactivation preserves identity, reserved email, bookings, funds and history, with admin-only restoration. See contracts/README.md#account-lifecycle for cross-field and transactional rules."
     },
     "StudentProfileWrite": {
       "type": "object",
@@ -867,7 +867,7 @@
         "reason"
       ],
       "additionalProperties": false,
-      "description": "Restriction Write. See contracts/README.md for authorization and cross-field invariants."
+      "description": "Admin-only account transition with a reason. RESTORE applies only to SUSPENDED or DEACTIVATED accounts; bans are permanent for this delivery. See contracts/README.md#account-lifecycle for permitted transitions, session revocation, audit and retries."
     },
     "AccountDetail": {
       "type": "object",

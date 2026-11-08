@@ -12,7 +12,7 @@ The [source index](../sources/README.md) links both original PDFs.
 Use the same approved baseline commit before creating implementation branches. It must include the requirements, design, contracts and handoffs.
 
 Existing code starts in `auth-service/src/`, `api-gateway/src/` and `shared/consul.js`.
-The current services use JavaScript. Their existing behavior is not the complete target.
+The starting snapshot used JavaScript. Local Auth/Gateway, shared adapters, workspace, identity UI and deployment templates have since been implemented; the [evidence record](../evidence/saint/README.md) states what passed. Cross-owner integration and the authorized hosted rollout remain required before this whole handoff is complete.
 
 | Area | Your implementation ownership |
 | --- | --- |
@@ -50,6 +50,9 @@ Registration requires password confirmation, Terms and Privacy agreement. Every 
 Implement login, logout, account/student settings, destination return after login, and controlled Admin provisioning.
 A reset link lasts 30 minutes, works once, and becomes invalid when a new reset is requested.
 Registered and unknown reset addresses receive the same acknowledgement.
+Settings password changes and resets revoke every session, including the current session; return the user to login. Name and email edits preserve sessions. Hash and verify passwords consistently across all Auth paths; do not copy the monolith's plaintext settings-update defect.
+
+Use the [account lifecycle contract](../../contracts/README.md#account-lifecycle) confirmed on 8 November 2026. Suspension lasts until an active admin restores access; bans are permanent for this delivery. Deactivation is soft: retain the identity, reserved email, bookings, funds and history, with admin-only restoration. Restoration requires fresh login and never revives old sessions. No restriction or deactivation implicitly cancels bookings or moves money.
 
 Own PostgreSQL `auth_db`, migrations, sessions, restrictions and the student profile.
 Check current session/account state for new protected requests. A valid but revoked or restricted session must fail.
@@ -112,6 +115,9 @@ Use the same shared baseline and the endpoint inventory below. Do not introduce 
 - Prove signup, login, logout and account settings through the UI.
 - Prove reset expiry, replacement, single use and enumeration-safe acknowledgements.
 - Prove a recent ban blocks a new request with an otherwise unexpired JWT.
+- Prove password changes and resets revoke every session, while name/email edits preserve sessions.
+- Prove admin restoration of suspended/deactivated accounts requires fresh login, banned accounts cannot be restored, and all affected bookings/funds/history remain intact.
+- Prove invalid login credentials return 401 and valid credentials for a restricted account return 403, without a session token.
 - Prove forged identity headers and direct unauthorized owner requests fail.
 - Prove Ideal can resume one approval grant after Auth downtime.
 - Prove Auth events survive broker downtime without duplicate delivery effects.

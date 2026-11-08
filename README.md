@@ -2,11 +2,21 @@
 
 The [accepted requirements and constraints](docs/requirements.md) define the 10 November delivery for the four-person team. See the [ADR index](docs/adr/README.md), [glossary](GLOSSARY.md), [original PDFs](docs/sources/README.md), and [reference monolith](https://github.com/Azther0z/tutor-matcher).
 
-The [accepted system design](docs/system-design.md) defines the target services, database ownership, recovery, flows, and deployment. The [interface contracts](contracts/README.md) define the step-3 target REST, gRPC, events, authorization and recovery behavior. The target uses 20 private domain RPCs, public REST and RabbitMQ. These interfaces are not implemented yet.
+The [accepted system design](docs/system-design.md) defines the target services, database ownership, recovery, flows, and deployment. The [interface contracts](contracts/README.md) define the target REST, gRPC, events, authorization and recovery behavior. The target uses 20 private domain RPCs, public REST and RabbitMQ. Implementation is in progress; this is not a completed nine-use-case delivery.
 
 The [four-member implementation handoffs](docs/handoffs/README.md) assign parallel work to Saint, Ideal, Santa and P, with UI ownership, integration checkpoints and evidence responsibilities.
 
-The implementation description below records the current backend demo. It does not claim completion of the nine-use-case delivery baseline.
+## Current implementation: platform and identity
+
+Saint's slice adds a root npm workspace, TypeScript Auth and Gateway, shared authorization/validation adapters and a Next.js identity shell. It includes the agreed password/session and account-restoration policies. Other owners' business implementations remain separate work.
+
+Use Node.js 22 or newer and run `npm ci` from the repository root. Follow [platform setup and deployment](docs/platform.md) for runtime configuration, local Compose, hosted templates, CI and restoration. See [implementation evidence](docs/evidence/saint/README.md) for checks actually run and remaining acceptance work. Use `npm run typecheck`, `npm run lint`, `npm test`, `npm run contracts` and `npm run build` for local quality checks.
+
+The default Compose startup serves this identity slice. The `target` profile requires the remaining owners' real images; it does not use test doubles as business services. Existing Postman collections remain intact, and the target public collection follows the accepted `/api` paths.
+
+## Historical backend demo
+
+The sections below describe the earlier backend API and its original setup. They are retained as reference, not current startup instructions. Auth/Gateway paths and workspace installation have changed; use the platform guide above for the current slice.
 
 Tutor Matcher is an online marketplace for one-to-one tutoring. Students can browse a tutor's profile, subjects, rates, and available lesson times. Tutors maintain their public offering and open time slots for future bookings.
 

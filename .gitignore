@@ -1,4 +1,14 @@
 **/node_modules/
 **/.env
+**/.env.*
+!**/.env.example
+!**/.env.*.example
 *.log
+**/dist/
+**/.next/
+**/test-results/
+**/playwright-report/
+.runtime/
+*.tsbuildinfo
+backups/
 

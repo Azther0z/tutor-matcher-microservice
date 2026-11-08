@@ -1,0 +1,65 @@
+name: Publish reviewed Saint images to the homelab registry
+# Manual release only. Never schedule trusted homelab runner jobs on a PR/fork.
+on:
+  workflow_dispatch:
+    inputs:
+      runner_labels:
+        description: JSON array of approved trusted runner labels (repository access must be approved first)
+        required: true
+        type: string
+      registry:
+        description: Existing private homelab registry host and port
+        required: true
+        default: registry.azther0z.online:5000
+        type: string
+permissions:
+  contents: read
+jobs:
+  images:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ${{ fromJSON(inputs.runner_labels) }}
+    environment: homelab-release
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Build, smoke test and publish immutable candidates
+        env:
+          REGISTRY: ${{ inputs.registry }}
+          REVISION: ${{ github.sha }}
+          BUILDKIT_HOST: ${{ vars.HOMELAB_BUILDKIT_HOST }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$BUILDKIT_HOST" || { echo 'Approved rootless BuildKit endpoint is not configured.' >&2; exit 1; }
+          command -v buildctl >/dev/null
+          release_dir="$RUNNER_TEMP/tutor-matcher-release"
+          mkdir -p "$release_dir"
+          for workspace in auth-service api-gateway web; do
+            image="$REGISTRY/tutor-matcher-microservice/$workspace:$REVISION"
+            buildctl build \
+              --frontend dockerfile.v0 \
+              --local context=. --local dockerfile=docker \
+              --opt filename=workspace.Dockerfile \
+              --opt "build-arg:WORKSPACE=$workspace" \
+              --output "type=image,name=$image,push=true" \
+              --metadata-file "$release_dir/$workspace.json"
+          done
+          node --input-type=module - "$release_dir" "$REGISTRY" "$REVISION" <<'JS'
+          import fs from 'node:fs';
+          const [directory,registry,revision]=process.argv.slice(2);
+          const images={};
+          for(const workspace of ['auth-service','api-gateway','web']) {
+            const digest=JSON.parse(fs.readFileSync(`${directory}/${workspace}.json`,'utf8'))['containerimage.digest'];
+            if(!/^sha256:[0-9a-f]{64}$/.test(digest))throw new Error('Missing immutable image digest');
+            images[workspace]=`${registry}/tutor-matcher-microservice/${workspace}@${digest}`;
+          }
+          fs.writeFileSync(`${directory}/release.json`,JSON.stringify({revision,images},null,2)+'\n');
+          JS
+      - uses: actions/upload-artifact@v4
+        with:
+          name: saint-image-digests-${{ github.sha }}
+          path: ${{ runner.temp }}/tutor-matcher-release/release.json
+# Publication does not promote GitOps. After release authorization, use the
+# existing homelab reusable promotion workflow to change only each image field.
+# A promotion to GitOps main can trigger Doco-CD and is a separate server change.

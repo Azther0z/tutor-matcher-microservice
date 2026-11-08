@@ -151,6 +151,7 @@ The [identity contract](../contracts/README.md#identity-capability-and-privacy) 
 Each service checks ownership and its domain permissions. Gateway authentication does not allow one user to edit another tutor, conversation, payout account, or booking.
 Public Tutor responses exclude verification-document URLs. Admin workflows expose only the private data required for their authorized task.
 Restrictions preserve paid bookings and financial records. They do not silently move money or erase evidence.
+The user confirmed the [account lifecycle](../contracts/README.md#account-lifecycle) on 8 November 2026: password changes and resets revoke every session; name/email edits preserve sessions. Suspensions require manual admin restoration, bans are permanent for this delivery, and soft-deactivated accounts permit admin-only restoration. Restored accounts require fresh login; old sessions stay revoked. Auth commits credential/status changes and the required session revocation together. Preserve existing bookings, funds, account identity and audit history.
 
 Tutor approval uses a recoverable activation workflow:
 

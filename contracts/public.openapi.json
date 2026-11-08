@@ -375,7 +375,7 @@
       "post": {
         "operationId": "login",
         "summary": "Start a session",
-        "description": "See contracts/README.md for semantic invariants, privacy, retries and pending outcomes.",
+        "description": "Returns 401 INVALID_CREDENTIALS for invalid credentials, or 403 ACCOUNT_RESTRICTED after valid credentials for a non-ACTIVE account. No session is issued in either case.",
         "tags": [
           "auth"
         ],
@@ -412,6 +412,42 @@
           },
           "400": {
             "description": "Malformed JSON or unsupported request syntax.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid credentials. No session is issued.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Valid credentials for a non-ACTIVE account. No session is issued.",
             "headers": {
               "X-Request-Id": {
                 "description": "Trace identity, never an authorization credential.",
@@ -1719,7 +1755,7 @@
       "put": {
         "operationId": "updateAccountSettings",
         "summary": "Update own account settings",
-        "description": "Caller must satisfy current account and capability checks plus owner/resource checks. See contracts/README.md for semantic invariants, privacy, retries and pending outcomes.",
+        "description": "Requires current password for email, password or deactivation changes. Password changes and deactivation revoke every session, including the current one; name/email edits preserve sessions. Deactivation preserves account identity, reserved email, bookings, funds and history. Only an active admin can restore a deactivated account. See contracts/README.md#account-lifecycle for atomicity, fresh-login and retry rules.",
         "tags": [
           "auth"
         ],
@@ -2977,7 +3013,7 @@
       "post": {
         "operationId": "restrictAccount",
         "summary": "Restrict or restore an account",
-        "description": "Caller must satisfy current account and capability checks plus owner/resource checks. See contracts/README.md for semantic invariants, privacy, retries and pending outcomes.",
+        "description": "Current ADMIN only; reason and account revision required. SUSPEND has no automatic expiry; RESTORE allows SUSPENDED or DEACTIVATED accounts to become ACTIVE with fresh login. BAN is permanent for this delivery. See contracts/README.md#account-lifecycle for the transition table, session revocation, audit/event and retry rules.",
         "tags": [
           "auth"
         ],

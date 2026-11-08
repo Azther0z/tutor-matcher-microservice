@@ -1,10 +1,14 @@
-# Tutor Matcher — Current Project Architecture
+# Tutor Matcher — Implementation Architecture
 
-> This document describes the implementation in this repository. It is a backend microservice demo, not the broader target architecture or feature set described in the project proposal.
+The platform/identity implementation adds TypeScript Auth and Gateway, a shared transport package, and a Next.js shell. Auth owns PostgreSQL sessions, account/profile data, resets, grants, restrictions and its producer outbox. Gateway uses the public contract inventory, current Auth introspection and signed downstream actor context. Auth's domain collaboration interface uses the five agreed gRPC methods; public operations remain REST. The [platform guide](docs/platform.md) records startup, deployment templates and integration responsibilities. The [evidence record](docs/evidence/saint/README.md) distinguishes actual checks from pending work.
 
 The [accepted requirements](docs/requirements.md) govern the delivery target. The [ADR index](docs/adr/README.md) records retained decisions and reconciled changes. The [source documents](docs/sources/README.md) include both original PDFs and the pinned monolith reference.
 
-The [accepted system design](docs/system-design.md) is the future target. It selects PostgreSQL for Booking and adds Review and Messaging. The [step-3 contracts](contracts/README.md) specify the target interfaces. The implementation snapshot below still describes the existing MongoDB Booking demo.
+The [accepted system design](docs/system-design.md) remains the full delivery target. It selects PostgreSQL for Booking and adds Review and Messaging. The [contracts](contracts/README.md) specify the target interfaces. Other owners' services still need migration and integration; the full target is not implemented.
+
+## Historical backend snapshot
+
+The remaining sections describe the earlier backend demo before this platform/identity change. They are historical evidence, including the old Auth/Gateway routing, MongoDB Booking and absence of a web UI. They do not describe the new slice or its deployment. Existing target diagrams remain design documents until demonstrated by integrated services.
 
 ## 1. Overview
 

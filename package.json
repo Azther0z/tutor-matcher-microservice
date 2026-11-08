@@ -1,0 +1,49 @@
+{
+  "name": "tutor-matcher",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "shared",
+    "*-service",
+    "api-gateway",
+    "web"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "npm run build -w @tutor-matcher/shared && npm run build -w auth-service && npm run build -w api-gateway && npm run build -w web",
+    "typecheck": "npm run build -w @tutor-matcher/shared && npm run typecheck --workspaces --if-present",
+    "lint": "eslint shared/src api-gateway/src auth-service/src web",
+    "format": "prettier --write package.json tsconfig.base.json eslint.config.mjs scripts",
+    "format:check": "prettier --check package.json tsconfig.base.json eslint.config.mjs scripts",
+    "test": "npm run test --workspaces --if-present",
+    "test:browser": "npm run test:e2e -w web",
+    "contracts": "uv run --offline --with jsonschema==4.26.0 --with pyyaml==6.0.3 python contracts/validate.py --collection \"postman/collections/Tutor Matcher Target Public v1\" && node contracts/check-proto.cjs",
+    "dev:auth": "npm run dev -w auth-service",
+    "dev:gateway": "npm run dev -w api-gateway",
+    "dev:web": "npm run dev -w web",
+    "local": "node scripts/local.mjs",
+    "test:db": "node scripts/test-postgres.mjs",
+    "config:check": "node scripts/check-manifests.mjs",
+    "test:integrated": "node scripts/smoke-identity.mjs",
+    "prepare:hosted": "node scripts/prepare-hosted.mjs",
+    "smoke:browser": "node scripts/smoke-browser.mjs",
+    "smoke:outbox": "node scripts/smoke-outbox.mjs"
+  },
+  "devDependencies": {
+    "@eslint/js": "9.39.5",
+    "@playwright/test": "^1.58.2",
+    "@types/amqplib": "^0.10.7",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/express": "^5.0.6",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^22.19.0",
+    "@types/pg": "^8.16.0",
+    "eslint": "9.39.5",
+    "prettier": "3.9.10",
+    "tsx": "4.23.15",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.72.1"
+  }
+}
