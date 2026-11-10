@@ -522,3 +522,28 @@ fieldset.field legend { font-size: 14px; font-weight: 500; padding: 0; margin-bo
 .subject-head h1 { font-size: 30px; line-height: 1.2; }
 .subject-head .tutor-card-meta { font-size: 15px; }
 .subject-tutor { color: var(--ink); font-weight: 600; font-size: 16px; text-decoration: none; }
+.subject-head-top { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.subject-head-top h1 { margin: 0; }
+.subject-tutor { font-size: 18px; }
+.slot-layout { display: grid; grid-template-columns: 340px 1fr; gap: 32px; }
+.slot-col { display: grid; gap: 12px; align-content: start; }
+.slot-col h2 { margin: 0; font-size: 18px; }
+.slot-col .tutor-card-meta { margin: 0; }
+.lesson-calendar { display: grid; gap: 10px; }
+.lesson-calendar-head { display: flex; align-items: center; justify-content: space-between; font-size: 15px; }
+.lesson-calendar-nav { display: flex; gap: 6px; }
+.lesson-calendar-nav button { width: 30px; height: 30px; border: 1px solid var(--line); border-radius: 8px; background: transparent; color: var(--ink); font-size: 16px; line-height: 1; cursor: pointer; }
+.lesson-calendar-nav button:hover:not(:disabled) { background: #0b0b0b; }
+.lesson-calendar-nav button:disabled { opacity: 0.35; cursor: not-allowed; }
+.lesson-calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.lesson-calendar-weekday { text-align: center; font-size: 12px; color: var(--muted); padding-bottom: 2px; }
+.lesson-calendar-day { aspect-ratio: 1; border: 1px solid var(--line); border-radius: 8px; background: transparent; color: var(--ink); font-size: 14px; cursor: pointer; transition: background 0.15s; }
+.lesson-calendar-day:hover:not(:disabled) { background: #0b0b0b; }
+.lesson-calendar-day:disabled { border-color: transparent; color: var(--muted); opacity: 0.35; cursor: not-allowed; }
+.lesson-calendar-day.is-today { font-weight: 700; }
+.lesson-calendar-day[aria-pressed="true"] { background: var(--amber); border-color: var(--amber); color: var(--on-amber); font-weight: 600; }
+.lesson-calendar-day:focus-visible, .lesson-calendar-nav button:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.28); }
+.slot-grid { grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); }
+.slot-chip { padding: 8px 4px; }
+.slot-chip:disabled { border-color: transparent; background: rgba(255, 255, 255, 0.03); opacity: 0.35; }
+@media (max-width: 800px) { .slot-layout { grid-template-columns: 1fr; gap: 24px; } }

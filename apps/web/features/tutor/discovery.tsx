@@ -8,6 +8,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Field, Notice, focusFirstInvalid } from "@/components/field";
 import { Dropdown } from "@/components/dropdown";
+import { LessonCalendar } from "@/components/lesson-calendar";
 import { useAuth } from "@/lib/auth-context";
 import { ReviewList } from "../review/reviews";
 import {
@@ -419,6 +420,17 @@ export function SubjectDetails({
   const selectedSlots =
     data?.slots.filter((slot) => selected.includes(slot.id)) ?? [];
   const error = selectionError(selectedSlots);
+  const slotByTime = new Map(
+    (data?.slots ?? []).map((slot) => [
+      new Intl.DateTimeFormat("en-GB", {
+        timeZone: "Asia/Bangkok",
+        hour: "2-digit",
+        minute: "2-digit",
+        hourCycle: "h23",
+      }).format(new Date(slot.startsAt)),
+      slot,
+    ]),
+  );
   const firstSlot = [...selectedSlots].sort((a, b) => a.startsAt.localeCompare(b.startsAt))[0];
   const selectionQuery = new URLSearchParams({
     tutorId,
@@ -445,15 +457,17 @@ export function SubjectDetails({
       {data && (
         <>
           <header className="page-heading subject-head">
-            <h1>{data.subject.name}</h1>
-            <p className="tutor-card-meta">
-              With{" "}
+            <div className="subject-head-top">
+              <h1>{data.subject.name}</h1>
               <Link className="subject-tutor" href={`/tutors/${data.tutor.id}`}>
-                {data.tutor.displayName}
+                With {data.tutor.displayName}
               </Link>
-              {data.subject.learningAreas.length > 0 &&
-                `, ${data.subject.learningAreas.join(", ")}`}
-            </p>
+            </div>
+            {data.subject.learningAreas.length > 0 && (
+              <p className="tutor-card-meta">
+                {data.subject.learningAreas.join(", ")}
+              </p>
+            )}
             <p style={{ whiteSpace: "pre-wrap" }}>{data.subject.description}</p>
             <div className="subject-meta">
               <strong>THB {data.subject.hourlyRate}/hour</strong>
@@ -464,52 +478,46 @@ export function SubjectDetails({
             </div>
           </header>
           <section className="panel slot-panel">
-            <div className="slot-panel-head">
-              <h2>Choose your lesson time</h2>
-              <Field
-                id="lesson-date"
-                label="Date (Bangkok)"
-                type="date"
-                min={bangkokDate()}
-                value={date}
-                onChange={(event) => {
-                  if (event.target.value) setDate(event.target.value);
-                }}
-              />
-            </div>
-            <p className="tutor-card-meta">
-              Select 1 to 8 consecutive half-hour slots. All times use
-              Asia/Bangkok.
-            </p>
-            {data.slots.length === 0 && (
-              <p className="empty-state">No free slots on this date.</p>
-            )}
-            <div className="slot-grid" role="group" aria-label="Available half-hour slots">
-              {data.slots.map((slot) => {
-                const on = selected.includes(slot.id);
-                return (
-                  <button
-                    type="button"
-                    key={slot.id}
-                    className="slot-chip"
-                    aria-pressed={on}
-                    disabled={new Date(slot.startsAt).getTime() <= Date.now()}
-                    onClick={() =>
-                      setSelected((previous) =>
-                        on
-                          ? previous.filter((id) => id !== slot.id)
-                          : [...previous, slot.id],
-                      )
-                    }
-                  >
-                    {bangkokTime(slot.startsAt)} to{" "}
-                    {new Intl.DateTimeFormat("en-GB", {
-                      timeZone: "Asia/Bangkok",
-                      timeStyle: "short",
-                    }).format(new Date(slot.endsAt))}
-                  </button>
-                );
-              })}
+            <div className="slot-layout">
+              <div className="slot-col">
+                <h2>Pick a date</h2>
+                <LessonCalendar value={date} min={bangkokDate()} onChange={setDate} />
+              </div>
+              <div className="slot-col">
+                <h2>Pick your time</h2>
+                <p className="tutor-card-meta">
+                  Choose 1 to 8 back-to-back half-hour slots. Times are Asia/Bangkok.
+                </p>
+                {data.slots.length === 0 && (
+                  <p className="empty-state">No free slots on this date.</p>
+                )}
+                <div className="slot-grid" role="group" aria-label="Available half-hour slots">
+                  {Array.from({ length: 48 }, (_, i) => {
+                    const label = `${String(Math.floor(i / 2)).padStart(2, "0")}:${i % 2 ? "30" : "00"}`;
+                    const slot = slotByTime.get(label);
+                    const on = slot ? selected.includes(slot.id) : false;
+                    return (
+                      <button
+                        type="button"
+                        key={label}
+                        className="slot-chip"
+                        aria-pressed={on}
+                        disabled={!slot || new Date(slot.startsAt).getTime() <= Date.now()}
+                        onClick={() =>
+                          slot &&
+                          setSelected((previous) =>
+                            on
+                              ? previous.filter((id) => id !== slot.id)
+                              : [...previous, slot.id],
+                          )
+                        }
+                      >
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
             {selectedSlots.length > 0 && error && (
               <Notice kind="error">{error}</Notice>
@@ -519,8 +527,9 @@ export function SubjectDetails({
             ) : (
               <div className="slot-footer">
                 <span className="tutor-card-meta">
-                  {selectedSlots.length} slots selected, {selectedSlots.length / 2}{" "}
-                  hours. Selecting slots does not reserve them.
+                  {selectedSlots.length === 0
+                    ? "Nothing selected. Selecting slots does not reserve them."
+                    : `${selectedSlots.length * 30} minutes selected on ${date}. Selecting slots does not reserve them.`}
                 </span>
                 {!error && (
                   <Link
