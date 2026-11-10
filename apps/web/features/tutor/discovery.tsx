@@ -1,5 +1,6 @@
 "use client";
 
+import { VerifiedBadge } from "@/components/verified-badge";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -300,26 +301,20 @@ export function Discover() {
               )}
               <div className="account-grid">
             {resource.data.items.map((item) => (
-              <article className="panel" key={item.subject.id}>
-                <p className="eyebrow">ONLINE SUBJECT</p>
+              <article className="panel tutor-card" key={item.subject.id}>
                 <h2>
-                  <Link
-                    className="text-link"
-                    href={`/tutors/${item.subject.tutorId}/subjects/${item.subject.id}`}
-                  >
+                  <Link href={`/tutors/${item.subject.tutorId}/subjects/${item.subject.id}`}>
                     {item.subject.name}
                   </Link>
                 </h2>
-                <p>
-                  <Link
-                    className="text-link"
-                    href={`/tutors/${item.subject.tutorId}`}
-                  >
-                    {item.tutorDisplayName}
-                  </Link>{" "}
-                  <span className="badge">Verified tutor</span>
+                <p className="tutor-card-by">
+                  <Link href={`/tutors/${item.subject.tutorId}`}>{item.tutorDisplayName}</Link>
+                  <VerifiedBadge />
                 </p>
-                <p>{item.subject.description}</p>
+                <p className="tutor-card-meta">
+                  Online · {item.subject.learningAreas.join(", ")}
+                </p>
+                <p className="tutor-card-desc">{item.subject.description}</p>
                 <div className="stat-line">
                   <strong>THB {item.subject.hourlyRate}/hour</strong>
                   <RatingLabel
@@ -327,13 +322,12 @@ export function Discover() {
                     count={item.rating.reviewCount}
                   />
                 </div>
-                <p>
+                <p className="tutor-card-meta">
                   Next available:{" "}
                   {item.nextAvailableAt
                     ? `${bangkokTime(item.nextAvailableAt)} (Bangkok)`
                     : "No future free slots"}
                 </p>
-                <p className="muted">{item.subject.learningAreas.join(", ")}</p>
                 <Link
                   className="button"
                   href={`/tutors/${item.subject.tutorId}/subjects/${item.subject.id}`}
