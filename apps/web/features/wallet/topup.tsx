@@ -45,7 +45,7 @@ export function TopupPage({ params }: { params: Promise<{ topupId: string }> }) 
     <>
       <header className="page-heading"><h1>Top-up</h1></header>
       {topup && !topup.manual && <DemoBanner />}
-      <LoadError failure={error} onRetry={() => void load()} backHref="/wallet" backLabel="Back to wallet"/>
+      <LoadError failure={error} onRetry={() => void load()}/>
       {!topup && !error && <p role="status" className="tutor-card-meta">Loading…</p>}
       {topup && (
         <section className="panel booking-new">
@@ -81,15 +81,12 @@ export function TopupPage({ params }: { params: Promise<{ topupId: string }> }) 
             )}
           </div>
           {!topup.manual && <p className="tutor-card-meta"><strong>Not payable.</strong> This is a demonstration code. Do not scan it with a banking app.</p>}
-          <div className="slot-footer flush">
-            <span className="button-row">
-              <Link className="button button-quiet" href="/wallet">Go to wallet</Link>
-              {topup.status !== "SUCCEEDED" && returnTo && <Link className="button button-quiet" href={`/bookings/${returnTo}`}>Back to booking without paying</Link>}
-            </span>
-            <span className="button-row">
-              {topup.status === "SUCCEEDED" && returnTo && <Link className="button" href={`/bookings/${returnTo}`}>Return to your booking</Link>}
-            </span>
-          </div>
+          {topup.status === "SUCCEEDED" && returnTo && (
+            <div className="slot-footer flush">
+              <span />
+              <Link className="button" href={`/bookings/${returnTo}`}>Return to your booking</Link>
+            </div>
+          )}
         </section>
       )}
     </>

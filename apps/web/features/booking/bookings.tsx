@@ -361,9 +361,6 @@ function BookingDetailContent({ bookingId }: { bookingId: string }) {
       <section className="panel">
         <h1 style={{ fontSize: 22 }}>We couldn’t find that booking.</h1>
         <p className="tutor-card-meta">The booking address is invalid.</p>
-        <Link className="button" href="/bookings">
-          Back to bookings
-        </Link>
       </section>
     );
   const isStudent = booking?.studentUserId === account?.id;

@@ -329,8 +329,6 @@ function ReviewWriterContent({ bookingId }: { bookingId: string }) {
             error={resource.error}
             failure={resource.failure}
             retry={() => void resource.reload()}
-            backHref="/reviews"
-            backLabel="Back to reviews"
           />
           {booking && (
             <section className="panel">
@@ -391,11 +389,6 @@ function ReviewWriterContent({ bookingId }: { bookingId: string }) {
                   review.
                 </Notice>
               )}
-              <p>
-                <Link className="text-link" href={`/bookings/${booking.id}`}>
-                  Back to booking
-                </Link>
-              </p>
             </section>
           )}
         </>

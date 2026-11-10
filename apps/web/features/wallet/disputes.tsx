@@ -132,9 +132,9 @@ export function DisputeDetailPage({ params }: { params: Promise<{ disputeId: str
   useEffect(() => { load(); }, [load]);
   return (
     <>
-      <header className="section-heading"><h1>Dispute</h1><p><Link className="text-link" href="/disputes">Back to disputes</Link></p></header>
+      <header className="page-heading"><h1>Dispute</h1></header>
       <section className="panel">
-        <LoadError failure={error} onRetry={load} backHref="/disputes" backLabel="Back to disputes"/>
+        <LoadError failure={error} onRetry={load}/>
         {!dispute && !error && <p role="status">Loading…</p>}
         {dispute && <><OutcomeSummary dispute={dispute} /><h2>History</h2><AuditList dispute={dispute} /></>}
       </section>
@@ -236,7 +236,7 @@ export function AdminDisputeDetailPage({ params }: { params: Promise<{ disputeId
   const open = detail?.dispute.status === "OPEN";
   return (
     <>
-      <header className="section-heading"><h1>Dispute review</h1><p><Link className="text-link" href="/admin/disputes">Back to disputes</Link></p></header>
+      <header className="page-heading"><h1>Dispute review</h1></header>
       {notice && <Notice kind="success">{notice}</Notice>}
       {error && <Notice kind="error">{error}</Notice>}
       {!detail && !error && <p role="status">Loading…</p>}

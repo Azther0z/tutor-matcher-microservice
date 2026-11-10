@@ -36,7 +36,7 @@ export function TransactionsPage() {
           ]} />
         </div>
       </header>
-      <LoadError failure={error} onRetry={() => void load(1)} backHref="/wallet" backLabel="Back to wallet"/>
+      <LoadError failure={error} onRetry={() => void load(1)}/>
       {pending && !result && <p role="status" className="tutor-card-meta">Loading transactions…</p>}
       {result && result.items.length === 0 && <p className="tutor-card-meta">No transactions yet.</p>}
       {result && result.items.length > 0 && (
@@ -74,7 +74,7 @@ export function TransactionDetailPage({ params }: { params: Promise<{ transactio
   return (
     <>
       <header className="page-heading"><h1>Transaction</h1></header>
-      <LoadError failure={error} onRetry={load} backHref="/wallet/transactions" backLabel="Back to transactions"/>
+      <LoadError failure={error} onRetry={load}/>
       {!tx && !error && <p role="status" className="tutor-card-meta">Loading…</p>}
       {tx && (
         <section className="panel booking-new">

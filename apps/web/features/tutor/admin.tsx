@@ -110,9 +110,6 @@ function DetailContent({ submissionId }: { submissionId: string }) {
   }
   return (
     <>
-      <Link className="text-link" href="/admin/tutor-requests">
-        Back to requests
-      </Link>
       <header className="section-heading">
         <h1>Review tutor submission</h1>
       </header>

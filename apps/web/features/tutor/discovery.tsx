@@ -330,17 +330,12 @@ export function TutorProfile({ tutorId }: { tutorId: string }) {
   const tutor = resource.data;
   return (
     <>
-      <Link className="text-link" href="/discover">
-        Back to discovery
-      </Link>
       {!tutor && <h1 className="page-title">Tutor profile</h1>}
       <ResourceState
         loading={resource.loading}
         error={resource.error}
         failure={resource.failure}
         retry={() => void resource.reload()}
-        backHref="/discover"
-        backLabel="Find tutors"
       />
       {tutor && (
         <>
@@ -463,8 +458,6 @@ export function SubjectDetails({
         error={resource.error}
         failure={resource.failure}
         retry={() => void resource.reload()}
-        backHref={`/tutors/${tutorId}`}
-        backLabel="Back to tutor profile"
       />
       {data && (
         <>

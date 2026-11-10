@@ -134,7 +134,7 @@ export function PayoutDetailPage({ params }: { params: Promise<{ payoutId: strin
   const operation = useOperation(payout?.operation, () => void load());
   return (
     <>
-      <header className="section-heading"><h1>Payout</h1><p><Link className="text-link" href="/wallet/payouts">Back to payouts</Link></p></header>
+      <header className="page-heading"><h1>Payout</h1></header>
       <DemoBanner />
       {error && <Notice kind="error">{error} <button className="button button-quiet" onClick={() => void load()}>Try again</button></Notice>}
       {!payout && !error && <p role="status">Loading…</p>}

@@ -234,9 +234,6 @@ function Thread({ userId }: { userId: string }) {
     return (
       <section className="panel">
         <h1 style={{ fontSize: 22 }}>We couldn’t find that conversation.</h1>
-        <Link className="text-link" href="/messages">
-          Back to messages
-        </Link>
       </section>
     );
   const other = thread?.conversation?.participants.find(
