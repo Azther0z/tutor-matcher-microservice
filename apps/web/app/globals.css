@@ -761,3 +761,5 @@ fieldset.field legend { font-size: 14px; font-weight: 500; padding: 0; margin-bo
 .chat-line { width: 100%; align-self: stretch; }
 .chat-line.own { align-self: stretch; justify-content: flex-start; }
 .chat-line .message-bubble { width: fit-content; min-width: 0; }
+.message-bubble, .message-bubble.own { border-radius: 18px; padding: 8px 14px; }
+.chat-line.joined { margin-top: -4px; }
