@@ -854,3 +854,13 @@ fieldset.field legend { font-size: 14px; font-weight: 500; padding: 0; margin-bo
 .legal-modal-body .form { gap: 14px; }
 .legal-modal-body .field label { font-size: 13px; }
 .legal-modal-foot .slot-footer { margin: 0; padding: 0; border: 0; }
+.tutor-card > h3, .tutor-card > p { margin: 0; }
+.tutor-card > h3 { font-size: 17px; font-weight: 500; }
+.tutor-card > p { font-size: 14px; line-height: 1.5; }
+.tutor-card > .button { align-self: flex-end; margin-top: 6px; min-height: 34px; padding: 6px 14px; font-size: 13px; width: auto; }
+.tutor-card > p > a.text-link { font-weight: 400; font-size: 14px; color: var(--muted); }
+.tutor-card > p > a.text-link:hover { color: var(--ink); text-decoration: underline; }
+.draft-card strong { font-size: 15px; font-weight: 500; }
+.booking-new > .tutor-card-meta, .booking-new .summary-rows { font-size: 14px; }
+.booking-new .button { min-height: 34px; padding: 6px 14px; font-size: 13px; }
+.panel.booking-new > h3 { margin: 0; font-size: 16px; font-weight: 500; }
