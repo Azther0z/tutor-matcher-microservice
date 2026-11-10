@@ -291,21 +291,16 @@ function Thread({ userId }: { userId: string }) {
             ))}
           </div>
           <form className="chat-composer" onSubmit={send}>
-            <textarea
+            <input
               id="content"
               name="content"
+              type="text"
+              autoComplete="off"
               aria-label="Message"
               placeholder="Write a message"
-              rows={1}
               maxLength={2000}
               value={draft}
               onChange={(event) => setDraft(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter" && !event.shiftKey) {
-                  event.preventDefault();
-                  event.currentTarget.form?.requestSubmit();
-                }
-              }}
             />
             <button className="chat-send" disabled={pending || !draft.trim()} aria-label="Send message" title="Send">
               <svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
