@@ -768,3 +768,15 @@ fieldset.field legend { font-size: 14px; font-weight: 500; padding: 0; margin-bo
 .chat-failed { display: flex; align-items: center; gap: 8px; flex: none; padding-bottom: 2px; font-size: 11px; color: #f87171; }
 .chat-failed button { border: 0; background: transparent; padding: 0; color: var(--muted); font-size: 11px; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
 .chat-failed button:hover { color: var(--ink); }
+.menu-anchor { position: relative; display: inline-flex; }
+.admin-button { display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 12px 0 14px; border: 0; border-radius: 8px; background: rgba(250, 204, 21, 0.14); color: #fcd34d; font-size: 14px; font-weight: 600; cursor: pointer; }
+.admin-button:hover, .admin-button[aria-expanded="true"] { background: rgba(250, 204, 21, 0.22); }
+.admin-chevron { opacity: 0.8; }
+.account-menu { min-width: 220px; padding: 6px; }
+.account-menu-head { display: grid; gap: 2px; padding: 10px 12px 12px; margin-bottom: 4px; border-bottom: 1px solid #27272a; }
+.account-menu-head strong { color: #fafafa; font-size: 14px; }
+.account-menu-head span { color: #a1a1aa; font-size: 13px; overflow-wrap: anywhere; }
+.site-header .account-menu a, .site-header .account-menu button { padding: 9px 12px; font-size: 14px; }
+.site-header .account-menu a.current { background: #202020; color: #fff; }
+.account-menu hr { margin: 6px 0; border-top-color: #27272a; }
+.admin-menu { min-width: 200px; }
