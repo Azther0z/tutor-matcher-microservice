@@ -91,7 +91,7 @@ export function TopupRequestPanel({ returnTo, unavailable }: { returnTo: string 
   }
 
   return (
-    <section className="panel" aria-labelledby="topup-heading">
+    <section className="panel topup-panel" aria-labelledby="topup-heading">
       <h2 id="topup-heading">Add funds with PromptPay</h2>
       {returnTo && <Notice kind="info">After an admin approves your top-up you can return to your booking.</Notice>}
       {unavailable && <Notice kind="info">Adding funds is unavailable until your wallet loads.</Notice>}
@@ -109,18 +109,13 @@ export function TopupRequestPanel({ returnTo, unavailable }: { returnTo: string 
         </div>
       ) : (
         <>
-          <p>Enter the amount, scan the QR code with your banking app to transfer it, then attach your transfer slip and send the request. Your balance is credited when an admin approves it.</p>
+          <p className="tutor-card-meta">Enter an amount, scan the QR code to transfer it, then attach your slip. Your balance is credited when an admin approves it.</p>
           <ErrorNotice failure={error} />
-          <form className="form" onSubmit={submit} noValidate aria-busy={pending}>
+          <form className="form topup-form" onSubmit={submit} noValidate aria-busy={pending}>
+            <div className="topup-fields">
             <Field id="amount" label="Amount (THB)" inputMode="decimal" autoComplete="off" placeholder="e.g. 500.00" value={amount}
               error={fields.amount ?? fields.amount_amount} disabled={unavailable || pending}
               onChange={(e) => { setAmount(e.target.value); setKey(newIdempotencyKey()); }} />
-            {normalized && (
-              <figure className="promptpay-qr">
-                <img src={`https://promptpay.io/${PROMPTPAY_ID}/${normalized}.png`} alt={`PromptPay QR code for THB ${normalized}`} width={240} height={240} />
-                <figcaption>Scan to transfer <strong>THB {normalized}</strong></figcaption>
-              </figure>
-            )}
             <div className="field">
               <label htmlFor="slip">Transfer slip</label>
               <input id="slip" name="slip" type="file" accept="image/png,image/jpeg,image/webp" disabled={unavailable || pending}
@@ -132,6 +127,13 @@ export function TopupRequestPanel({ returnTo, unavailable }: { returnTo: string 
               )}
             </div>
             <button className="button" disabled={pending || unavailable || !loaded}>{pending ? "Sending…" : "Send top-up request"}</button>
+            </div>
+            {normalized && (
+              <figure className="promptpay-qr">
+                <img src={`https://promptpay.io/${PROMPTPAY_ID}/${normalized}.png`} alt={`PromptPay QR code for THB ${normalized}`} width={240} height={240} />
+                <figcaption>Scan to transfer <strong>THB {normalized}</strong></figcaption>
+              </figure>
+            )}
           </form>
         </>
       )}

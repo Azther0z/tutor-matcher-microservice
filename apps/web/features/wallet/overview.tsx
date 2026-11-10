@@ -19,8 +19,13 @@ export function returnBookingId(params: URLSearchParams): string | null {
   return value && UUID.test(value) ? value : null;
 }
 
-function Balance({ label, value, hint }: { label: string; value: string; hint?: string }) {
-  return <div className="stat-line"><span className="tiny-label">{label}</span><strong>{value}</strong>{hint && <span className="small-muted">{hint}</span>}</div>;
+function Row({ label, value, hint }: { label: string; value: string; hint?: string }) {
+  return (
+    <div title={hint}>
+      <span>{label}</span>
+      <strong>{value}</strong>
+    </div>
+  );
 }
 
 export function WalletOverviewPage() {
@@ -43,43 +48,47 @@ export function WalletOverviewPage() {
 
   return (
     <>
-      <header className="section-heading">
-        <h1>Your wallet</h1>
-        <p>Posted funds, payout reservations and pending earnings are kept separate.</p>
+      <header className="page-heading page-heading-row">
+        <h1>Wallet</h1>
+        <nav className="wallet-links" aria-label="Wallet pages">
+          <Link href="/wallet/transactions">Transactions</Link>
+          <Link href="/disputes">Disputes</Link>
+          {isTutor && <Link href="/wallet/payout-accounts">Payout accounts</Link>}
+          {isTutor && <Link href="/wallet/payouts">Payouts</Link>}
+          {isAdmin && <Link href="/admin/disputes">Review disputes</Link>}
+          {isAdmin && <Link href="/demo/finance">Demo provider controls</Link>}
+        </nav>
       </header>
       <DemoBanner />
-      {loading && <p role="status">Loading your wallet…</p>}
+      {loading && <p role="status" className="tutor-card-meta">Loading your wallet…</p>}
       <ErrorNotice failure={error} onRetry={() => void load()}/>
       {wallet && (
-        <section className="panel" aria-label="Balances">
-          <div className="account-grid">
-            <Balance label="AVAILABLE" value={formatMoney(wallet.availableBalance)} hint="Spendable now" />
-            <Balance label="POSTED" value={formatMoney(wallet.postedBalance)} hint="Completed movements" />
-            <Balance label="RESERVED FOR PAYOUTS" value={formatMoney(wallet.reservedPayouts)} hint="Held until a payout resolves" />
-            {isTutor && <Balance label="PENDING EARNINGS" value={formatMoney(wallet.pendingEarnings)} hint="Not spendable or payable yet" />}
-            {isTutor && <Balance label="EARNED THIS MONTH" value={formatMoney(wallet.earningsThisMonth)} />}
-            {isTutor && <Balance label="TOTAL PAID OUT" value={formatMoney(wallet.totalPaidOut)} />}
+        <section className="panel wallet-balance" aria-label="Balances">
+          <div className="wallet-available">
+            <span>Available balance</span>
+            <strong>{formatMoney(wallet.availableBalance)}</strong>
+          </div>
+          <div className="summary-rows">
+            <Row label="Posted" value={formatMoney(wallet.postedBalance)} hint="Completed movements" />
+            <Row label="Reserved for payouts" value={formatMoney(wallet.reservedPayouts)} hint="Held until a payout resolves" />
+            {isTutor && <Row label="Pending earnings" value={formatMoney(wallet.pendingEarnings)} hint="Not spendable or payable yet" />}
+            {isTutor && <Row label="Earned this month" value={formatMoney(wallet.earningsThisMonth)} />}
+            {isTutor && <Row label="Total paid out" value={formatMoney(wallet.totalPaidOut)} />}
           </div>
           {wallet.paymentDueBookings.length > 0 && (
-            <div>
-              <h2>Bookings waiting for payment</h2>
-              <ul>{wallet.paymentDueBookings.map((booking) => <li key={booking.id}><Link className="text-link" href={publicPath(booking.url)}>Booking {booking.id.slice(0, 8)}</Link></li>)}</ul>
+            <div className="wallet-due">
+              <h2>Waiting for payment</h2>
+              {wallet.paymentDueBookings.map((booking) => (
+                <Link key={booking.id} href={publicPath(booking.url)}>
+                  <span>Booking {booking.id.slice(0, 8)}</span>
+                  <span className="status-text status-due">Payment due</span>
+                </Link>
+              ))}
             </div>
           )}
         </section>
       )}
       <TopupRequestPanel returnTo={returnTo} unavailable={Boolean(error) && !wallet} />
-      <section className="panel" aria-labelledby="more-wallet-heading">
-        <h2 id="more-wallet-heading">More from your wallet</h2>
-        <div className="button-row">
-          <Link className="button button-quiet" href="/wallet/transactions">Transaction history</Link>
-          <Link className="button button-quiet" href="/disputes">Disputes</Link>
-          {isTutor && <Link className="button button-quiet" href="/wallet/payout-accounts">Payout accounts</Link>}
-          {isTutor && <Link className="button button-quiet" href="/wallet/payouts">Payouts</Link>}
-          {isAdmin && <Link className="button button-quiet" href="/admin/disputes">Review disputes</Link>}
-          {isAdmin && <Link className="button button-quiet" href="/demo/finance">Demo provider controls</Link>}
-        </div>
-      </section>
     </>
   );
 }
