@@ -519,7 +519,7 @@ export function SubjectDetails({
                         <span
                           key={label}
                           className="tooltip-wrap"
-                          data-tip={held ? "Held. Waiting for payment." : "Booked."}
+                          data-tip={held ? "Held" : "Booked"}
                         >
                           <span
                             className={`slot-chip slot-own ${held ? "is-held" : "is-booked"}`}
