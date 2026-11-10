@@ -45,9 +45,11 @@ async function main():Promise<void>{
   const httpServer=app.listen(httpPort,'0.0.0.0');
   const grpcServer=createAuthGrpcServer();
   await listenAuthGrpc(grpcServer,grpcPort);
+  grpcServer.health.setServing(true);
   const stopOutbox=startOutboxPublisher();
   console.log(`[Auth] REST listening on ${httpPort}; gRPC listening on ${grpcPort}`);
   const shutdown=()=>{
+    grpcServer.health.shutdown();
     stopOutbox();
     grpcServer.tryShutdown(()=>undefined);
     httpServer.close(()=>undefined);

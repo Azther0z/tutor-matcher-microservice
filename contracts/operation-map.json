@@ -176,6 +176,17 @@
     ]
   },
   {
+    "operationId": "decideTopup",
+    "owner": "wallet",
+    "protocol": "REST",
+    "surface": "PUBLIC",
+    "method": "POST",
+    "path": "/api/admin/topups/{topupId}/decision",
+    "requirements": [
+      "UC04-03"
+    ]
+  },
+  {
     "operationId": "deletePayoutAccount",
     "owner": "wallet",
     "protocol": "REST",
@@ -649,6 +660,17 @@
     ]
   },
   {
+    "operationId": "getTopupSlip",
+    "owner": "wallet",
+    "protocol": "REST",
+    "surface": "PUBLIC",
+    "method": "GET",
+    "path": "/api/admin/topups/{topupId}/slip",
+    "requirements": [
+      "UC04-03"
+    ]
+  },
+  {
     "operationId": "getTutorCancellationQuote",
     "owner": "booking",
     "protocol": "REST",
@@ -812,6 +834,17 @@
     ]
   },
   {
+    "operationId": "listAdminTopups",
+    "owner": "wallet",
+    "protocol": "REST",
+    "surface": "PUBLIC",
+    "method": "GET",
+    "path": "/api/admin/topups",
+    "requirements": [
+      "UC04-03"
+    ]
+  },
+  {
     "operationId": "listBookings",
     "owner": "booking",
     "protocol": "REST",
@@ -899,6 +932,17 @@
     "path": "/api/admin/review-flags",
     "requirements": [
       "UC08-04"
+    ]
+  },
+  {
+    "operationId": "listTopups",
+    "owner": "wallet",
+    "protocol": "REST",
+    "surface": "PUBLIC",
+    "method": "GET",
+    "path": "/api/wallet/topups",
+    "requirements": [
+      "UC04-01"
     ]
   },
   {
@@ -1295,50 +1339,6 @@
     "path": "/api/profiles/me/tutor/withdraw",
     "requirements": [
       "UC01-03"
-    ]
-  },
-  {
-    "operationId": "listTopups",
-    "owner": "wallet",
-    "protocol": "REST",
-    "surface": "PUBLIC",
-    "method": "GET",
-    "path": "/api/wallet/topups",
-    "requirements": [
-      "UC04-01"
-    ]
-  },
-  {
-    "operationId": "listAdminTopups",
-    "owner": "wallet",
-    "protocol": "REST",
-    "surface": "PUBLIC",
-    "method": "GET",
-    "path": "/api/admin/topups",
-    "requirements": [
-      "UC04-03"
-    ]
-  },
-  {
-    "operationId": "getTopupSlip",
-    "owner": "wallet",
-    "protocol": "REST",
-    "surface": "PUBLIC",
-    "method": "GET",
-    "path": "/api/admin/topups/{topupId}/slip",
-    "requirements": [
-      "UC04-03"
-    ]
-  },
-  {
-    "operationId": "decideTopup",
-    "owner": "wallet",
-    "protocol": "REST",
-    "surface": "PUBLIC",
-    "method": "POST",
-    "path": "/api/admin/topups/{topupId}/decision",
-    "requirements": [
-      "UC04-03"
     ]
   }
 ]

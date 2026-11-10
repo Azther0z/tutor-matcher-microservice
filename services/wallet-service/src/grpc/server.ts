@@ -6,6 +6,7 @@ import type { FinancialService } from '../domain/financial';
 import { AppError, asAppError } from '../errors';
 import { isUuid } from '../ids';
 import { CHANNEL_OPTIONS, decoded, encodeErrorDetail, loadProtos, toWire } from './proto';
+import { createGrpcHealth, type GrpcHealthController } from '@tutor-matcher/shared';
 
 type Unary = (call: grpc.ServerUnaryCall<any, any>, callback: grpc.sendUnaryData<any>) => void;
 
@@ -57,14 +58,15 @@ export function buildHandlers(deps: Deps): Record<string, Unary> {
   };
 }
 
-export async function startGrpcServer(deps: Deps, port: number, host = '0.0.0.0'): Promise<{ server: grpc.Server; port: number }> {
+export async function startGrpcServer(deps: Deps, port: number, host = '0.0.0.0', isReady: () => Promise<boolean> | boolean = () => false): Promise<{ server: grpc.Server; port: number; health: GrpcHealthController }> {
   const proto = loadProtos(deps.contractsDir, ['wallet/v1/finance.proto']) as any;
   const service = proto.tutor_matcher.wallet.v1.WalletFinanceService.service;
   const server = new grpc.Server(CHANNEL_OPTIONS);
   server.addService(service, buildHandlers(deps));
+  const health = createGrpcHealth(server, ['tutor_matcher.wallet.v1.WalletFinanceService'], isReady);
   // The private overlay network plus the per-caller workload credential protect this port; it is never published.
   const bound = await new Promise<number>((resolve, reject) => {
     server.bindAsync(`${host}:${port}`, grpc.ServerCredentials.createInsecure(), (error, actual) => (error ? reject(error) : resolve(actual)));
   });
-  return { server, port: bound };
+  return { server, port: bound, health };
 }

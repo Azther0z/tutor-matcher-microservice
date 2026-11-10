@@ -22,7 +22,7 @@ async function main() {
   const peers = new GrpcPeers();
   const service = new TutorService(store, peers);
   const publisher = new RabbitPublisher();
-  const grpc = createTutorGrpcServer(service);
+  const grpc = createTutorGrpcServer(service, async () => { await store.db.command({ ping: 1 }); return true; });
   await new Promise<void>((resolve, reject) =>
     grpc.bindAsync(
       `0.0.0.0:${process.env.GRPC_PORT ?? 50053}`,
@@ -30,6 +30,7 @@ async function main() {
       (error) => (error ? reject(error) : resolve()),
     ),
   );
+  grpc.health.setServing(true);
   const app = createTutorApp(service, async () => {
     await store.db.command({ ping: 1 });
     return true;
@@ -37,6 +38,7 @@ async function main() {
   const http = app.listen(Number(process.env.PORT ?? 4001));
   const stop = startWorkers(service, store, publisher);
   const close = () => {
+    grpc.health.shutdown();
     stop();
     http.close();
     grpc.forceShutdown();

@@ -353,7 +353,7 @@ test("discovery preserves filters, includes saved preferences and renders genuin
   await expect
     .poll(() => searches.at(-1)?.searchParams.get("preferredLearningAreas"))
     .toBe("mathematics");
-  await page.getByLabel("Maximum hourly rate (THB)").fill("500.00");
+  await page.getByLabel("Max price (THB/hr)").fill("500.00");
   await page.getByRole("button", { name: "Search", exact: true }).click();
   await expect(page).toHaveURL(/maxRate=500.00/);
   await expect(

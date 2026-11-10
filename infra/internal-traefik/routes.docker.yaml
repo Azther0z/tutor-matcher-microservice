@@ -1,0 +1,464 @@
+# Generated from contracts/operation-map.json by scripts/generate-internal-traefik-routes.mjs (docker).
+# Internal owner routes are separate from public gateway routes and omit health/admin paths.
+http:
+  routers:
+    cancelBooking:
+      entryPoints: [internal]
+      rule: Host(`booking.internal`) && PathRegexp(`^/bookings/[^/]+/cancel$`) && Method(`POST`)
+      priority: 10300
+      service: internal-booking-http@docker
+    completeBooking:
+      entryPoints: [internal]
+      rule: Host(`booking.internal`) && PathRegexp(`^/bookings/[^/]+/confirm-completion$`) && Method(`POST`)
+      priority: 10300
+      service: internal-booking-http@docker
+    confirmPasswordReset:
+      entryPoints: [internal]
+      rule: Host(`auth.internal`) && Path(`/auth/password-reset/confirm`) && Method(`POST`)
+      priority: 10300
+      service: internal-auth-http@docker
+    copyTutorSubmission:
+      entryPoints: [internal]
+      rule: Host(`tutor.internal`) && PathRegexp(`^/profiles/me/tutor/submissions/[^/]+/copy$`) && Method(`POST`)
+      priority: 10600
+      service: internal-tutor-http@docker
+    createBooking:
+      entryPoints: [internal]
+      rule: Host(`booking.internal`) && Path(`/bookings`) && Method(`POST`)
+      priority: 10100
+      service: internal-booking-http@docker
+    createPayout:
+      entryPoints: [internal]
+      rule: Host(`wallet.internal`) && Path(`/payouts`) && Method(`POST`)
+      priority: 10100
+      service: internal-wallet-http@docker
+    createPayoutAccount:
+      entryPoints: [internal]
+      rule: Host(`wallet.internal`) && Path(`/payout-accounts`) && Method(`POST`)
+      priority: 10100
+      service: internal-wallet-http@docker
+    createReview:
+      entryPoints: [internal]
+      rule: Host(`review.internal`) && PathRegexp(`^/bookings/[^/]+/review$`) && Method(`POST`)
+      priority: 10300
+      service: internal-review-http@docker
+    createSubject:
+      entryPoints: [internal]
+      rule: Host(`tutor.internal`) && Path(`/profiles/me/tutor/subjects`) && Method(`POST`)
+      priority: 10400
+      service: internal-tutor-http@docker
+    createTopup:
+      entryPoints: [internal]
+      rule: Host(`wallet.internal`) && Path(`/wallet/topups`) && Method(`POST`)
+      priority: 10200
+      service: internal-wallet-http@docker
+    createTutorDraft:
+      entryPoints: [internal]
+      rule: Host(`tutor.internal`) && Path(`/profiles/me/tutor/drafts`) && Method(`POST`)
+      priority: 10400
+      service: internal-tutor-http@docker
+    decideDispute:
+      entryPoints: [internal]
+      rule: Host(`wallet.internal`) && PathRegexp(`^/admin/disputes/[^/]+/decision$`) && Method(`POST`)
+      priority: 10400
+      service: internal-wallet-http@docker
+    decideTopup:
+      entryPoints: [internal]
+      rule: Host(`wallet.internal`) && PathRegexp(`^/admin/topups/[^/]+/decision$`) && Method(`POST`)
+      priority: 10400
+      service: internal-wallet-http@docker
+    deletePayoutAccount:
+      entryPoints: [internal]
+      rule: Host(`wallet.internal`) && PathRegexp(`^/payout-accounts/[^/]+$`) && Method(`DELETE`)
+      priority: 10200
+      service: internal-wallet-http@docker
+    deleteTutorDraft:
+      entryPoints: [internal]
+      rule: Host(`tutor.internal`) && PathRegexp(`^/profiles/me/tutor/drafts/[^/]+$`) && Method(`DELETE`)
+      priority: 10500
+      service: internal-tutor-http@docker
+    flagReview:
+      entryPoints: [internal]
+      rule: Host(`review.internal`) && PathRegexp(`^/reviews/[^/]+/flags$`) && Method(`POST`)
+      priority: 10300
+      service: internal-review-http@docker
+    getAccountSettings:
+      entryPoints: [internal]
+      rule: Host(`auth.internal`) && Path(`/profiles/me/account`) && Method(`GET`)
+      priority: 10300
+      service: internal-auth-http@docker
+    getAdminAccount:
+      entryPoints: [internal]
+      rule: Host(`auth.internal`) && PathRegexp(`^/admin/users/[^/]+$`) && Method(`GET`)
+      priority: 10300
+      service: internal-auth-http@docker
+    getAdminDispute:
+      entryPoints: [internal]
+      rule: Host(`wallet.internal`) && PathRegexp(`^/admin/disputes/[^/]+$`) && Method(`GET`)
+      priority: 10300
+      service: internal-wallet-http@docker
+    getBooking:
+      entryPoints: [internal]
+      rule: Host(`booking.internal`) && PathRegexp(`^/bookings/[^/]+$`) && Method(`GET`)
+      priority: 10200
+      service: internal-booking-http@docker
+    getCurrentAccount:
+      entryPoints: [internal]
+      rule: Host(`auth.internal`) && Path(`/auth/me`) && Method(`GET`)
+      priority: 10200
+      service: internal-auth-http@docker
+    getDemoResetContent:
+      entryPoints: [internal]
+      rule: Host(`auth.internal`) && PathRegexp(`^/demo/password-resets/[^/]+$`) && Method(`GET`)
+      priority: 10300
+      service: internal-auth-http@docker
+    getInbox:
+      entryPoints: [internal]
+      rule: Host(`messaging.internal`) && Path(`/messages/inbox`) && Method(`GET`)
+      priority: 10200
+      service: internal-messaging-http@docker
+    getLearningAreas:
+      entryPoints: [internal]
+      rule: Host(`tutor.internal`) && Path(`/discovery/learning-areas`) && Method(`GET`)
+      priority: 10200
+      service: internal-tutor-http@docker
+    getNeedsConfirmation:
+      entryPoints: [internal]
+      rule: Host(`booking.internal`) && Path(`/bookings/tutor/needs-confirmation`) && Method(`GET`)
+      priority: 10300
+      service: internal-booking-http@docker
+    getNotificationPreferences:
+      entryPoints: [internal]
+      rule: Host(`notification.internal`) && Path(`/notifications/preferences`) && Method(`GET`)
+      priority: 10200
+      service: internal-notification-http@docker
+    getOwnAvailabilityCalendar:
+      entryPoints: [internal]
+      rule: Host(`booking.internal`) && Path(`/profiles/me/tutor/availability/calendar`) && Method(`GET`)
+      priority: 10500
+      service: internal-booking-http@docker
+    getOwnAvailabilityDay:
+      entryPoints: [internal]
+      rule: Host(`booking.internal`) && PathRegexp(`^/profiles/me/tutor/availability/[^/]+$`) && Method(`GET`)
+      priority: 10500
+      service: internal-booking-http@docker
+    getOwnDispute:
+      entryPoints: [internal]
+      rule: Host(`wallet.internal`) && PathRegexp(`^/disputes/[^/]+$`) && Method(`GET`)
+      priority: 10200
+      service: internal-wallet-http@docker
+    getPayout:
+      entryPoints: [internal]
+      rule: Host(`wallet.internal`) && PathRegexp(`^/payouts/[^/]+$`) && Method(`GET`)
+      priority: 10200
+      service: internal-wallet-http@docker
+    getPayoutBanks:
+      entryPoints: [internal]
+      rule: Host(`wallet.internal`) && Path(`/payout-accounts/banks`) && Method(`GET`)
+      priority: 10200
+      service: internal-wallet-http@docker
+    getPublicSubject:
+      entryPoints: [internal]
+      rule: Host(`tutor.internal`) && PathRegexp(`^/discovery/tutors/[^/]+/subjects/[^/]+$`) && Method(`GET`)
+      priority: 10500
+      service: internal-tutor-http@docker
+    getPublicTutor:
+      entryPoints: [internal]
+      rule: Host(`tutor.internal`) && PathRegexp(`^/discovery/tutors/[^/]+/profile$`) && Method(`GET`)
+      priority: 10400
+      service: internal-tutor-http@docker
+    getSearchPriceRange:
+      entryPoints: [internal]
+      rule: Host(`tutor.internal`) && Path(`/discovery/price-range`) && Method(`GET`)
+      priority: 10200
+      service: internal-tutor-http@docker
+    getStudentCancellationQuote:
+      entryPoints: [internal]
+      rule: Host(`booking.internal`) && PathRegexp(`^/bookings/[^/]+/cancellation-quote$`) && Method(`GET`)
+      priority: 10300
+      service: internal-booking-http@docker
+    getStudentProfile:
+      entryPoints: [internal]
+      rule: Host(`auth.internal`) && Path(`/profiles/me/student`) && Method(`GET`)
+      priority: 10300
+      service: internal-auth-http@docker
+    getThread:
+      entryPoints: [internal]
+      rule: Host(`messaging.internal`) && PathRegexp(`^/messages/thread/[^/]+$`) && Method(`GET`)
+      priority: 10300
+      service: internal-messaging-http@docker
+    getTopup:
+      entryPoints: [internal]
+      rule: Host(`wallet.internal`) && PathRegexp(`^/wallet/topups/[^/]+$`) && Method(`GET`)
+      priority: 10300
+      service: internal-wallet-http@docker
+    getTopupSlip:
+      entryPoints: [internal]
+      rule: Host(`wallet.internal`) && PathRegexp(`^/admin/topups/[^/]+/slip$`) && Method(`GET`)
+      priority: 10400
+      service: internal-wallet-http@docker
+    getTutorCancellationQuote:
+      entryPoints: [internal]
+      rule: Host(`booking.internal`) && PathRegexp(`^/bookings/[^/]+/tutor-cancellation-quote$`) && Method(`GET`)
+      priority: 10300
+      service: internal-booking-http@docker
+    getTutorRequest:
+      entryPoints: [internal]
+      rule: Host(`tutor.internal`) && PathRegexp(`^/admin/tutor-requests/[^/]+$`) && Method(`GET`)
+      priority: 10300
+      service: internal-tutor-http@docker
+    getTutorUpcoming:
+      entryPoints: [internal]
+      rule: Host(`booking.internal`) && Path(`/bookings/tutor/upcoming`) && Method(`GET`)
+      priority: 10300
+      service: internal-booking-http@docker
+    getTutorWorkspace:
+      entryPoints: [internal]
+      rule: Host(`tutor.internal`) && Path(`/profiles/me/tutor`) && Method(`GET`)
+      priority: 10300
+      service: internal-tutor-http@docker
+    getWallet:
+      entryPoints: [internal]
+      rule: Host(`wallet.internal`) && Path(`/wallet`) && Method(`GET`)
+      priority: 10100
+      service: internal-wallet-http@docker
+    getWalletTransaction:
+      entryPoints: [internal]
+      rule: Host(`wallet.internal`) && PathRegexp(`^/wallet/transactions/[^/]+$`) && Method(`GET`)
+      priority: 10300
+      service: internal-wallet-http@docker
+    listAdminDisputes:
+      entryPoints: [internal]
+      rule: Host(`wallet.internal`) && Path(`/admin/disputes`) && Method(`GET`)
+      priority: 10200
+      service: internal-wallet-http@docker
+    listAdminTopups:
+      entryPoints: [internal]
+      rule: Host(`wallet.internal`) && Path(`/admin/topups`) && Method(`GET`)
+      priority: 10200
+      service: internal-wallet-http@docker
+    listBookings:
+      entryPoints: [internal]
+      rule: Host(`booking.internal`) && Path(`/bookings`) && Method(`GET`)
+      priority: 10100
+      service: internal-booking-http@docker
+    listOwnDisputes:
+      entryPoints: [internal]
+      rule: Host(`wallet.internal`) && Path(`/disputes`) && Method(`GET`)
+      priority: 10100
+      service: internal-wallet-http@docker
+    listOwnNotifications:
+      entryPoints: [internal]
+      rule: Host(`notification.internal`) && Path(`/notifications`) && Method(`GET`)
+      priority: 10100
+      service: internal-notification-http@docker
+    listOwnSubjects:
+      entryPoints: [internal]
+      rule: Host(`tutor.internal`) && Path(`/profiles/me/tutor/subjects`) && Method(`GET`)
+      priority: 10400
+      service: internal-tutor-http@docker
+    listPayoutAccounts:
+      entryPoints: [internal]
+      rule: Host(`wallet.internal`) && Path(`/payout-accounts`) && Method(`GET`)
+      priority: 10100
+      service: internal-wallet-http@docker
+    listPayouts:
+      entryPoints: [internal]
+      rule: Host(`wallet.internal`) && Path(`/payouts`) && Method(`GET`)
+      priority: 10100
+      service: internal-wallet-http@docker
+    listPublicReviews:
+      entryPoints: [internal]
+      rule: Host(`review.internal`) && Path(`/reviews`) && Method(`GET`)
+      priority: 10100
+      service: internal-review-http@docker
+    listReviewFlags:
+      entryPoints: [internal]
+      rule: Host(`review.internal`) && Path(`/admin/review-flags`) && Method(`GET`)
+      priority: 10200
+      service: internal-review-http@docker
+    listTopups:
+      entryPoints: [internal]
+      rule: Host(`wallet.internal`) && Path(`/wallet/topups`) && Method(`GET`)
+      priority: 10200
+      service: internal-wallet-http@docker
+    listTutorRequests:
+      entryPoints: [internal]
+      rule: Host(`tutor.internal`) && Path(`/admin/tutor-requests`) && Method(`GET`)
+      priority: 10200
+      service: internal-tutor-http@docker
+    listWalletTransactions:
+      entryPoints: [internal]
+      rule: Host(`wallet.internal`) && Path(`/wallet/transactions`) && Method(`GET`)
+      priority: 10200
+      service: internal-wallet-http@docker
+    login:
+      entryPoints: [internal]
+      rule: Host(`auth.internal`) && Path(`/auth/login`) && Method(`POST`)
+      priority: 10200
+      service: internal-auth-http@docker
+    logout:
+      entryPoints: [internal]
+      rule: Host(`auth.internal`) && Path(`/auth/logout`) && Method(`POST`)
+      priority: 10200
+      service: internal-auth-http@docker
+    markThreadRead:
+      entryPoints: [internal]
+      rule: Host(`messaging.internal`) && PathRegexp(`^/messages/thread/[^/]+/read$`) && Method(`PUT`)
+      priority: 10400
+      service: internal-messaging-http@docker
+    moderateReview:
+      entryPoints: [internal]
+      rule: Host(`review.internal`) && PathRegexp(`^/admin/reviews/[^/]+/moderation$`) && Method(`POST`)
+      priority: 10400
+      service: internal-review-http@docker
+    openDispute:
+      entryPoints: [internal]
+      rule: Host(`wallet.internal`) && Path(`/disputes`) && Method(`POST`)
+      priority: 10100
+      service: internal-wallet-http@docker
+    payBooking:
+      entryPoints: [internal]
+      rule: Host(`booking.internal`) && PathRegexp(`^/bookings/[^/]+/confirm-payment$`) && Method(`POST`)
+      priority: 10300
+      service: internal-booking-http@docker
+    putAvailabilitySlot:
+      entryPoints: [internal]
+      rule: Host(`booking.internal`) && PathRegexp(`^/profiles/me/tutor/availability/[^/]+/[^/]+$`) && Method(`PUT`)
+      priority: 10600
+      service: internal-booking-http@docker
+    putMeetingOverride:
+      entryPoints: [internal]
+      rule: Host(`booking.internal`) && PathRegexp(`^/bookings/[^/]+/meeting-link$`) && Method(`PATCH`)
+      priority: 10300
+      service: internal-booking-http@docker
+    putNotificationPreferences:
+      entryPoints: [internal]
+      rule: Host(`notification.internal`) && Path(`/notifications/preferences`) && Method(`PUT`)
+      priority: 10200
+      service: internal-notification-http@docker
+    putStudentProfile:
+      entryPoints: [internal]
+      rule: Host(`auth.internal`) && Path(`/profiles/me/student`) && Method(`PUT`)
+      priority: 10300
+      service: internal-auth-http@docker
+    replyToReview:
+      entryPoints: [internal]
+      rule: Host(`review.internal`) && PathRegexp(`^/reviews/[^/]+/reply$`) && Method(`POST`)
+      priority: 10300
+      service: internal-review-http@docker
+    requestPasswordReset:
+      entryPoints: [internal]
+      rule: Host(`auth.internal`) && Path(`/auth/password-reset/request`) && Method(`POST`)
+      priority: 10300
+      service: internal-auth-http@docker
+    restrictAccount:
+      entryPoints: [internal]
+      rule: Host(`auth.internal`) && PathRegexp(`^/admin/users/[^/]+/restrictions$`) && Method(`POST`)
+      priority: 10400
+      service: internal-auth-http@docker
+    reviewTutorSubmission:
+      entryPoints: [internal]
+      rule: Host(`tutor.internal`) && PathRegexp(`^/admin/tutor-requests/[^/]+/review$`) && Method(`POST`)
+      priority: 10400
+      service: internal-tutor-http@docker
+    searchAccounts:
+      entryPoints: [internal]
+      rule: Host(`auth.internal`) && Path(`/admin/users`) && Method(`GET`)
+      priority: 10200
+      service: internal-auth-http@docker
+    searchTutorSubjects:
+      entryPoints: [internal]
+      rule: Host(`tutor.internal`) && Path(`/discovery/tutors`) && Method(`GET`)
+      priority: 10200
+      service: internal-tutor-http@docker
+    sendMessage:
+      entryPoints: [internal]
+      rule: Host(`messaging.internal`) && Path(`/messages`) && Method(`POST`)
+      priority: 10100
+      service: internal-messaging-http@docker
+    setDefaultPayoutAccount:
+      entryPoints: [internal]
+      rule: Host(`wallet.internal`) && PathRegexp(`^/payout-accounts/[^/]+/default$`) && Method(`PATCH`)
+      priority: 10300
+      service: internal-wallet-http@docker
+    setDemoMeetingsOutcome:
+      entryPoints: [internal]
+      rule: Host(`booking.internal`) && PathRegexp(`^/demo/meetings/[^/]+/outcome$`) && Method(`POST`)
+      priority: 10400
+      service: internal-booking-http@docker
+    setDemoPayoutsOutcome:
+      entryPoints: [internal]
+      rule: Host(`wallet.internal`) && PathRegexp(`^/demo/payouts/[^/]+/outcome$`) && Method(`POST`)
+      priority: 10400
+      service: internal-wallet-http@docker
+    setDemoTopupsOutcome:
+      entryPoints: [internal]
+      rule: Host(`wallet.internal`) && PathRegexp(`^/demo/topups/[^/]+/outcome$`) && Method(`POST`)
+      priority: 10400
+      service: internal-wallet-http@docker
+    setTutorPublication:
+      entryPoints: [internal]
+      rule: Host(`tutor.internal`) && Path(`/profiles/me/tutor/publication`) && Method(`PATCH`)
+      priority: 10400
+      service: internal-tutor-http@docker
+    signup:
+      entryPoints: [internal]
+      rule: Host(`auth.internal`) && Path(`/auth/signup`) && Method(`POST`)
+      priority: 10200
+      service: internal-auth-http@docker
+    submitTutorDraft:
+      entryPoints: [internal]
+      rule: Host(`tutor.internal`) && PathRegexp(`^/profiles/me/tutor/drafts/[^/]+/submit$`) && Method(`POST`)
+      priority: 10600
+      service: internal-tutor-http@docker
+    tutorCancelBooking:
+      entryPoints: [internal]
+      rule: Host(`booking.internal`) && PathRegexp(`^/bookings/[^/]+/tutor-cancel$`) && Method(`POST`)
+      priority: 10300
+      service: internal-booking-http@docker
+    updateAccountSettings:
+      entryPoints: [internal]
+      rule: Host(`auth.internal`) && Path(`/profiles/me/account`) && Method(`PUT`)
+      priority: 10300
+      service: internal-auth-http@docker
+    updateSubject:
+      entryPoints: [internal]
+      rule: Host(`tutor.internal`) && PathRegexp(`^/profiles/me/tutor/subjects/[^/]+$`) && Method(`PUT`)
+      priority: 10500
+      service: internal-tutor-http@docker
+    updateTutorDraft:
+      entryPoints: [internal]
+      rule: Host(`tutor.internal`) && PathRegexp(`^/profiles/me/tutor/drafts/[^/]+$`) && Method(`PUT`)
+      priority: 10500
+      service: internal-tutor-http@docker
+    validatePasswordReset:
+      entryPoints: [internal]
+      rule: Host(`auth.internal`) && Path(`/auth/password-reset/validate`) && Method(`POST`)
+      priority: 10300
+      service: internal-auth-http@docker
+    withdrawTutorSubmission:
+      entryPoints: [internal]
+      rule: Host(`tutor.internal`) && Path(`/profiles/me/tutor/withdraw`) && Method(`POST`)
+      priority: 10400
+      service: internal-tutor-http@docker
+    auth-grpc:
+      entryPoints: [internal]
+      rule: Host(`auth.internal`) && (Path(`/tutor_matcher.auth.v1.AuthCollaborationService/GetResetNotificationContent`) || Path(`/tutor_matcher.auth.v1.AuthCollaborationService/GetTutorGrant`) || Path(`/tutor_matcher.auth.v1.AuthCollaborationService/GrantTutorCapability`) || Path(`/tutor_matcher.auth.v1.AuthCollaborationService/ListActiveAdmins`) || Path(`/tutor_matcher.auth.v1.AuthCollaborationService/LookupAccounts`))
+      service: internal-auth-grpc@docker
+    booking-grpc:
+      entryPoints: [internal]
+      rule: Host(`booking.internal`) && (Path(`/tutor_matcher.booking.v1.AvailabilityService/BatchGetAvailability`) || Path(`/tutor_matcher.booking.v1.AvailabilityService/GetAvailability`) || Path(`/tutor_matcher.booking.v1.BookingEvidenceService/GetBookingEvidence`) || Path(`/tutor_matcher.booking.v1.BookingEvidenceService/GetReminderEligibility`) || Path(`/tutor_matcher.booking.v1.BookingEvidenceService/GetReviewEligibility`))
+      service: internal-booking-grpc@docker
+    review-grpc:
+      entryPoints: [internal]
+      rule: Host(`review.internal`) && (Path(`/tutor_matcher.review.v1.ReviewRatingService/GetRatingSummaries`))
+      service: internal-review-grpc@docker
+    tutor-grpc:
+      entryPoints: [internal]
+      rule: Host(`tutor.internal`) && (Path(`/tutor_matcher.tutor.v1.TutorCatalogueService/GetBookableSubject`) || Path(`/tutor_matcher.tutor.v1.TutorCatalogueService/GetTutorEligibility`))
+      service: internal-tutor-grpc@docker
+    wallet-grpc:
+      entryPoints: [internal]
+      rule: Host(`wallet.internal`) && (Path(`/tutor_matcher.wallet.v1.WalletFinanceService/ApplyCancellationRefund`) || Path(`/tutor_matcher.wallet.v1.WalletFinanceService/ApplyLessonCharge`) || Path(`/tutor_matcher.wallet.v1.WalletFinanceService/GetBookingFinancialRecord`) || Path(`/tutor_matcher.wallet.v1.WalletFinanceService/GetLessonCharge`) || Path(`/tutor_matcher.wallet.v1.WalletFinanceService/GetRefundOutcome`) || Path(`/tutor_matcher.wallet.v1.WalletFinanceService/RecordLessonCompletion`) || Path(`/tutor_matcher.wallet.v1.WalletFinanceService/ResolveOrCloseLessonCharge`))
+      service: internal-wallet-grpc@docker

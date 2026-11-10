@@ -97,6 +97,10 @@ export function Discover() {
   const searchDown = Boolean(
     areas.error || range.error || (resource.failure?.outage ?? false),
   );
+  const failures = [areas.failure, range.failure, resource.failure];
+  const hasUnstructuredOutage = failures.some(
+    (failure) => failure?.outage && failure.unstructured,
+  );
   const reloadCatalogue = () => {
     void areas.reload();
     void range.reload();
@@ -149,7 +153,9 @@ export function Discover() {
         <aside className="search-side" aria-label="Filters">
           {searchDown && (
             <Notice kind="error" requestId={resource.failure?.requestId}>
-              {resource.failure?.outage
+              {hasUnstructuredOutage
+                ? "Tutor search is unavailable right now."
+                : resource.failure?.outage
                 ? resource.failure.message
                 : "Search is unavailable right now."}{" "}
               <button className="button button-quiet" onClick={reloadCatalogue}>
@@ -272,6 +278,7 @@ export function Discover() {
                 id="sort"
                 name="sort"
                 defaultValue={query.get("sort") ?? "RECOMMENDED"}
+                disabled={searchDown || areas.loading}
                 onValueChange={(value) => apply({ sort: value === "RECOMMENDED" ? null : value })}
                 options={[
                   { value: "RECOMMENDED", label: "Recommended" },

@@ -81,7 +81,7 @@ flowchart LR
 | **Wallet Service** | REST, port `4003` | Wallet balances, top-ups, lesson charges, refunds, and transaction history | PostgreSQL `wallet_db` |
 | **Notification Service** | RabbitMQ consumer; no public HTTP API | Event-to-message rendering and delivery records | MongoDB `notification_db` |
 
-Each Node.js business service has its own package manifest and lockfile. Traefik is configured under `infra/gateway/` and has no Node package. Services communicate through their APIs or events; they do not read another service's database directly. The service boundaries are separate processes and Docker containers in Compose, while MongoDB, PostgreSQL, and RabbitMQ are shared infrastructure instances in the local stack.
+Each Node.js business service has its own package manifest and lockfile. Public Traefik routes are configured under `infra/gateway/`; private service routes are configured under `infra/internal-traefik/`. Services communicate through their APIs or events; they do not read another service's database directly. The service boundaries are separate processes and Docker containers in Compose, while MongoDB, PostgreSQL, and RabbitMQ are shared infrastructure instances in the local stack.
 
 ### API Gateway and authentication
 
@@ -160,7 +160,7 @@ Booking and Wallet use different databases and communicate synchronously over RE
 
 ## 6. Runtime and Repository Layout
 
-The root [`compose.yaml`](compose.yaml) defines the local stack. It builds five domain/worker services and starts Traefik, a restricted Docker API proxy, MongoDB, PostgreSQL, RabbitMQ, and Adminer. [Hosted Swarm configuration](infra/hosted/README.md) consumes published application images and mounted secrets. Traefik uses Docker discovery locally and Swarm discovery when hosted; Consul is removed. Only the Gateway is the application entry point exposed to API clients (`127.0.0.1:8080`); database and RabbitMQ management ports are bound to loopback for local development. PostgreSQL hosts `auth_db` and `wallet_db`; MongoDB hosts `tutor_db`, `booking_db`, and `notification_db`.
+The root [`compose.yaml`](compose.yaml) defines the local stack. It builds five domain/worker services and starts separate public and internal Traefik instances, a restricted Docker API proxy, MongoDB, PostgreSQL, RabbitMQ, and Adminer. [Hosted Swarm configuration](infra/hosted/README.md) consumes published application images and mounted secrets. The public gateway uses Docker discovery locally and Swarm discovery when hosted, routing directly to owner tasks. Internal calls use private owner aliases through internal Traefik. Only the public Gateway is exposed to API clients (`127.0.0.1:8080`); the internal entrypoint has no published port. Database and RabbitMQ management ports are bound to loopback for local development. PostgreSQL hosts `auth_db` and `wallet_db`; MongoDB hosts `tutor_db`, `booking_db`, and `notification_db`.
 
 | Path | Contents |
 | --- | --- |

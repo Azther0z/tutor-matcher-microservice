@@ -4,7 +4,7 @@ import Link from "next/link";
 import { use, useCallback, useEffect, useState } from "react";
 import { LoadError } from "@/components/field";
 import { Dropdown } from "@/components/dropdown";
-import { api, failureOf, type Failure } from "@/lib/api";
+import { api, failureOf, isUuid, type Failure } from "@/lib/api";
 import { Pager, StatusBadge } from "./common";
 import { formatMoney, formatTime, titleCase } from "./format";
 import { TRANSACTION_TYPES, type Paged, type WalletTransaction } from "./types";
@@ -74,6 +74,10 @@ export function TransactionDetailPage({ params }: { params: Promise<{ transactio
   const [error, setError] = useState<Failure | null>(null);
   const load = useCallback(() => {
     setError(null);
+    if (!isUuid(transactionId)) {
+      setError({ message: "Request parameters are invalid.", status: 400, missing: true, outage: false });
+      return;
+    }
     api<WalletTransaction>(`/wallet/transactions/${transactionId}`).then(setTx).catch((e) => setError(failureOf(e, "We couldn’t load this transaction.")));
   }, [transactionId]);
   useEffect(() => { load(); }, [load]);

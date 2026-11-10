@@ -6,6 +6,7 @@ import type { Ctx } from '../domain/context';
 import { batchGetAvailability, getAvailability, type AvailabilityQuery } from '../domain/slots';
 import { bookingEvidence, reminderEligibility, reviewEligibility } from '../domain/lifecycle';
 import { AppError, asAppError } from '../errors';
+import { createGrpcHealth, type GrpcHealthController } from '@tutor-matcher/shared';
 import { isUuid } from '../ids';
 import { CHANNEL_OPTIONS, decoded, encodeErrorDetail, loadProtos, toWire } from './proto';
 
@@ -80,15 +81,19 @@ function normalize<T>(request: T): T {
   return copy as T;
 }
 
-export async function startGrpcServer(deps: Deps, port: number, host = '0.0.0.0'): Promise<{ server: grpc.Server; port: number }> {
+export async function startGrpcServer(deps: Deps, port: number, host = '0.0.0.0'): Promise<{ server: grpc.Server; port: number; health: GrpcHealthController }> {
   const proto = loadProtos(deps.contractsDir, ['booking/v1/availability.proto', 'booking/v1/collaboration.proto']) as any;
   const handlers = buildHandlers(deps);
   const server = new grpc.Server(CHANNEL_OPTIONS);
   server.addService(proto.tutor_matcher.booking.v1.AvailabilityService.service, handlers.availability);
   server.addService(proto.tutor_matcher.booking.v1.BookingEvidenceService.service, handlers.evidence);
+  const health = createGrpcHealth(server, ['tutor_matcher.booking.v1.AvailabilityService', 'tutor_matcher.booking.v1.BookingEvidenceService'], async () => {
+    await deps.ctx.pool.query('SELECT 1');
+    return true;
+  });
   // The private overlay network plus the per-caller workload credential protect this port; it is never published.
   const bound = await new Promise<number>((resolve, reject) => {
     server.bindAsync(`${host}:${port}`, grpc.ServerCredentials.createInsecure(), (error, actual) => (error ? reject(error) : resolve(actual)));
   });
-  return { server, port: bound };
+  return { server, port: bound, health };
 }

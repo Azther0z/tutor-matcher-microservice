@@ -12,14 +12,27 @@ afterAll(async () => { await h.close(); await pool.end(); });
 beforeEach(async () => { await resetData(pool); h.clock.set(T0); });
 
 const key = () => ({ 'idempotency-key': newId() });
+// Valid 1×1 PNG fixture for the service's transfer-slip upload contract.
+const slip = { slipImage: 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/pZsAAAAASUVORK5CYII=', slipContentType: 'image/png' };
+const topupBody = (amount: string, extra: Record<string, unknown> = {}) => ({ amount, ...slip, ...extra });
 const postedBalance = async (userId: string) => (await pool.query('SELECT posted_satang AS p, reserved_satang AS r FROM wallets WHERE user_id = $1', [userId])).rows[0];
 
 async function fundViaTopup(userId: string, amount: string, admin: string) {
-  const created = await h.call('POST', '/api/wallet/topups', { token: h.token(userId), headers: key(), body: { amount } });
-  await h.call('POST', `/api/demo/topups/${created.body.id}/outcome`, {
-    token: h.token(admin, ['STUDENT', 'ADMIN']), headers: key(), body: { outcome: 'SUCCEEDED', providerReference: created.body.providerReference },
+  const created = await h.call('POST', '/api/wallet/topups', { token: h.token(userId), headers: key(), body: topupBody(amount) });
+  const decision = await h.call('POST', `/api/admin/topups/${created.body.id}/decision`, {
+    token: h.token(admin, ['STUDENT', 'ADMIN']), headers: key(), body: { decision: 'APPROVE' },
   });
-  return created.body;
+  return decision.body;
+}
+
+// Synthetic top-ups remain supported for provider-outcome tests, but the public request now creates manual PromptPay requests.
+async function seedSyntheticTopup(userId: string, amount: string) {
+  const id = newId(); const operationId = newId(); const providerReference = newId();
+  await pool.query(`INSERT INTO wallet_operations (id, kind, initiator_user_id, affected_user_id, status, resource_type, resource_id, resource_url, created_at, updated_at)
+    VALUES ($1, 'wallet.topup', $2, $2, 'PENDING', 'topup', $3, $4, $5, $5)`, [operationId, userId, id, `/api/wallet/topups/${id}`, T0]);
+  await pool.query(`INSERT INTO topups (id, user_id, amount_satang, provider_reference, operation_id, synthetic, created_at)
+    VALUES ($1, $2, $3, $4, $5, true, $6)`, [id, userId, BigInt(Math.round(Number(amount) * 100)), providerReference, operationId, T0]);
+  return { body: { id, providerReference, operation: { id: operationId } } };
 }
 
 describe('authentication and authorization', () => {
@@ -74,66 +87,93 @@ describe('gateway path contract', () => {
   });
 });
 
-describe('top-ups through the simulated provider', () => {
-  it('creates a labelled non-payable top-up that credits nothing until the provider succeeds', async () => {
+describe('manual PromptPay top-ups', () => {
+  it('creates a review request with a slip and credits nothing until an admin approves it', async () => {
     const user = newId();
-    const created = await h.call('POST', '/api/wallet/topups', { token: h.token(user), headers: key(), body: { amount: '250.50' } });
+    const created = await h.call('POST', '/api/wallet/topups', { token: h.token(user), headers: key(), body: topupBody('250.50') });
     expect(created.status).toBe(201);
-    expect(created.body.demo).toBe(true);
+    expect(created.body.demo).toBe(false);
+    expect(created.body.manual).toBe(true);
     expect(created.body.status).toBe('PENDING');
-    expect(created.body.paymentRepresentation).toContain('NOT PAYABLE');
+    expect(created.body.paymentRepresentation).toContain('PromptPay');
+    expect(created.body.slip.contentType).toBe('image/png');
     expect(created.body.operation.status).toBe('PENDING');
     expect(h.contracts.isDef('Topup', created.body)).toBe(true);
     expect(await postedBalance(user)).toBeUndefined();
+    expect((await h.call('POST', `/api/admin/topups/${created.body.id}/decision`, { token: h.token(user), headers: key(), body: { decision: 'APPROVE' } })).status).toBe(403);
+    expect((await h.call('GET', `/api/wallet/topups/${created.body.id}`, { token: h.token(user) })).body.status).toBe('PENDING');
     const overview = await h.call('GET', '/api/wallet', { token: h.token(user) });
     expect(overview.body.availableBalance.amount).toBe('0.00');
   });
 
-  it('validates the amount, the unknown fields and the idempotency key', async () => {
+  it('validates the amount, slip, unknown fields and idempotency key', async () => {
     const user = newId();
     const t = h.token(user);
     for (const amount of ['0.00', '100000.01', '12.5', '12', 'abc', '-5.00']) {
-      expect((await h.call('POST', '/api/wallet/topups', { token: t, headers: key(), body: { amount } })).status).toBe(422);
+      expect((await h.call('POST', '/api/wallet/topups', { token: t, headers: key(), body: topupBody(amount) })).status).toBe(422);
     }
-    expect((await h.call('POST', '/api/wallet/topups', { token: t, headers: key(), body: { amount: '10.00', role: 'ADMIN' } })).status).toBe(422);
-    expect((await h.call('POST', '/api/wallet/topups', { token: t, body: { amount: '10.00' } })).status).toBe(400);
-    expect((await h.call('POST', '/api/wallet/topups', { token: t, headers: key(), body: { amount: '100000.00' } })).status).toBe(201);
+    expect((await h.call('POST', '/api/wallet/topups', { token: t, headers: key(), body: topupBody('10.00', { role: 'ADMIN' }) })).status).toBe(422);
+    expect((await h.call('POST', '/api/wallet/topups', { token: t, headers: key(), body: { amount: '10.00' } })).status).toBe(422);
+    expect((await h.call('POST', '/api/wallet/topups', { token: t, body: topupBody('10.00') })).status).toBe(400);
+    expect((await h.call('POST', '/api/wallet/topups', { token: t, headers: key(), body: topupBody('100000.00') })).status).toBe(201);
   });
 
   it('replays the same key, and conflicts when the key is reused with different input', async () => {
     const user = newId(); const t = h.token(user); const headers = key();
-    const first = await h.call('POST', '/api/wallet/topups', { token: t, headers, body: { amount: '10.00' } });
-    const again = await h.call('POST', '/api/wallet/topups', { token: t, headers, body: { amount: '10.00' } });
+    const first = await h.call('POST', '/api/wallet/topups', { token: t, headers, body: topupBody('10.00') });
+    const again = await h.call('POST', '/api/wallet/topups', { token: t, headers, body: topupBody('10.00') });
     expect(again.status).toBe(201);
     expect(again.body.id).toBe(first.body.id);
     expect(again.headers.get('idempotent-replay')).toBe('true');
-    expect((await h.call('POST', '/api/wallet/topups', { token: t, headers, body: { amount: '11.00' } })).status).toBe(409);
+    expect((await h.call('POST', '/api/wallet/topups', { token: t, headers, body: topupBody('11.00') })).status).toBe(409);
+    const newRequest = await h.call('POST', '/api/wallet/topups', { token: t, headers: key(), body: topupBody('10.00') });
+    expect(newRequest.status).toBe(409);
+    expect(newRequest.body.code).toBe('TOPUP_REQUEST_OPEN');
     expect(Number((await pool.query('SELECT count(*) FROM topups')).rows[0].count)).toBe(1);
   });
 
   it('keeps the booking return destination', async () => {
     const user = newId(); const booking = newId();
-    const created = await h.call('POST', '/api/wallet/topups', { token: h.token(user), headers: key(), body: { amount: '10.00', returnToBookingId: booking } });
+    const created = await h.call('POST', '/api/wallet/topups', { token: h.token(user), headers: key(), body: topupBody('10.00', { returnToBookingId: booking }) });
     expect(created.body.returnToBookingId).toBe(booking);
   });
 
-  it('credits exactly once on success, however often the outcome is repeated', async () => {
+  it('credits exactly once after approval and keeps the decision terminal', async () => {
     const user = newId(); const admin = newId();
-    const topup = await fundViaTopup(user, '300.00', admin);
-    const again = await h.call('POST', `/api/demo/topups/${topup.id}/outcome`, { token: h.token(admin, ['STUDENT', 'ADMIN']), headers: key(), body: { outcome: 'SUCCEEDED', providerReference: topup.providerReference } });
-    expect(again.status).toBe(200);
-    expect(again.body.status).toBe('SUCCEEDED');
+    const created = await h.call('POST', '/api/wallet/topups', { token: h.token(user), headers: key(), body: topupBody('300.00') });
+    const decisionHeaders = key();
+    const decide = () => h.call('POST', `/api/admin/topups/${created.body.id}/decision`, { token: h.token(admin, ['STUDENT', 'ADMIN']), headers: decisionHeaders, body: { decision: 'APPROVE' } });
+    const topup = await decide();
+    expect(topup.status).toBe(200);
+    expect(topup.body.status).toBe('SUCCEEDED');
+    const replay = await decide();
+    expect(replay.status).toBe(200);
+    expect(replay.headers.get('idempotent-replay')).toBe('true');
+    const reversed = await h.call('POST', `/api/admin/topups/${topup.body.id}/decision`, { token: h.token(admin, ['STUDENT', 'ADMIN']), headers: key(), body: { decision: 'REJECT', reason: 'cannot reverse' } });
+    expect(reversed.status).toBe(409);
     expect((await postedBalance(user)).p).toBe('30000');
     expect(Number((await pool.query("SELECT count(*) FROM ledger_entries WHERE type = 'TOP_UP'")).rows[0].count)).toBe(1);
-    const op = await h.call('GET', `/internal/v1/wallet/operations/${topup.operation.id}`, { token: h.token(user) });
+    const op = await h.call('GET', `/internal/v1/wallet/operations/${topup.body.operation.id}`, { token: h.token(user) });
     expect(op.body.status).toBe('SUCCEEDED');
     expect(h.contracts.isDef('Operation', op.body)).toBe(true);
   });
 
-  it('never credits for a failed or unknown outcome and never reverses a terminal outcome', async () => {
+  it('rejects a manual request without credit and prevents a later approval', async () => {
     const user = newId(); const admin = h.token(newId(), ['STUDENT', 'ADMIN']);
-    const failed = await h.call('POST', '/api/wallet/topups', { token: h.token(user), headers: key(), body: { amount: '90.00' } });
-    const unknown = await h.call('POST', '/api/wallet/topups', { token: h.token(user), headers: key(), body: { amount: '70.00' } });
+    const created = await h.call('POST', '/api/wallet/topups', { token: h.token(user), headers: key(), body: topupBody('90.00') });
+    const rejected = await h.call('POST', `/api/admin/topups/${created.body.id}/decision`, { token: admin, headers: key(), body: { decision: 'REJECT', reason: 'Slip does not match' } });
+    expect(rejected.status).toBe(200);
+    expect(rejected.body.status).toBe('FAILED');
+    expect(rejected.body.decisionReason).toBe('Slip does not match');
+    expect(await postedBalance(user)).toBeUndefined();
+    expect((await h.call('POST', `/api/admin/topups/${created.body.id}/decision`, { token: admin, headers: key(), body: { decision: 'APPROVE' } })).status).toBe(409);
+    expect((await h.call('GET', `/internal/v1/wallet/operations/${created.body.operation.id}`, { token: h.token(user) })).body.status).toBe('REJECTED');
+  });
+
+  it('never credits failed synthetic outcomes, recovers unknown outcomes, and rejects terminal reversals', async () => {
+    const user = newId(); const admin = h.token(newId(), ['STUDENT', 'ADMIN']);
+    const failed = await seedSyntheticTopup(user, '90.00');
+    const unknown = await seedSyntheticTopup(user, '70.00');
     const outcome = (t: any, o: string, ref = t.body.providerReference) => h.call('POST', `/api/demo/topups/${t.body.id}/outcome`, { token: admin, headers: key(), body: { outcome: o, providerReference: ref } });
 
     expect((await outcome(unknown, 'UNKNOWN')).body.status).toBe('UNKNOWN');
@@ -155,7 +195,7 @@ describe('top-ups through the simulated provider', () => {
 
   it('rejects a provider reference that does not match the stored one', async () => {
     const user = newId();
-    const t = await h.call('POST', '/api/wallet/topups', { token: h.token(user), headers: key(), body: { amount: '10.00' } });
+    const t = await seedSyntheticTopup(user, '10.00');
     const bad = await h.call('POST', `/api/demo/topups/${t.body.id}/outcome`, { token: h.token(newId(), ['ADMIN']), headers: key(), body: { outcome: 'SUCCEEDED', providerReference: newId() } });
     expect(bad.status).toBe(409);
     expect(bad.body.code).toBe('PROVIDER_OUTCOME_CONFLICT');
@@ -163,7 +203,7 @@ describe('top-ups through the simulated provider', () => {
 
   it('hides another user\'s top-up and operation', async () => {
     const owner = newId(); const other = newId();
-    const t = await h.call('POST', '/api/wallet/topups', { token: h.token(owner), headers: key(), body: { amount: '10.00' } });
+    const t = await h.call('POST', '/api/wallet/topups', { token: h.token(owner), headers: key(), body: topupBody('10.00') });
     expect((await h.call('GET', `/api/wallet/topups/${t.body.id}`, { token: h.token(other) })).status).toBe(404);
     expect((await h.call('GET', `/internal/v1/wallet/operations/${t.body.operation.id}`, { token: h.token(other) })).status).toBe(404);
     expect((await h.call('GET', `/internal/v1/wallet/operations/${t.body.operation.id}`, { token: h.token(newId(), ['STUDENT', 'ADMIN']) })).status).toBe(200);
@@ -175,7 +215,7 @@ describe('demo mode', () => {
     const off = await startHarness(pool, { demoMode: false });
     try {
       const user = newId();
-      const t = await off.call('POST', '/api/wallet/topups', { token: off.token(user), headers: key(), body: { amount: '10.00' } });
+      const t = await off.call('POST', '/api/wallet/topups', { token: off.token(user), headers: key(), body: topupBody('10.00') });
       const denied = await off.call('POST', `/api/demo/topups/${t.body.id}/outcome`, { token: off.token(newId(), ['ADMIN']), headers: key(), body: { outcome: 'SUCCEEDED', providerReference: t.body.providerReference } });
       expect(denied.status).toBe(403);
       expect(denied.body.code).toBe('DEMO_DISABLED');
@@ -184,7 +224,7 @@ describe('demo mode', () => {
 
   it('refuses a resource that is not marked synthetic', async () => {
     const user = newId();
-    const t = await h.call('POST', '/api/wallet/topups', { token: h.token(user), headers: key(), body: { amount: '10.00' } });
+    const t = await seedSyntheticTopup(user, '10.00');
     await pool.query('UPDATE topups SET synthetic = false WHERE id = $1', [t.body.id]);
     const denied = await h.call('POST', `/api/demo/topups/${t.body.id}/outcome`, { token: h.token(newId(), ['ADMIN']), headers: key(), body: { outcome: 'SUCCEEDED', providerReference: t.body.providerReference } });
     expect(denied.body.code).toBe('RESOURCE_NOT_SYNTHETIC');
@@ -347,7 +387,7 @@ describe('transaction history', () => {
   it('lists only completed movements, newest first, and filters by type', async () => {
     const user = newId(); const admin = newId();
     await fundViaTopup(user, '100.00', admin);
-    await h.call('POST', '/api/wallet/topups', { token: h.token(user), headers: key(), body: { amount: '55.00' } }); // pending: not history
+    await h.call('POST', '/api/wallet/topups', { token: h.token(user), headers: key(), body: topupBody('55.00') }); // pending: not history
     const list = await h.call('GET', '/api/wallet/transactions', { token: h.token(user) });
     expect(list.body.items).toHaveLength(1);
     expect(list.body.pagination).toEqual({ page: 1, pageSize: 20, totalItems: 1, totalPages: 1 });

@@ -1,0 +1,119 @@
+version: "3.8"
+services:
+  docker-api:
+    image: tecnativa/docker-socket-proxy:v0.5.0
+    environment:
+      SERVICES: "1"
+      EVENTS: "1"
+      TASKS: "1"
+      NETWORKS: "1"
+      NODES: "1"
+      POST: "0"
+      LOG_LEVEL: warning
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks: [socket]
+    deploy:
+      replicas: 1
+      placement:
+        constraints: [node.id == ${MANAGER_NODE_ID}]
+      restart_policy:
+        condition: on-failure
+
+  traefik:
+    image: traefik:v3.7.17
+    command:
+      - --entrypoints.internal.address=:8080
+      - --entrypoints.traefik.address=127.0.0.1:8082
+      - --ping=true
+      - --ping.entrypoint=traefik
+      - --api.dashboard=false
+      - --providers.swarm.endpoint=tcp://docker-api:2375
+      - --providers.swarm.exposedbydefault=false
+      - --providers.swarm.constraints=Label(`tutor-matcher.internal`,`true`) && Label(`com.docker.stack.namespace`,`${STACK_NAME}`)
+      - --providers.swarm.network=${STACK_NAME}_backend
+      - --providers.swarm.refreshseconds=2s
+      - --providers.swarm.allowemptyservices=true
+      - --accesslog=true
+      - --log.level=INFO
+    networks:
+      backend:
+        aliases: [service.internal, grpc.internal]
+      socket: {}
+    depends_on:
+      - docker-api
+    deploy:
+      replicas: 2
+      placement:
+        constraints: [node.id == ${MANAGER_NODE_ID}]
+      restart_policy:
+        condition: on-failure
+        delay: 2s
+      update_config:
+        parallelism: 1
+        order: start-first
+        failure_action: rollback
+    healthcheck:
+      test: [CMD, traefik, healthcheck, --ping, --entrypoints.traefik.address=127.0.0.1:8082]
+      interval: 5s
+      timeout: 2s
+      retries: 3
+
+  fixture:
+    image: node:22-alpine
+    command: [node, /workspace/tests/fixtures/internal-traefik-compose/app.cjs]
+    environment:
+      NODE_PATH: /workspace/node_modules
+    volumes:
+      - ${REPO_ROOT}:/workspace:ro
+    networks: [backend]
+    deploy:
+      replicas: 2
+      placement:
+        constraints: [node.id == ${MANAGER_NODE_ID}]
+      restart_policy:
+        condition: on-failure
+      labels:
+        traefik.enable: "true"
+        tutor-matcher.internal: "true"
+        traefik.swarm.lbswarm: "false"
+        traefik.swarm.network: ${STACK_NAME}_backend
+        traefik.http.routers.fixture-http.entrypoints: internal
+        traefik.http.routers.fixture-http.rule: "Host(`service.internal`) && Path(`/private/test`) && Method(`GET`)"
+        traefik.http.routers.fixture-http.service: fixture-http
+        traefik.http.services.fixture-http.loadbalancer.server.port: "8080"
+        traefik.http.services.fixture-http.loadbalancer.healthcheck.path: /health
+        traefik.http.services.fixture-http.loadbalancer.healthcheck.interval: 1s
+        traefik.http.services.fixture-http.loadbalancer.healthcheck.timeout: 1s
+        traefik.http.routers.fixture-grpc.entrypoints: internal
+        traefik.http.routers.fixture-grpc.rule: "Host(`grpc.internal`) && Path(`/fixture.v1.Probe/Ping`)"
+        traefik.http.routers.fixture-grpc.service: fixture-grpc
+        traefik.http.services.fixture-grpc.loadbalancer.server.port: "50051"
+        traefik.http.services.fixture-grpc.loadbalancer.server.scheme: h2c
+        traefik.http.services.fixture-grpc.loadbalancer.healthcheck.path: /grpc.health.v1.Health/Check
+        traefik.http.services.fixture-grpc.loadbalancer.healthcheck.mode: grpc
+        traefik.http.services.fixture-grpc.loadbalancer.healthcheck.interval: 1s
+        traefik.http.services.fixture-grpc.loadbalancer.healthcheck.timeout: 1s
+
+  probe:
+    image: node:22-alpine
+    command: [sh, -c, "sleep infinity"]
+    environment:
+      NODE_PATH: /workspace/node_modules
+    volumes:
+      - ${REPO_ROOT}:/workspace:ro
+    networks: [backend]
+    deploy:
+      replicas: 1
+      placement:
+        constraints: [node.id == ${MANAGER_NODE_ID}]
+      restart_policy:
+        condition: on-failure
+
+networks:
+  backend:
+    name: ${STACK_NAME}_backend
+    driver: overlay
+  socket:
+    internal: true
+    driver: overlay

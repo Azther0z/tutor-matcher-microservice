@@ -39,7 +39,10 @@
     "dev:booking": "npm run dev -w @tutor-matcher/booking-service",
     "dev:messaging": "npm run dev -w @tutor-matcher/messaging-service",
     "dev:notification": "npm run dev -w @tutor-matcher/notification-service",
-    "smoke:p-broker": "node scripts/smoke-p-broker.mjs"
+    "smoke:p-broker": "node scripts/smoke-p-broker.mjs",
+    "routes:internal:check": "node scripts/generate-internal-traefik-routes.mjs --check",
+    "test:internal-traefik": "npm run build -w @tutor-matcher/shared && node --test tests/internal-traefik.test.cjs && node scripts/qualify-internal-traefik-compose.mjs && node scripts/qualify-internal-traefik-swarm.mjs --render-only",
+    "qualify:internal-traefik:swarm": "node scripts/qualify-internal-traefik-swarm.mjs"
   },
   "devDependencies": {
     "@eslint/js": "9.39.5",
@@ -51,6 +54,7 @@
     "@types/node": "^22.19.0",
     "@types/pg": "^8.16.0",
     "eslint": "9.39.5",
+    "eslint-plugin-react-hooks": "7.1.1",
     "prettier": "3.9.10",
     "tsx": "4.23.15",
     "typescript": "5.9.3",
