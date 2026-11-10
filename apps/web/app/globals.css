@@ -704,3 +704,16 @@ fieldset.field legend { font-size: 14px; font-weight: 500; padding: 0; margin-bo
 .wallet-viewall:hover { color: var(--ink); }
 .wallet-tx { border-radius: 0; }
 .wallet-tx:hover { background: #0b0b0b; }
+.tx-filter { width: 180px; }
+.tx-filter .dropdown-trigger { padding: 8px 12px; font-size: 14px; }
+.wallet-tx-amount { display: grid; justify-items: end; gap: 2px; }
+.wallet-tx-amount small { margin: 0; }
+.summary-link { color: var(--ink); font-weight: 600; text-decoration: none; }
+.summary-link:hover { text-decoration: underline; }
+.summary-note { font-size: 12px; word-break: break-all; text-align: right; max-width: 60%; }
+/* Links and quiet buttons are plain text, never purple. */
+.text-link, .form-footer a, .data-table a, .topup-change { color: var(--ink); font-weight: 500; text-decoration: none; }
+.text-link:hover, .form-footer a:hover, .data-table a:hover, .topup-change:hover { color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
+.button-quiet, .button-quiet:hover { color: var(--muted); }
+.button-quiet:hover:not(:disabled) { color: var(--ink); background: rgba(255, 255, 255, 0.05); }
+.notice .text-link { color: inherit; text-decoration: underline; }
