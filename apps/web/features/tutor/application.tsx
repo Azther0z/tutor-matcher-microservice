@@ -49,7 +49,7 @@ function DraftEditor({
     );
   };
   return (
-    <section className="panel">
+    <section className="panel booking-new">
       <h2>
         {draft
           ? "Edit draft"
@@ -57,10 +57,10 @@ function DraftEditor({
             ? "New profile revision"
             : "New tutor application"}
       </h2>
-      <p>
-        Drafts can be incomplete. Submitting requires a bio, identification
-        document URL, introduction video URL and consent. Submitted versions
-        cannot be edited.
+      <p className="tutor-card-meta">
+        Drafts can be incomplete. To submit you need a bio, an identification
+        document link, an intro video link and your consent. Submitted
+        versions cannot be edited.
       </p>
       <ActionMessages action={action} />
       <form className="form" onSubmit={(event) => void save(event)}>
@@ -103,9 +103,8 @@ function DraftEditor({
           type="url"
           defaultValue={value?.avatarUrl ?? ""}
         />
-        <p className="muted">
-          Use HTTPS links. Your document is visible only to you and authorized
-          admins. File upload is not required.
+        <p className="tutor-card-meta">
+          Use HTTPS links. Only you and authorized admins can see your document.
         </p>
         <button
           className="button"
@@ -116,7 +115,6 @@ function DraftEditor({
       </form>
       {draft && (
         <>
-          <hr className="divider" />
           <label className="check-row">
             <input
               type="checkbox"
@@ -128,26 +126,12 @@ function DraftEditor({
               documents.
             </span>
           </label>
-          <p className="muted">
-            Save your latest changes above before submitting.
+          <p className="tutor-card-meta">
+            Save your changes above before submitting.
           </p>
-          <div className="button-row">
+          <div className="slot-footer flush">
             <button
-              className="button"
-              disabled={!consent || action.pending || action.uncertain}
-              onClick={() =>
-                void action.run(
-                  `/profiles/me/tutor/drafts/${draft.id}/submit`,
-                  { consentAccepted: true },
-                  "POST",
-                  draft.revision,
-                )
-              }
-            >
-              Submit saved draft
-            </button>
-            <button
-              className="button button-danger"
+              className="button button-quiet"
               disabled={action.pending || action.uncertain}
               onClick={() => {
                 if (window.confirm("Delete this editable draft?"))
@@ -160,6 +144,20 @@ function DraftEditor({
               }}
             >
               Delete draft
+            </button>
+            <button
+              className="button"
+              disabled={!consent || action.pending || action.uncertain}
+              onClick={() =>
+                void action.run(
+                  `/profiles/me/tutor/drafts/${draft.id}/submit`,
+                  { consentAccepted: true },
+                  "POST",
+                  draft.revision,
+                )
+              }
+            >
+              Submit draft
             </button>
           </div>
         </>
@@ -176,23 +174,18 @@ function SubmissionHistory({
 }) {
   const action = useAction(reload);
   return (
-    <article className="panel">
-      <div className="stat-line">
-        <strong>
-          {submission.kind === "APPLICATION"
-            ? "Application"
-            : "Profile revision"}
-        </strong>
-        <StatusBadge value={submission.state} />
-        <span>Activation: {submission.activation}</span>
-      </div>
+    <article className="panel tutor-card">
+      <StatusBadge value={submission.state} corner />
       <h3>{submission.headline || "Tutor profile"}</h3>
+      <p className="tutor-card-meta">
+        {submission.kind === "APPLICATION" ? "Application" : "Profile revision"}
+      </p>
       <p style={{ whiteSpace: "pre-wrap" }}>{submission.bio}</p>
       {submission.submittedAt && (
-        <p>Submitted {bangkokTime(submission.submittedAt)} (Bangkok)</p>
+        <p className="tutor-card-meta">Submitted {bangkokTime(submission.submittedAt)} (Bangkok)</p>
       )}
       {submission.reviewedAt && (
-        <p>Reviewed {bangkokTime(submission.reviewedAt)} (Bangkok)</p>
+        <p className="tutor-card-meta">Reviewed {bangkokTime(submission.reviewedAt)} (Bangkok)</p>
       )}
       {submission.rejectionReason && (
         <Notice kind="error">
@@ -261,12 +254,8 @@ function ApplicationContent({ profile = false }: { profile?: boolean }) {
         )[0];
   return (
     <>
-      <header className="section-heading">
+      <header className="page-heading">
         <h1>{profile ? "Profile and publication" : "Tutor application"}</h1>
-        <p>
-          One account for learning and teaching. Your approved profile stays
-          public while a revision is reviewed.
-        </p>
       </header>
       <TutorNavigation />
       <ResourceState
@@ -276,20 +265,22 @@ function ApplicationContent({ profile = false }: { profile?: boolean }) {
       />
       {workspace && (
         <>
-          <section className="panel">
+          <section className="panel booking-new">
             <h2>Your tutor status</h2>
-            <p>
-              Activation: <strong>{workspace.activation}</strong>. Listing:{" "}
-              <strong>
-                {workspace.published ? "Published" : "Unpublished"}
-              </strong>
-              .
-            </p>
+            <div className="summary-rows">
+              <div>
+                <span>Activation</span>
+                <strong>{workspace.activation.charAt(0) + workspace.activation.slice(1).toLowerCase()}</strong>
+              </div>
+              <div>
+                <span>Listing</span>
+                <strong>{workspace.published ? "Published" : "Unpublished"}</strong>
+              </div>
+            </div>
             {workspace.activation === "PENDING" && (
               <Notice kind="info">
                 Your application was approved. Tutor access is still being
-                activated. You can publish and manage subjects after activation
-                is confirmed.
+                activated.
               </Notice>
             )}
             {workspace.activation === "ACTIVE" &&
@@ -306,13 +297,29 @@ function ApplicationContent({ profile = false }: { profile?: boolean }) {
                 </Notice>
               )}
             <ActionMessages action={action} />
-            <div className="button-row">
-              <button
-                className="button button-quiet"
-                onClick={() => void resource.reload()}
-              >
-                Refresh tutor status
-              </button>
+            {!workspace.published && (
+              <p className="tutor-card-meta">
+                Unpublished listings do not appear in search. Existing
+                bookings and conversations stay available.
+              </p>
+            )}
+            <div className="slot-footer flush">
+              <div className="button-row">
+                <button
+                  className="button button-quiet"
+                  onClick={() => void resource.reload()}
+                >
+                  Refresh
+                </button>
+                {workspace.tutorId && (
+                  <Link
+                    className="button button-quiet"
+                    href={`/tutors/${workspace.tutorId}`}
+                  >
+                    View public profile
+                  </Link>
+                )}
+              </div>
               {workspace.activation === "ACTIVE" &&
                 account?.capabilities.includes("TUTOR") && (
                   <button
@@ -327,35 +334,18 @@ function ApplicationContent({ profile = false }: { profile?: boolean }) {
                       )
                     }
                   >
-                    {workspace.published
-                      ? "Unpublish listing"
-                      : "Publish listing"}
+                    {workspace.published ? "Unpublish listing" : "Publish listing"}
                   </button>
                 )}
-              {workspace.tutorId && (
-                <Link
-                  className="text-link"
-                  href={`/tutors/${workspace.tutorId}`}
-                >
-                  View public profile
-                </Link>
-              )}
             </div>
-            {!workspace.published && (
-              <p>
-                Unpublished listings do not appear in discovery. Existing
-                bookings and conversations remain available.
-              </p>
-            )}
           </section>
           {current && profile && (
-            <section className="panel">
-              <h2>Current approved content</h2>
+            <section className="panel booking-new">
+              <h2>Current approved profile</h2>
               <h3>{current.headline}</h3>
               <p style={{ whiteSpace: "pre-wrap" }}>{current.bio}</p>
-              <p>
-                This content remains approved while you prepare or submit a
-                revision.
+              <p className="tutor-card-meta">
+                Stays public while you prepare or submit a revision.
               </p>
             </section>
           )}
@@ -375,9 +365,9 @@ function ApplicationContent({ profile = false }: { profile?: boolean }) {
               reload={resource.reload}
             />
           )}
-          <h2>Editable drafts</h2>
+          <h2 className="list-title">Drafts</h2>
           {workspace.drafts.length === 0 && (
-            <p className="empty-state">You have no saved drafts.</p>
+            <p className="tutor-card-meta">No saved drafts.</p>
           )}
           {workspace.drafts.map((draft) => (
             <DraftEditor
@@ -386,9 +376,9 @@ function ApplicationContent({ profile = false }: { profile?: boolean }) {
               reload={resource.reload}
             />
           ))}
-          <h2>Submission history</h2>
+          <h2 className="list-title">Submission history</h2>
           {workspace.submissions.length === 0 && (
-            <p className="empty-state">No submissions yet.</p>
+            <p className="tutor-card-meta">No submissions yet.</p>
           )}
           {workspace.submissions.map((submission) => (
             <SubmissionHistory

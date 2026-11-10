@@ -832,3 +832,9 @@ fieldset.field legend { font-size: 14px; font-weight: 500; padding: 0; margin-bo
 .star-glyph { height: 26px; line-height: 26px; font-size: 24px; }
 .recommend-banner { padding: 0; background: none; border: 0; gap: 2px; margin-bottom: 4px; }
 .recommend-banner strong { font-weight: 500; }
+
+/* ---------- Tutor workspace ---------- */
+.sub-nav { gap: 18px; margin: 0 0 18px; font-size: 14px; }
+.sub-nav a { color: var(--muted); text-decoration: none; }
+.sub-nav a:hover, .sub-nav a[aria-current="page"] { color: var(--ink); }
+.list-title { font-size: 16px; font-weight: 500; margin: 22px 0 10px; color: var(--muted); }
