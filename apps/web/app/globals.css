@@ -795,24 +795,3 @@ fieldset.field legend { font-size: 14px; font-weight: 500; padding: 0; margin-bo
 .badge, .badge.warn, .badge.danger { display: inline; padding: 0; border-radius: 0; background: none; font-size: 13px; font-weight: 600; color: var(--success); }
 .badge.warn { color: #f5a524; }
 .badge.danger { color: #f87171; }
-
-/* ---------- Home (compact) ---------- */
-.home-hero { max-width: 640px; padding: 40px 0 36px; }
-.home-hero h1 { font-size: clamp(30px, 5vw, 42px); line-height: 1.15; margin: 0 0 12px; }
-.home-hero p { margin: 0; color: var(--muted); font-size: 17px; line-height: 1.6; }
-.home-hero .hero-search { margin: 24px 0 0; max-width: none; }
-.home-hero .hero-search input { padding: 11px 16px; border-radius: 10px; font-size: 15px; background: #1d1d20; color: var(--ink); border: 1px solid var(--line); }
-.home-hero .hero-search input::placeholder { color: var(--muted); }
-.home-links { display: flex; gap: 20px; margin-top: 16px; font-size: 14px; }
-.home-steps { padding: 8px 0 28px; }
-.home-steps > h2 { font-size: 20px; margin: 0 0 14px; }
-.home-step-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
-.home-step { padding: 18px; display: grid; gap: 6px; align-content: start; margin: 0; }
-.home-step-no { color: var(--muted); font-size: 14px; font-weight: 600; }
-.home-step h3 { margin: 0; font-size: 17px; }
-.home-step p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.55; }
-.home-cta { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; padding: 16px 18px; margin: 0 0 40px; }
-.home-cta > span:first-child { display: grid; gap: 2px; }
-.home-cta small { color: var(--muted); font-size: 13px; }
-.home-cta-actions { display: flex; align-items: center; gap: 18px; }
-@media (max-width: 720px) { .home-step-grid { grid-template-columns: 1fr; } }
