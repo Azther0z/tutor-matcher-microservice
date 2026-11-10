@@ -5,6 +5,7 @@ import { StatusBadge } from "@/features/wallet/common";
 import Link from "next/link";
 import { RequireAuth, useAuth } from "@/lib/auth-context";
 import { Field, Notice } from "@/components/field";
+import { LegalModal } from "@/components/legal-modal";
 import {
   ActionMessages,
   bangkokTime,
@@ -29,14 +30,20 @@ function DraftEditor({
   draft,
   seed,
   reload,
+  onClose,
 }: {
   draft?: Submission;
   seed?: Submission;
   reload: () => Promise<void>;
+  onClose: () => void;
 }) {
   const value = draft ?? seed;
-  const action = useAction(reload);
+  const action = useAction(async () => {
+    await reload();
+    onClose();
+  });
   const [consent, setConsent] = useState(false);
+  const formId = `draft-form-${draft?.id ?? "new"}`;
   const save = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     await action.run(
@@ -48,22 +55,61 @@ function DraftEditor({
       draft?.revision,
     );
   };
+  const busy = action.pending || action.uncertain;
   return (
-    <section className="panel booking-new">
-      <h2>
-        {draft
-          ? "Edit draft"
-          : seed
-            ? "New profile revision"
-            : "New tutor application"}
-      </h2>
-      <p className="tutor-card-meta">
-        Drafts can be incomplete. To submit you need a bio, an identification
-        document link, an intro video link and your consent. Submitted
-        versions cannot be edited.
-      </p>
+    <LegalModal
+      open
+      onClose={onClose}
+      title={draft ? "Edit draft" : seed ? "New profile revision" : "New tutor application"}
+      actions={
+        <div className="slot-footer flush">
+          {draft ? (
+            <button
+              type="button"
+              className="button button-quiet"
+              disabled={busy}
+              onClick={() => {
+                if (window.confirm("Delete this editable draft?"))
+                  void action.run(
+                    `/profiles/me/tutor/drafts/${draft.id}`,
+                    undefined,
+                    "DELETE",
+                    draft.revision,
+                  );
+              }}
+            >
+              Delete draft
+            </button>
+          ) : (
+            <span />
+          )}
+          <div className="button-row">
+            {draft && (
+              <button
+                type="button"
+                className="button button-quiet"
+                disabled={!consent || busy}
+                onClick={() =>
+                  void action.run(
+                    `/profiles/me/tutor/drafts/${draft.id}/submit`,
+                    { consentAccepted: true },
+                    "POST",
+                    draft.revision,
+                  )
+                }
+              >
+                Submit draft
+              </button>
+            )}
+            <button className="button" form={formId} disabled={busy}>
+              {action.pending ? "Saving..." : "Save draft"}
+            </button>
+          </div>
+        </div>
+      }
+    >
       <ActionMessages action={action} />
-      <form className="form" onSubmit={(event) => void save(event)}>
+      <form id={formId} className="form" onSubmit={(event) => void save(event)}>
         <Field
           id={`headline-${draft?.id ?? "new"}`}
           name="headline"
@@ -84,7 +130,7 @@ function DraftEditor({
         <Field
           id={`document-${draft?.id ?? "new"}`}
           name="identificationDocumentUrl"
-          label="Identification document URL (private)"
+          label="Identification document link (private)"
           type="url"
           placeholder="https://example.test/synthetic-document"
           defaultValue={value?.identificationDocumentUrl ?? ""}
@@ -92,77 +138,37 @@ function DraftEditor({
         <Field
           id={`video-${draft?.id ?? "new"}`}
           name="introVideoUrl"
-          label="Introduction video URL"
+          label="Introduction video link"
           type="url"
           defaultValue={value?.introVideoUrl ?? ""}
         />
         <Field
           id={`avatar-${draft?.id ?? "new"}`}
           name="avatarUrl"
-          label="Avatar URL (optional)"
+          label="Avatar link (optional)"
           type="url"
           defaultValue={value?.avatarUrl ?? ""}
         />
-        <p className="tutor-card-meta">
-          Use HTTPS links. Only you and authorized admins can see your document.
-        </p>
-        <button
-          className="button"
-          disabled={action.pending || action.uncertain}
-        >
-          {action.pending ? "Saving..." : "Save draft"}
-        </button>
       </form>
+      <p className="tutor-card-meta">
+        Use HTTPS links. Only you and authorized admins can see your document.
+        Drafts can be incomplete; to submit you need a bio, both links and your
+        consent. Save before submitting.
+      </p>
       {draft && (
-        <>
-          <label className="check-row">
-            <input
-              type="checkbox"
-              checked={consent}
-              onChange={(event) => setConsent(event.target.checked)}
-            />
-            <span>
-              I consent to the application review and use of my submitted
-              documents.
-            </span>
-          </label>
-          <p className="tutor-card-meta">
-            Save your changes above before submitting.
-          </p>
-          <div className="slot-footer flush">
-            <button
-              className="button button-quiet"
-              disabled={action.pending || action.uncertain}
-              onClick={() => {
-                if (window.confirm("Delete this editable draft?"))
-                  void action.run(
-                    `/profiles/me/tutor/drafts/${draft.id}`,
-                    undefined,
-                    "DELETE",
-                    draft.revision,
-                  );
-              }}
-            >
-              Delete draft
-            </button>
-            <button
-              className="button"
-              disabled={!consent || action.pending || action.uncertain}
-              onClick={() =>
-                void action.run(
-                  `/profiles/me/tutor/drafts/${draft.id}/submit`,
-                  { consentAccepted: true },
-                  "POST",
-                  draft.revision,
-                )
-              }
-            >
-              Submit draft
-            </button>
-          </div>
-        </>
+        <label className="check-row">
+          <input
+            type="checkbox"
+            checked={consent}
+            onChange={(event) => setConsent(event.target.checked)}
+          />
+          <span>
+            I consent to the application review and use of my submitted
+            documents.
+          </span>
+        </label>
       )}
-    </section>
+    </LegalModal>
   );
 }
 function SubmissionHistory({
@@ -241,7 +247,7 @@ function ApplicationContent({ profile = false }: { profile?: boolean }) {
   const resource = useResource<Workspace>("/profiles/me/tutor");
   const action = useAction(resource.reload);
   const { account, refresh } = useAuth();
-  const [showNew, setShowNew] = useState(false);
+  const [editing, setEditing] = useState<string | null>(null);
   const workspace = resource.data;
   const current = workspace?.approvedSubmissionId
     ? workspace.submissions.find(
@@ -349,33 +355,50 @@ function ApplicationContent({ profile = false }: { profile?: boolean }) {
               </p>
             </section>
           )}
-          <div className="button-row new-draft-row">
-            <button className="button" onClick={() => setShowNew(!showNew)}>
-              {showNew
-                ? "Close new draft"
-                : workspace.tutorId
-                  ? "Create profile revision"
-                  : "Create application draft"}
+          <h2 className="list-title">Drafts</h2>
+          <div className="tx-list">
+            {workspace.drafts.map((draft) => (
+              <button
+                key={`${draft.id}:${draft.revision}`}
+                type="button"
+                className="panel tutor-card draft-card"
+                onClick={() => setEditing(draft.id)}
+              >
+                <strong>{draft.headline || "Untitled draft"}</strong>
+                <span className="tutor-card-meta">Edit draft</span>
+              </button>
+            ))}
+            <button
+              type="button"
+              className="panel tutor-card draft-card draft-new"
+              onClick={() => setEditing("new")}
+            >
+              <strong>
+                {workspace.tutorId
+                  ? "New profile revision"
+                  : "New application draft"}
+              </strong>
             </button>
           </div>
-          {showNew && (
+          {editing === "new" && (
             <DraftEditor
-              key={workspace.drafts.length}
+              key={`new-${workspace.drafts.length}`}
               seed={current}
               reload={resource.reload}
+              onClose={() => setEditing(null)}
             />
           )}
-          <h2 className="list-title">Drafts</h2>
-          {workspace.drafts.length === 0 && (
-            <p className="tutor-card-meta">No saved drafts.</p>
+          {workspace.drafts.map(
+            (draft) =>
+              editing === draft.id && (
+                <DraftEditor
+                  key={`${draft.id}:${draft.revision}`}
+                  draft={draft}
+                  reload={resource.reload}
+                  onClose={() => setEditing(null)}
+                />
+              ),
           )}
-          {workspace.drafts.map((draft) => (
-            <DraftEditor
-              key={`${draft.id}:${draft.revision}`}
-              draft={draft}
-              reload={resource.reload}
-            />
-          ))}
           <h2 className="list-title">Submission history</h2>
           {workspace.submissions.length === 0 && (
             <p className="tutor-card-meta">No submissions yet.</p>
