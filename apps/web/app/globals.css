@@ -904,3 +904,5 @@ a.tutor-card:hover { background: #0b0b0b; }
 .slip-image { display: block; max-height: 220px; width: auto; max-width: 100%; border-radius: 8px; border: 1px solid var(--line); margin: 0 auto; }
 .slip-open { display: block; width: 100%; padding: 0; border: 0; background: none; cursor: zoom-in; }
 .slip-full { display: block; max-width: 100%; max-height: calc(100vh - 200px); margin: 0 auto; border-radius: 8px; }
+.link-button { padding: 0; border: 0; background: none; color: var(--ink); font: inherit; font-size: 14px; cursor: pointer; }
+.link-button:hover { text-decoration: underline; }

@@ -30,9 +30,12 @@ function SlipImage({ topupId }: { topupId: string }) {
   if (!src) return <p className="small-muted" role="status">Loading slip…</p>;
   return (
     <>
-      <button type="button" className="slip-open" onClick={() => setOpen(true)} aria-label="View slip full size">
-        <img className="slip-image" src={src} alt="Transfer slip" />
-      </button>
+      <div className="summary-rows">
+        <div>
+          <span>Transfer slip</span>
+          <button type="button" className="link-button" onClick={() => setOpen(true)}>View</button>
+        </div>
+      </div>
       {open && (
         <LegalModal open title="Transfer slip" onClose={() => setOpen(false)} actions={false}>
           <img className="slip-full" src={src} alt="Transfer slip" />
