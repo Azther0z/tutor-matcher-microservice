@@ -330,7 +330,7 @@ export function Discover() {
                   <VerifiedBadge />
                 </p>
                 <p className="tutor-card-meta">
-                  Online · {item.subject.learningAreas.join(", ")}
+                  Online, {item.subject.learningAreas.join(", ")}
                 </p>
                 <p className="tutor-card-desc">{item.subject.description}</p>
                 <div className="tutor-card-foot">

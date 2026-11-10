@@ -53,7 +53,7 @@ function CreatePayout({ accounts, available, onCreated }: { accounts: PayoutAcco
       <div className="field">
         <label htmlFor="payoutAccountId">Payout account</label>
         <Dropdown id="payoutAccountId" value={accountId} aria-invalid={Boolean(fields.payoutAccountId)} aria-describedby={fields.payoutAccountId ? "payoutAccountId-error" : undefined} onValueChange={(value) => { setAccountId(value); setKey(newIdempotencyKey()); }} options={
-          accounts.map((account) => ({ value: account.id, label: `${account.maskedAccountNumber} · ${account.accountHolderName}${account.isDefault ? " (default)" : ""}` }))
+          accounts.map((account) => ({ value: account.id, label: `${account.maskedAccountNumber}, ${account.accountHolderName}${account.isDefault ? " (default)" : ""}` }))
         } />
         {fields.payoutAccountId && <span className="field-error" id="payoutAccountId-error">{fields.payoutAccountId}</span>}
       </div>
@@ -87,7 +87,7 @@ export function PayoutsPage() {
 
   return (
     <>
-      <header className="section-heading"><p className="eyebrow">TUTOR · PAYOUTS</p><h1>Payouts</h1><p><Link className="text-link" href="/wallet/payout-accounts">Manage payout accounts</Link></p></header>
+      <header className="section-heading"><p className="eyebrow">TUTOR PAYOUTS</p><h1>Payouts</h1><p><Link className="text-link" href="/wallet/payout-accounts">Manage payout accounts</Link></p></header>
       <DemoBanner />
       {notice && <Notice kind="success">{notice}</Notice>}
       {error && <Notice kind="error">{error}</Notice>}
@@ -134,7 +134,7 @@ export function PayoutDetailPage({ params }: { params: Promise<{ payoutId: strin
   const operation = useOperation(payout?.operation, () => void load());
   return (
     <>
-      <header className="section-heading"><p className="eyebrow">TUTOR · PAYOUTS</p><h1>Payout</h1><p><Link className="text-link" href="/wallet/payouts">Back to payouts</Link></p></header>
+      <header className="section-heading"><p className="eyebrow">TUTOR PAYOUTS</p><h1>Payout</h1><p><Link className="text-link" href="/wallet/payouts">Back to payouts</Link></p></header>
       <DemoBanner />
       {error && <Notice kind="error">{error} <button className="button button-quiet" onClick={() => void load()}>Try again</button></Notice>}
       {!payout && !error && <p role="status">Loading…</p>}
@@ -146,7 +146,7 @@ export function PayoutDetailPage({ params }: { params: Promise<{ payoutId: strin
           {operation?.error && <p className="small-muted">{operation.error}</p>}
           {operation?.status === "TIMEOUT" && <Notice kind="info">Still waiting. You can leave this page; the result will appear in your payout history.</Notice>}
           <dl className="audit-list">
-            <dt>Destination</dt><dd>{payout.payoutAccount.maskedAccountNumber} · {payout.payoutAccount.accountHolderName}</dd>
+            <dt>Destination</dt><dd>{payout.payoutAccount.maskedAccountNumber}, {payout.payoutAccount.accountHolderName}</dd>
             <dt>Requested</dt><dd>{formatTime(payout.createdAt)}</dd>
             <dt>Resolved</dt><dd>{formatTime(payout.resolvedAt)}</dd>
           </dl>

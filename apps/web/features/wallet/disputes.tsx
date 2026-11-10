@@ -17,7 +17,7 @@ function AuditList({ dispute }: { dispute: Dispute }) {
   return (
     <ul className="audit-list">
       {dispute.audit.map((entry) => (
-        <li key={entry.id}><strong>{titleCase(entry.action)}</strong> · {formatTime(entry.occurredAt)}{entry.reason && <><br /><span className="small-muted">{entry.reason}</span></>}</li>
+        <li key={entry.id}><strong>{titleCase(entry.action)}</strong>, {formatTime(entry.occurredAt)}{entry.reason && <><br /><span className="small-muted">{entry.reason}</span></>}</li>
       ))}
     </ul>
   );
@@ -111,7 +111,7 @@ export function DisputesPage() {
         {result && result.items.length > 0 && (
           <ul className="audit-list">
             {result.items.map((dispute) => (
-              <li key={dispute.id}><StatusBadge value={dispute.status} /> Opened {formatTime(dispute.createdAt)} · <Link className="text-link" href={`/disputes/${dispute.id}`}>View</Link></li>
+              <li key={dispute.id}><StatusBadge value={dispute.status} /> Opened {formatTime(dispute.createdAt)}, <Link className="text-link" href={`/disputes/${dispute.id}`}>View</Link></li>
             ))}
           </ul>
         )}
@@ -249,7 +249,7 @@ export function AdminDisputeDetailPage({ params }: { params: Promise<{ disputeId
               <dt>Student</dt><dd>{detail.studentDisplayName}</dd>
               <dt>Tutor</dt><dd>{detail.tutorDisplayName}</dd>
               <dt>Student’s reason</dt><dd>{detail.dispute.reason}</dd>
-              <dt>Booking</dt><dd>{titleCase(detail.booking.status)} · {formatTime(detail.booking.startsAt)} to {formatTime(detail.booking.endsAt)}</dd>
+              <dt>Booking</dt><dd>{titleCase(detail.booking.status)}, {formatTime(detail.booking.startsAt)} to {formatTime(detail.booking.endsAt)}</dd>
               <dt>Completed</dt><dd>{formatTime(detail.booking.completedAt)}</dd>
               <dt>Cancelled</dt><dd>{formatTime(detail.booking.cancelledAt)}</dd>
             </dl>

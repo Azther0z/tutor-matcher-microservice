@@ -44,11 +44,11 @@ function BookingCard({ booking }: { booking: Booking }) {
       </div>
       <h2>{booking.subject.name}</h2>
       <p>
-        {booking.studentUserId ? `Student: ${booking.studentDisplayName}` : ""}{" "}
-        · Tutor: {booking.tutorDisplayName}
+        {booking.studentUserId ? `Student: ${booking.studentDisplayName}, ` : ""}
+        Tutor: {booking.tutorDisplayName}
       </p>
       <p>
-        <strong>{formatMoney(booking.amount)}</strong> · Online
+        <strong>{formatMoney(booking.amount)}</strong>, Online
       </p>
       <Link className="button" href={`/bookings/${booking.id}`}>
         View booking
@@ -517,7 +517,7 @@ function BookingDetailContent({ bookingId }: { bookingId: string }) {
             <section className="panel danger-panel">
               <h2>Cancellation quote</h2>
               <p>
-                Refund: <strong>{formatMoney(quote.refund)}</strong> · Fee:{" "}
+                Refund: <strong>{formatMoney(quote.refund)}</strong>, Fee:{" "}
                 <strong>{formatMoney(quote.fee)}</strong>
               </p>
               {quote.requiresWarning && (

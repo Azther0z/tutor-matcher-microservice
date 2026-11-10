@@ -59,7 +59,7 @@ export function TopupPage({ params }: { params: Promise<{ topupId: string }> }) 
               </div>
             </>
           )}
-          <p className="small-muted">Created {formatTime(topup.createdAt)}{topup.confirmedAt ? ` · Confirmed ${formatTime(topup.confirmedAt)}` : ""}</p>
+          <p className="small-muted">Created {formatTime(topup.createdAt)}{topup.confirmedAt ? `, Confirmed ${formatTime(topup.confirmedAt)}` : ""}</p>
           <div className="button-row">
             {topup.status === "SUCCEEDED" && returnTo && <Link className="button" href={`/bookings/${returnTo}`}>Return to your booking</Link>}
             {topup.status !== "SUCCEEDED" && returnTo && <Link className="button button-quiet" href={`/bookings/${returnTo}`}>Back to booking without paying</Link>}

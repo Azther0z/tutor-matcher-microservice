@@ -17,7 +17,7 @@ function LessonCard({ booking, confirmable, onDone }: { booking: Booking; confir
       </div>
       <h2>{booking.subject.name}</h2>
       <p>
-        Student: {booking.studentDisplayName} · <strong>{formatMoney(booking.amount)}</strong>
+        Student: {booking.studentDisplayName}, <strong>{formatMoney(booking.amount)}</strong>
       </p>
       {booking.description && <p className="muted">“{booking.description}”</p>}
       <p className="small-muted">
