@@ -30,12 +30,7 @@ function SlipImage({ topupId }: { topupId: string }) {
   if (!src) return <p className="small-muted" role="status">Loading slip…</p>;
   return (
     <>
-      <div className="summary-rows">
-        <div>
-          <span>Transfer slip</span>
-          <button type="button" className="link-button" onClick={() => setOpen(true)}>View</button>
-        </div>
-      </div>
+      <button type="button" className="button button-quiet" onClick={() => setOpen(true)}>View slip</button>
       {open && (
         <LegalModal open title="Transfer slip" onClose={() => setOpen(false)} actions={false}>
           <img className="slip-full" src={src} alt="Transfer slip" />
@@ -56,26 +51,23 @@ function RequestCard({ topup, onDone }: { topup: Topup; onDone: () => void }) {
   const waiting = topup.status === "PENDING";
   const decide = (decision: "APPROVE" | "REJECT") => void action.run(`/admin/topups/${topup.id}/decision`, { decision, ...(decision === "REJECT" ? { reason: reason.trim() } : {}) }, "POST");
   return (
-    <article className="panel booking-new submission-card">
-      <StatusBadge value={topup.status === "SUCCEEDED" ? "APPROVED" : topup.status === "FAILED" ? "REJECTED" : "PENDING"} corner />
-      <div className="booking-title">
-        <h2>{formatMoney(topup.amount)}</h2>
-        <p className="tutor-card-meta">{topup.userDisplayName ?? "Unknown user"}, {formatTime(topup.createdAt)}</p>
+    <article className="topup-row">
+      <div className="topup-row-main">
+        <strong>{formatMoney(topup.amount)}</strong>
+        <small>{topup.userDisplayName ?? "Unknown user"}, {formatTime(topup.createdAt)}</small>
+        {topup.decisionReason && <small>Reason: {topup.decisionReason}</small>}
+        {!rejecting && <ActionMessages action={action} />}
       </div>
-      {topup.slip && <SlipImage topupId={topup.id} />}
-      {(topup.decisionReason || topup.decidedAt) && (
-        <div className="summary-rows">
-          {topup.decidedAt && <div><span>Decided</span><strong>{formatTime(topup.decidedAt)}</strong></div>}
-          {topup.decisionReason && <div><span>Reason</span><strong>{topup.decisionReason}</strong></div>}
-        </div>
-      )}
-      {!rejecting && <ActionMessages action={action} />}
-      {waiting && (
-        <div className="slot-footer flush">
-          <button className="button button-quiet" disabled={action.pending} onClick={() => setRejecting(true)}>Reject</button>
-          <button className="button" disabled={action.pending} onClick={() => decide("APPROVE")}>{action.pending && !rejecting ? "Working…" : "Approve"}</button>
-        </div>
-      )}
+      <div className="topup-row-side">
+        {!waiting && <StatusBadge value={topup.status === "SUCCEEDED" ? "APPROVED" : "REJECTED"} />}
+        {topup.slip && <SlipImage topupId={topup.id} />}
+        {waiting && (
+          <>
+            <button className="button button-quiet" disabled={action.pending} onClick={() => setRejecting(true)}>Reject</button>
+            <button className="button" disabled={action.pending} onClick={() => decide("APPROVE")}>{action.pending && !rejecting ? "Working…" : "Approve"}</button>
+          </>
+        )}
+      </div>
       {waiting && rejecting && (
         <LegalModal
           open
@@ -115,7 +107,7 @@ function Requests() {
       </header>
       <ResourceState loading={resource.loading} error={resource.error} failure={resource.failure} retry={resource.reload} />
       {resource.data?.items.length === 0 && <p className="tutor-card-meta">No requests here.</p>}
-      <div className="account-grid">
+      <div className="topup-list">
         {resource.data?.items.map((topup) => <RequestCard key={topup.id} topup={topup} onDone={resource.reload} />)}
       </div>
       {resource.data && <Pager meta={resource.data.pagination} onPage={setPage} disabled={resource.loading} />}
