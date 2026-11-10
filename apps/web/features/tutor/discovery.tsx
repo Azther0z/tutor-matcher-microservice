@@ -519,14 +519,14 @@ export function SubjectDetails({
                         <span
                           key={label}
                           className="tooltip-wrap"
-                          data-tip={held ? "Held for you. Pay to confirm." : "Your booked lesson."}
+                          data-tip={held ? "Held. Waiting for payment." : "Booked."}
                         >
-                          <Link
+                          <span
                             className={`slot-chip slot-own ${held ? "is-held" : "is-booked"}`}
-                            href={`/bookings/${own.id}`}
+                            aria-disabled="true"
                           >
                             {label}
-                          </Link>
+                          </span>
                         </span>
                       );
                     }
