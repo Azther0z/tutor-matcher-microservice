@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ErrorNotice, Field, Notice } from "@/components/field";
 import { LegalModal } from "@/components/legal-modal";
-import { ProgressStepper } from "@/components/progress-stepper";
 import { StatusBadge } from "./common";
 import { api, failureOf, fieldErrors, newIdempotencyKey, type Failure } from "@/lib/api";
 import { formatMoney, formatTime, normalizeAmount } from "./format";
@@ -127,12 +126,6 @@ export function TopupRequestPanel({ returnTo, unavailable, open, onClose, onWait
             <h2>Top-up request, {formatMoney(latest.amount)}</h2>
             <p className="tutor-card-meta">Sent {formatTime(latest.createdAt)}</p>
           </div>
-          <ProgressStepper
-            steps={["Submitted", "Admin review", "Credited"]}
-            reached={latest.status === "SUCCEEDED" ? 2 : 0}
-            failed={latest.status === "FAILED"}
-            label="Top-up rejected"
-          />
           {latest.status === "FAILED" && latest.decisionReason && (
             <div className="summary-rows">
               <div>
