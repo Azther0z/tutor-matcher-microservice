@@ -2,21 +2,31 @@
 
 The [accepted requirements and constraints](docs/requirements.md) define the 10 November delivery for the four-person team. See the [ADR index](docs/adr/README.md), [glossary](GLOSSARY.md), [original PDFs](docs/sources/README.md), and [reference monolith](https://github.com/Azther0z/tutor-matcher).
 
-The [accepted system design](docs/system-design.md) defines the target services, database ownership, recovery, flows, and deployment. The [interface contracts](contracts/README.md) define the step-3 target REST, gRPC, events, authorization and recovery behavior. The target uses 20 private domain RPCs, public REST and RabbitMQ. These interfaces are not implemented yet.
+The [accepted system design](docs/system-design.md) defines the target services, database ownership, recovery, flows, and deployment. The [interface contracts](contracts/README.md) define the target REST, gRPC, events, authorization and recovery behavior. The target uses 20 private domain RPCs, 86 public REST operations and RabbitMQ. Implementation is in progress; this is not a completed nine-use-case delivery.
 
 The [four-member implementation handoffs](docs/handoffs/README.md) assign parallel work to Saint, Ideal, Santa and P, with UI ownership, integration checkpoints and evidence responsibilities.
 
-The implementation description below records the current backend demo. It does not claim completion of the nine-use-case delivery baseline.
+## Current implementation: platform and identity
+
+Saint's slice adds a root npm workspace, TypeScript Auth, shared authorization/validation adapters and a Next.js identity shell. Traefik OSS 3.7.17 is the public gateway; the earlier custom Node/Express Gateway is removed. Auth owns PostgreSQL sessions, capabilities, restrictions, outbox work and private ForwardAuth actor issuance. Other owners' business implementations remain separate work.
+
+Use Node.js 22 or newer and run `npm ci` from the repository root. Follow [platform setup and deployment](docs/platform.md) for runtime configuration, local Compose, hosted templates, CI and restoration. See [implementation evidence](docs/evidence/saint/README.md) for checks actually run and remaining acceptance work. Use `npm run typecheck`, `npm run lint`, `npm test`, `npm run contracts` and `npm run build` for local quality checks.
+
+Root Compose defaults to the identity slice. Its `target` profile requires the other owners' real images; it does not use test doubles as business services. Traefik routes the exact public methods and paths in OpenAPI under `/api`; the former demo paths without `/api` are not promised as aliases. See [gateway behavior](api-gateway/README.md), [local and hosted platform setup](docs/platform.md), and [Traefik integration evidence](docs/evidence/saint/traefik-integration.md).
+
+## Historical backend demo
+
+The sections below describe the earlier backend API and its original setup. They are retained as reference, not current startup instructions. Auth/Gateway paths and workspace installation have changed; use the platform guide above for the current slice.
 
 Tutor Matcher is an online marketplace for one-to-one tutoring. Students can browse a tutor's profile, subjects, rates, and available lesson times. Tutors maintain their public offering and open time slots for future bookings.
 
 This repository implements the Tutor Matcher services behind an API gateway. The demo covers three business use cases plus authentication: UC-03 discover, book and pay for a lesson, UC-04 top up the wallet, and UC-06 cancel a booking with a refund. When a client requests a tutor profile, the Tutor service retrieves that tutor's slots from Booking over gRPC and returns a combined response.
 
-## Architecture
+### Architecture
 
 | Service | Interface | Owns | Database |
 | --- | --- | --- | --- |
-| Traefik gateway | REST on port `8080` | Explicit routing, healthy backends and Auth ForwardAuth | none |
+| Former Express gateway | REST on port `8080` | Demo routing and Consul discovery | none |
 | Auth | REST on port `4002` | Accounts, password hashes, login tokens | PostgreSQL `auth_db` |
 | Tutor | REST on port `4001` | Profiles, publication status, subjects, hourly rates, search | MongoDB `tutor_db` |
 | Booking | gRPC on port `50052`, REST on port `4004` | Availability slots, bookings, payment and cancellation state | MongoDB `booking_db` |
@@ -38,7 +48,7 @@ Auth, Wallet and Booking publish events to the RabbitMQ topic exchange `tutor-ma
 
 PromptPay is mocked: `POST /wallet/topups` returns a placeholder payload instead of a real QR code, and `POST /wallet/topups/:id/confirm` stands in for the payment provider's confirmation.
 
-## Run everything with Docker
+### Historical Docker setup (superseded)
 
 ```bash
 docker compose up -d --build
@@ -49,7 +59,7 @@ This starts MongoDB, PostgreSQL, RabbitMQ and all services. Send requests to the
 
 To use MongoDB Atlas instead of the local MongoDB, copy `.env.example` to `.env` in the repository root and set `MONGO_URI` to your Atlas URI (add your IP to the Atlas access list first). Tutor, Booking and Notification then use `tutor_db`, `booking_db` and `notification_db` on Atlas, which you can browse in Atlas under **Data Explorer**. Stop with `docker compose down`, or `docker compose down -v` to also delete the data.
 
-### Demo flow
+#### Historical demo flow (legacy paths)
 
 Import [the D4 demo collection](postman/d4-demo.postman_collection.json) and run the requests in order. After **Login**, paste the token into each protected request's Authorization tab (Bearer Token), and copy IDs from earlier responses into the request body or the Params tab. The flow tops up 500 THB, books a one-hour lesson for 400 THB, pays from the wallet, then cancels for a refund.
 
@@ -69,21 +79,13 @@ Import [the D4 demo collection](postman/d4-demo.postman_collection.json) and run
 | `POST` | `/bookings/:id/cancel` | yes | Cancel; full refund 24 hours or more before the start, otherwise half |
 | `GET` | `/bookings` | yes | Your bookings |
 
-## Progress 3: service discovery and scalability
+### Historical progress: service discovery and scalability
 
-### Service discovery with Traefik
+The setup and routes below describe an earlier backend demo. They are retained as historical material and are not the current `/api` gateway contract.
 
-[ADR-0029](docs/adr/0029-traefik-swarm-discovery.md) replaces the custom Express gateway and Consul with Traefik. Root Compose is the local fallback; the [hosted Swarm manifest and procedure](deploy/README.md) use service/task discovery without application-side registration.
+The current Traefik/Swarm design is recorded in [ADR-0029](docs/adr/0029-traefik-swarm-discovery.md), the [gateway guide](api-gateway/README.md) and [hosted deployment guide](deploy/README.md).
 
-- Local Traefik uses Docker discovery; hosted Traefik uses Swarm discovery through a restricted Docker API proxy.
-- The shared [route allowlist](api-gateway/routes.yaml) preserves the current public paths on port 8080. Private, unknown and unsupported method/path combinations are not routed.
-- Protected requests call a private Auth ForwardAuth endpoint. Auth verifies the token and current account existence. Traefik replaces identity headers before forwarding.
-- Traefik checks backend `/health` every two seconds and distributes traffic among healthy tasks. Selected reads can retry once on connection failure or a 502–504 response; writes have no gateway retry middleware.
-- A Docker API outage retains the last discovered configuration while backend checks continue. Empty known pools return 503. Fresh discovery is needed after gateway restart. There is no separate registry or fixed-DNS gateway fallback.
-
-See [gateway configuration and verification](api-gateway/README.md). Internal REST/gRPC calls continue using service DNS. The full target's session/ban/capability and signed-admission rules remain implementation work.
-
-### Scalability load test (k6)
+#### Historical scalability load test (k6)
 
 The NFR we measure is scalability of tutor search: with 50 concurrent users for 30 seconds, adding Tutor replicas should raise throughput while p95 latency stays under 500 ms and errors stay under 1%. Each Tutor replica is capped at 0.5 CPU in `compose.yaml`, like a small cloud instance, so the numbers do not depend on how big the laptop is.
 
@@ -107,7 +109,7 @@ docker kill tutor-matcher-tutor-service-2
 docker compose up -d --scale tutor-service=3
 ```
 
-Historical results from the former Express/Consul gateway (MacBook, local MongoDB, saved unchanged in [loadtest/results](loadtest/results)). These are not Traefik results; rerun for the new gateway:
+Historical results from the former Express/Consul gateway (MacBook, local MongoDB, saved unchanged in [loadtest/results](loadtest/results)). They are not Traefik measurements and do not establish the current `/api` route behavior:
 
 | Run | Requests/s | Avg | p95 | Errors |
 | --- | --- | --- | --- | --- |
@@ -115,13 +117,13 @@ Historical results from the former Express/Consul gateway (MacBook, local MongoD
 | 3 Tutor replicas, 50 users | 2,170 | 22.8 ms | 73.5 ms | 0% |
 | 3 replicas, 10 users, one replica killed at 15 s | 1,800 | 5.4 ms | 16.5 ms | 0% (0 of 54,344) |
 
-Three replicas gave about 2x the throughput and half the average latency. It is not 3x because the single gateway was at about 100% CPU in the 3 replica run, so the gateway is the next thing to scale. When a replica was killed, Consul marked it critical in about 2 seconds and no request failed. A few requests took up to 5 seconds (the gateway timeout) before the retry went to a healthy replica.
+In that historical run, three replicas gave about 2x the throughput and half the average latency. The old gateway was at about 100% CPU in the 3-replica run. Consul marked a killed replica critical in about 2 seconds; these observations describe the old stack only.
 
 Use the local MongoDB for this test (no `MONGO_URI` in `.env`). With Atlas the network to Atlas is the bottleneck, not the service.
 
 The sections below describe running Tutor and Booking alone against MongoDB Atlas.
 
-## Requirements
+### Requirements
 
 - Node.js and npm
 - A MongoDB Atlas cluster, database user, and connection URI
@@ -137,7 +139,7 @@ MONGO_URI=mongodb+srv://USERNAME:PASSWORD@CLUSTER_HOST/?retryWrites=true&w=major
 
 The application selects `tutor_db` and `booking_db` separately, so you do not need to add a database name to the URI. Keep the real URI in `.env`; these files are ignored by Git.
 
-## Run locally
+### Run locally
 
 Start Booking first, then Tutor, in separate terminals:
 
@@ -163,9 +165,9 @@ npm run dev
 | `GRPC_PORT` | Booking | `50052` |
 | `MONGO_URI` | Booking | The same Atlas URI (required); connects to `booking_db` |
 
-## API
+### API
 
-### Tutor REST API
+#### Tutor REST API
 
 | Method | Path | Description |
 | --- | --- | --- |
@@ -178,7 +180,7 @@ A tutor has `firstName`, `lastName`, `email`, optional profile media and biograp
 
 `GET /tutors/:id` calls Booking with a two-second deadline. If Booking is unavailable or the call times out, Tutor still returns the profile with `availability: []` and `availabilityUnavailable: true`. A successful call returns `availabilityUnavailable: false`.
 
-### Booking gRPC API
+#### Booking gRPC API
 
 | Method | Description |
 | --- | --- |
@@ -189,7 +191,7 @@ A tutor has `firstName`, `lastName`, `email`, optional profile media and biograp
 
 Slot timestamps are ISO 8601 strings. `UpdateSlot` accepts an empty `bookingId` to clear the reference. Deleting a tutor does not remove their Booking slots automatically.
 
-## Try the workflow in Postman
+### Try the workflow in Postman
 
 Import the [REST collection](postman/tutor-matcher.postman_collection.json). For Booking, create a gRPC request to `127.0.0.1:50052`, import [`booking.proto`](proto/booking.proto), and choose a method from `booking.BookingService`. Use JSON messages with camelCase field names.
 

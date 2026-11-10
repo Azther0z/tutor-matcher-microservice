@@ -1,0 +1,70 @@
+name: Saint quality
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_HOST_AUTH_METHOD: trust
+          POSTGRES_DB: saint_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres -d saint_test"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+    env:
+      TEST_DATABASE_URL: postgresql://postgres@127.0.0.1:5432/saint_test
+      NEXT_TELEMETRY_DISABLED: '1'
+      CONTAINER_CLI: docker
+      CONTAINER_ENGINE: docker
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - uses: astral-sh/setup-uv@v6
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run format:check
+      - run: npm run config:check
+      - run: npm run routes:check
+      - name: Create independent test databases
+        run: |
+          node --input-type=module <<'JS'
+          import pg from 'pg';
+          const client=new pg.Client({connectionString:process.env.TEST_DATABASE_URL});
+          await client.connect();
+          for(const database of ['saint_auth_unit_test','saint_browser_test','saint_outbox_test']) await client.query(`CREATE DATABASE ${database}`);
+          await client.end();
+          JS
+      - run: uv run --with pyyaml==6.0.3 -- npm test
+        env:
+          TEST_DATABASE_URL: postgresql://postgres@127.0.0.1:5432/saint_auth_unit_test
+      - run: uv run --with jsonschema==4.26.0 --with pyyaml==6.0.3 python contracts/validate.py --collection 'postman/collections/Tutor Matcher Target Public v1'
+      - run: node contracts/check-proto.cjs
+      - run: npm run build
+      - run: npm run test:integrated
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:browser
+      - run: npm run smoke:browser
+        env:
+          TEST_DATABASE_URL: postgresql://postgres@127.0.0.1:5432/saint_browser_test
+      - run: npm run smoke:outbox
+        env:
+          TEST_DATABASE_URL: postgresql://postgres@127.0.0.1:5432/saint_outbox_test
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: saint-browser-failure
+          path: |
+            web/test-results/
+            .cache/gateway/*.log
+          if-no-files-found: ignore

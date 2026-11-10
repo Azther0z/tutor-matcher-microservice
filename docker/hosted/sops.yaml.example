@@ -1,0 +1,5 @@
+# The existing homelab-gitops SOPS rules/key owner remain authoritative.
+# This example is only for review; never add a private key or replace real rules.
+creation_rules:
+  - path_regex: (^|/)secrets/runtime\.env\.enc$
+    age: REPLACE_WITH_APPROVED_PUBLIC_AGE_RECIPIENT

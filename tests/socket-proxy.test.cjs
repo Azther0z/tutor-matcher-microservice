@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const { spawn, execFileSync } = require('node:child_process');
 const http = require('node:http');
 const { once } = require('node:events');
-const { mkdirSync, mkdtempSync, rmSync, writeFileSync } = require('node:fs');
+const { mkdirSync, mkdtempSync, rmSync, statSync, writeFileSync } = require('node:fs');
 const path = require('node:path');
 
 const root = path.resolve(__dirname, '..');
@@ -21,7 +21,10 @@ test('hosted socket proxy permits discovery reads and denies writes/secrets', { 
     if (!['GET','HEAD'].includes(req.method)) writes += 1;
     res.setHeader('content-type', 'application/json'); res.end('{}');
   });
-  fixture.listen(socket); await once(fixture, 'listening');
+  // Linux limits Unix socket address strings to 107 bytes. GitHub's checkout
+  // path can exceed that once the fixture suffix is added; bind relatively.
+  fixture.listen(path.relative(process.cwd(), socket)); await once(fixture, 'listening');
+  assert.ok(statSync(socket).isSocket(), 'The mounted fixture path must be a Unix socket');
   const reserve = http.createServer(); reserve.listen(0, '127.0.0.1'); await once(reserve, 'listening');
   const port = reserve.address().port; await new Promise((resolve) => reserve.close(resolve));
   const name = `tutor-matcher-socket-test-${process.pid}`;

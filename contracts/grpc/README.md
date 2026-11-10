@@ -29,11 +29,11 @@ Removed HTTP operations have no parallel target REST alias. Gateway must not rou
 
 Messaging and Notification are gRPC clients. They do not need gRPC servers for this scope.
 Each owner still exposes its existing public REST operations and private HTTP health/status interfaces.
-Gateway uses REST to Auth for introspection and to owners for operation polling. It does not translate public business requests into these RPCs.
+The internal OpenAPI inventory retains Auth introspection for other infrastructure consumers and defines seven owner-operation polls. Traefik ForwardAuth uses the separate private `GET /internal/gateway/authorize` control-plane endpoint; that interface is not one of the eight OpenAPI operations. Traefik does not translate public business requests into the domain RPCs.
 
 Use `<OWNER>_GRPC_URL` from the registry for the configured private target.
 Keep Booking's existing port 50052. The other four gRPC ports are target configuration choices for implementation.
-Swarm provides private service DNS for the configured gRPC ports; services do not register themselves with Consul. Supply the HTTP port and `/health` check through deployment labels for Traefik. Private domain RPC ports remain outside public gateway routing. See [ADR-0029](../../docs/adr/0029-traefik-swarm-discovery.md).
+Swarm provides private service DNS for the configured gRPC ports; services do not register themselves with a separate Consul registry. Supply the HTTP port and `/health` check through deployment labels for Traefik. Private domain RPC ports remain outside public gateway routing. See [ADR-0029](../../docs/adr/0029-traefik-swarm-discovery.md).
 Domain clients use the configured private service DNS names and explicit gRPC ports from the deployment.
 Do not mistake an HTTP registration port for a gRPC port or select an arbitrary Swarm interface address.
 

@@ -1,6 +1,6 @@
 # Tutor Matcher interface contracts v1
 
-Status: step-3 target, recorded 6 November 2026. These interfaces are not implemented or deployed yet.
+Status: v1 target, recorded 6 November 2026. Local implementation covers Auth, the Traefik gateway configuration, shared adapters and the identity UI; see the [implementation evidence](../docs/evidence/saint/README.md) and [pending Traefik integration record](../docs/evidence/saint/traefik-integration.md). The full interface set is not implemented or deployed.
 The [requirements](../docs/requirements.md) own scope and policy. The [system design](../docs/system-design.md) owns service boundaries and flows.
 The [pinned monolith](https://github.com/Azther0z/tutor-matcher/tree/ce3ec82672d7dac5da8b846ecdb6725dcc7e5ca1) supplies established user journeys, not the target service topology.
 See the unchanged [source PDFs](../docs/sources/README.md) for provenance.
@@ -12,7 +12,7 @@ The confirmed product decisions remain in requirements. UUIDs, actor-assertion s
 | Artifact | Owns |
 | --- | --- |
 | [Public OpenAPI](public.openapi.json) | Gateway paths, methods, request/response types, capabilities, errors, owner routing and requirement links. |
-| [Internal OpenAPI](internal.openapi.json) | Eight private REST infrastructure operations: Gateway introspection and owner-status polling. Domain collaborations use gRPC. |
+| [Internal OpenAPI](internal.openapi.json) | Eight private REST operations: one retained Auth introspection operation (not called by Traefik) and seven owner-operation status polls. Domain collaborations use gRPC. |
 | [Shared JSON Schema](schemas/v1.json) | REST data shapes and gRPC value-validation views. Protobuf files own gRPC wire types; the normalization rules preserve these domain values. |
 | [Private gRPC guide and registry](grpc/README.md) | Twenty typed unary domain collaborations across five servers, with exact callers, schemas and deadlines. |
 | [Availability protobuf](grpc/booking/v1/availability.proto) | The two Tutor → Booking availability methods within that gRPC set. |
@@ -44,10 +44,12 @@ REST JSON requests reject unknown fields. gRPC validates decoded named fields an
 
 Private domain calls use the [gRPC method registry](grpc/operations.v1.json). Auth serves port 50051, Booking keeps 50052, Tutor serves 50053, Wallet serves 50054 and Review serves 50055. Messaging and Notification use those RPCs as clients. Domain callers use configured private service DNS and gRPC ports. Gateway introspection and owner-status polling remain REST. Private owner HTTP `/health` routes serve Docker/Traefik readiness checks: 200 when ready and 503 when unavailable, with no sensitive diagnostics. Runtime broker outages leave committed outbox work pending and must not turn a successful business transaction into failure.
 
-The public base is `http://127.0.0.1:8080/api` for local target deployment; hosted deployments use HTTPS. The current Traefik demo preserves legacy paths without `/api` and implements only its explicit current route allowlist. Its private ForwardAuth adapter is an infrastructure endpoint; the target introspection/actor, operation-polling and session/capability contracts remain implementation work. Gateway maps each OpenAPI method/path to x-owner, passes query/body unchanged, and strips caller-supplied internal identity headers. Fixed paths such as `/bookings/tutor/upcoming` precede `/{bookingId}`. No wildcard proxy to internal or demo namespaces is allowed.
+The public base is `http://127.0.0.1:8080/api` for local target deployment; hosted deployments use HTTPS. Traefik's 86 exact method/path routes come from the public OpenAPI owner inventory. Legacy demo paths without `/api` are not promised as aliases. There is no custom Node/Express request proxy. Traefik strips caller-supplied identity and workload headers before admission, removes the browser token after successful ForwardAuth, and sends the Gateway workload credential and signed actor assertion to the selected owner. The owner still validates the request body, capability, resource, and business rules. Fixed paths such as `/api/bookings/tutor/upcoming` precede `/{bookingId}`. No wildcard proxy to internal or legacy demo namespaces is allowed.
+
+The private ForwardAuth control-plane endpoint is `GET /internal/gateway/authorize`. Traefik sends the browser `Authorization: Bearer <JWT>` separately from `X-Workload-Authorization: Bearer <gateway credential>`, plus the request context, to its loopback-only listener. Auth verifies the Gateway workload proof, current session/account status and required capability, then returns the Auth-signed actor assertion in `X-Actor-Context` and `X-Request-Id`. The assertion has a 60-second lifetime and logical issuer `api-gateway`; the Auth signing key is never made available to Traefik. Traefik removes the browser token, clears `X-Workload-Authorization`, and sets upstream `Authorization: Bearer <gateway credential>` for the owner. Auth returns its standard top-level JSON Error DTO with `X-Request-Id` on error: 400 for invalid request metadata, 401 for missing/invalid workload proof or session, 403 for a restricted account or missing capability, and 503 when current authorization cannot be checked because Auth storage is unavailable. This ForwardAuth operation is a separate private control-plane interface, like private health checks, and is not added to the eight-operation OpenAPI inventory. It does not change the public or internal JSON schemas or operation counts. Ingress-generated 404/502/503/504 responses may be plain text and may not contain the application Error shape or a UUID request ID; clients must handle non-JSON gateway failures and retain the same idempotency key when retrying a mutation.
 The `/operations/{owner}/{operationId}` route uses a fixed owner allowlist and forwards to that owner's operation store. It forwards to the selected owner's private `/internal/v1/<owner>/operations/{operationId}` path from the internal spec. It is not a new service or a caller-selected hostname.
 
-Every response returns X-Request-Id. A caller may supply a valid UUID; otherwise generate one. Invalid request IDs are rejected. IDs are diagnostic, not credentials. JSON responses use application/json; responses with no body use 204. Sensitive responses use Cache-Control: no-store, including sessions, account settings, reset material, payout accounts and private conversations.
+Application responses return `X-Request-Id`. A caller may supply a valid UUID; otherwise the owning service generates one. Invalid request IDs are rejected. IDs are diagnostic, not credentials. Traefik-generated ingress errors can lack this header and may use `text/plain`; the public OpenAPI transport-error responses describe that boundary. JSON application responses use `application/json`; responses with no body use 204. Sensitive responses use Cache-Control: no-store, including sessions, account settings, reset material, payout accounts and private conversations.
 
 Mutations marked x-idempotency REQUIRED require a UUID Idempotency-Key, including those returning 204. Anonymous login/reset-request are rate-limited; signup/reset-confirm keys are scoped to a canonical request hash and the relevant identity/token fingerprint, never stored as plaintext credentials. Auth uses keyed fingerprints for credential-bearing replay inputs, including reset tokens, rather than unsalted hashes of passwords or tokens. Never retain signup passwords or reset bodies in a generic idempotency cache. Return the original signup session only while still valid; otherwise return 409 SESSION_EXPIRED_LOGIN_REQUIRED without minting a session on replay.
 
@@ -86,6 +88,29 @@ The first user operation requires the valid actor assertion and current admissio
 Internal account lookup returns minimal display/capability/contact data only to its allowlisted callers. Review can query immutable Booking eligibility; it cannot query booking_db. Wallet obtains Booking evidence and locks its own financial record for the decision. Auth never re-decides a tutor application during activation. Capability grants are keyed by submission ID plus approval revision; approval remains visibly activation-pending until Auth confirms it.
 
 A student's and tutor's views share one identity but cannot edit each other's resources. A view parameter selects context, not capability. ListBookings defaults STUDENT; tutor inbox/upcoming views require TUTOR. Resource owners enforce participant checks even behind Gateway. Internal REST paths, private RPCs and private document URLs cannot be reached by changing a public route parameter.
+
+### Account lifecycle
+
+User-confirmed on 8 November 2026. A settings password change or password reset revokes every session, including the current session, and requires fresh login. Save the new password hash and session revocation atomically in Auth. Use the same password hashing and verification mechanism for signup, login, settings and reset; never copy the monolith's plaintext settings-update defect. Name and email edits preserve sessions.
+
+Voluntary deactivation is an authenticated ACTIVE-account settings action requiring the current password. It sets DEACTIVATED and revokes every session in the same transaction. Keep the original account ID and reserved email, bookings, funds and audit history. It does not cancel bookings, refund money or erase records. There is no public reactivation flow.
+
+Only a currently active ADMIN can use `restrictAccount`. The transition table applies after authentication, ownership policy, idempotent replay and revision checks:
+
+| Current status | Action | Result |
+| --- | --- | --- |
+| ACTIVE | SUSPEND | SUSPENDED; revoke all sessions |
+| ACTIVE | BAN | BANNED; revoke all sessions |
+| SUSPENDED | BAN | BANNED; keep sessions revoked |
+| SUSPENDED | RESTORE | ACTIVE; fresh login required |
+| DEACTIVATED | BAN | BANNED; keep sessions revoked |
+| DEACTIVATED | RESTORE | ACTIVE; fresh login required |
+
+SUSPENDED has no timer or automatic expiry. BANNED is permanent for this delivery and has no outgoing transition. All other action/status pairs return `409 INVALID_RESTRICTION_TRANSITION`, except a new BAN on BANNED returns `409 ALREADY_BANNED`. A retry with the original idempotency key returns its recorded outcome, rather than failing because its original transition already happened.
+
+Every accepted admin transition requires a reason, advances the account revision, records the audit entry and saves `auth.account-restricted` outbox work in the same Auth transaction. RESTORE uses that event's existing RESTORE action and mandatory SYSTEM email. Restoration never revives a revoked session or creates a new one; the user logs in again. Restrictions and deactivation preserve already admitted durable recovery under the existing rules; neither implicitly changes booking or financial state.
+
+Login returns `401 INVALID_CREDENTIALS` for invalid credentials, or `403 ACCOUNT_RESTRICTED` after valid credentials for a non-ACTIVE account. Both responses use Error and omit session tokens.
 
 ## Owner-specific behavior
 
@@ -126,7 +151,7 @@ The generated [target Postman collection](../postman/collections/Tutor%20Matcher
 
 All 18 former private domain HTTP operations are replaced by typed gRPC methods. [The gRPC guide](grpc/README.md) defines field normalization, error/status mapping and unknown-outcome handling. The public REST spec and its 86-request Postman collection remain unchanged.
 
-The current [legacy protobuf](../proto/booking.proto), JavaScript services, Compose configuration and maintained Postman collection still describe the existing demo. Step 4 must migrate callers and servers together. Public IDs move from Mongo IDs where applicable to UUIDs; prices become decimal strings; direct user-confirmed top-ups become controlled simulated outcomes; reset validation moves from a query token to a POST body; private profile fields are removed from public projections. Legacy isTrial and reschedule endpoints are not part of the required target delivery. Do not claim drop-in compatibility.
+The [legacy protobuf](../proto/booking.proto), remaining peer JavaScript services and historical Postman collection still describe the earlier demo. Auth and Gateway now use TypeScript and the target contracts; local Compose defaults to the identity slice. The other owners must migrate callers and servers together. Public IDs move from Mongo IDs where applicable to UUIDs; prices become decimal strings; direct user-confirmed top-ups become controlled simulated outcomes; reset validation uses a POST body and the browser reset link carries its token in a fragment; private profile fields are removed from public projections. Legacy isTrial and reschedule endpoints are not part of the required target delivery. Do not claim drop-in compatibility.
 
 The documented interfaces and fixtures must pass before parallel implementation starts. Runtime acceptance still requires the nine UI journeys, concurrency/failure exercises, deployment and syllabus evidence; schema validation alone does not establish those outcomes.
 

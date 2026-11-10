@@ -1,306 +1,583 @@
-const { test } = require('node:test');
-const assert = require('node:assert/strict');
-const http = require('node:http');
-const { spawn, execFileSync } = require('node:child_process');
-const { once } = require('node:events');
-const { mkdirSync, readFileSync, writeFileSync } = require('node:fs');
-const path = require('node:path');
-const { randomBytes } = require('node:crypto');
-const express = require('../auth-service/node_modules/express');
-const jwt = require('../auth-service/node_modules/jsonwebtoken');
-const { createGatewayAuthorization } = require('../auth-service/src/gateway-auth');
+const { test } = require("node:test");
+const assert = require("node:assert/strict");
+const http = require("node:http");
+const { execFileSync } = require("node:child_process");
+const { once } = require("node:events");
+const { readFileSync } = require("node:fs");
+const path = require("node:path");
+const { pathToFileURL } = require("node:url");
 
-const root = path.resolve(__dirname, '..');
-const cache = path.join(root, '.cache/gateway');
-const binary = process.env.TRAEFIK_BIN || path.join(cache, 'traefik');
-const provider = process.env.GATEWAY_TEST_PROVIDER || 'swarm';
-assert.ok(['swarm', 'docker'].includes(provider));
-const user = { id: '11111111-1111-4111-8111-111111111111', email: 'gateway-test@example.invalid' };
-const pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const root = path.resolve(__dirname, "..");
+const operationMap = require("../contracts/operation-map.json");
+const inventory = operationMap.filter(
+  (entry) => entry.protocol === "REST" && entry.surface === "PUBLIC",
+);
+const providers = process.env.GATEWAY_TEST_PROVIDER
+  ? [process.env.GATEWAY_TEST_PROVIDER]
+  : ["docker", "swarm"];
+const gatewayCredential = "synthetic-gateway-workload-credential";
+const browserToken = "synthetic-browser-bearer-token";
+const actorProof = "synthetic-signed-actor-proof";
+const requestId = "a0a0a0a0-0000-4000-8000-000000000001";
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-async function listen(server, port = 0, host = '127.0.0.1') {
+async function listen(server, host = "127.0.0.1", port = 0) {
   server.listen(port, host);
-  await once(server, 'listening');
+  await once(server, "listening");
   return server.address().port;
 }
 
-async function freePort() {
-  const server = http.createServer();
-  const port = await listen(server);
-  await new Promise((resolve) => server.close(resolve));
-  return port;
+async function closeServer(server) {
+  server.closeAllConnections();
+  await new Promise((resolve) => server.close(() => resolve()));
 }
 
-async function eventually(check, description) {
-  const until = Date.now() + 12000;
-  let last;
-  while (Date.now() < until) {
-    try { await check(); return; } catch (error) { last = error; }
-    await pause(100);
-  }
-  throw new Error(`${description}: ${last?.message}`);
-}
-
-test(`Traefik ${provider} discovery, private Auth and controlled HTTP services`, { timeout: 90000 }, async (t) => {
-  mkdirSync(cache, { recursive: true });
-  const stack = JSON.parse(execFileSync('python', ['-c',
-    `import json,yaml; print(json.dumps(yaml.safe_load(open("${provider === 'swarm' ? 'deploy/compose.yaml' : 'compose.yaml'}"))))`], { cwd: root }));
-  const children = [];
-  const servers = [];
-  let postmanLog = '';
-  let traefikLog = '';
-  t.after(async () => {
-    for (const child of children.reverse()) {
-      if (child.exitCode === null && child.signalCode === null) {
-        child.kill('SIGTERM');
-        await Promise.race([once(child, 'exit'), pause(3000)]);
-        if (child.exitCode === null && child.signalCode === null) child.kill('SIGKILL');
-      }
-    }
-    for (const server of servers) { server.closeAllConnections(); server.close(); }
-    writeFileSync(path.join(cache, 'traefik.log'), traefikLog);
-    writeFileSync(path.join(cache, 'simulation.ndjson'), postmanLog);
+function readRequest(req) {
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+    req.on("data", (chunk) => chunks.push(chunk));
+    req.on("end", () => resolve(Buffer.concat(chunks)));
+    req.on("error", reject);
   });
+}
 
-  const simulationPort = await freePort();
-  const simulation = spawn('postman', ['simulation', 'run', 'postman/simulations/gateway/gateway.sim.yaml',
-    '--port', String(simulationPort), '--no-history', '--output', 'ndjson'], { cwd: root });
-  children.push(simulation);
-  simulation.stdout.on('data', (data) => { postmanLog += data; });
-  simulation.stderr.on('data', (data) => { postmanLog += data; });
-  await eventually(async () => {
-    assert.equal(simulation.exitCode, null, 'Postman simulation exited');
-    const response = await fetch(`http://127.0.0.1:${simulationPort}/tutors`, { headers: { 'x-mock-slug': 'business' } });
-    assert.equal(response.status, 200);
-  }, 'start Postman simulation');
-
-  const state = { database: true, account: true, authHealthy: true, discovery: true, tutorReplicas: 1, authReplicas: 1 };
-  const secret = randomBytes(32).toString('hex');
-  const authorization = createGatewayAuthorization({ jwtSecret: secret, pool: {
-    async query(_sql, parameters) {
-      if (!state.database) throw new Error('Synthetic database failure');
-      return { rows: state.account && parameters[0] === user.id ? [user] : [] };
-    },
-  } });
-  const app = express();
-  app.use(express.json());
-  app.get('/health', (_req, res) => res.sendStatus(state.authHealthy ? 200 : 503));
-  app.get('/internal/gateway/authorize', authorization);
-  app.get('/auth/me', (req, res) => res.json({ id: req.get('x-user-id'), email: req.get('x-user-email') }));
-  app.post('/auth/register', (_req, res) => res.status(201).json({ route: 'register' }));
-  app.post('/auth/login', (_req, res) => res.json({ route: 'login' }));
-  const auth = http.createServer(app); servers.push(auth);
-  const authPort = await listen(auth);
-
-  const instances = {};
-  async function business(name, host, port = 0) {
-    const instance = { healthy: true, disconnect: false, writes: 0 };
-    const server = http.createServer(async (req, res) => {
-      if (req.url === '/health') { res.writeHead(instance.healthy ? 200 : 503); return res.end(); }
-      if (!['GET', 'HEAD'].includes(req.method)) instance.writes += 1;
-      if (instance.disconnect) return req.socket.destroy();
-      const chunks = [];
-      for await (const chunk of req) chunks.push(chunk);
-      try {
-        const headers = { ...req.headers, 'x-mock-slug': 'business', 'x-test-instance': name };
-        delete headers.host; delete headers['content-length']; delete headers.connection;
-        const response = await fetch(`http://127.0.0.1:${simulationPort}${req.url}`, {
-          method: req.method, headers,
-          body: ['GET', 'HEAD'].includes(req.method) ? undefined : Buffer.concat(chunks),
-        });
-        res.writeHead(response.status, { 'content-type': response.headers.get('content-type') || 'application/json' });
-        res.end(Buffer.from(await response.arrayBuffer()));
-      } catch { res.writeHead(502); res.end(); }
+function createAuthServer(observations, state) {
+  return http.createServer(async (req, res) => {
+    if (req.url === "/health") {
+      res.writeHead(state.healthy ? 200 : 503, {
+        "content-type": "application/json",
+      });
+      return res.end(
+        state.healthy ? '{"status":"ok"}' : '{"status":"unavailable"}',
+      );
+    }
+    if (req.url === "/internal/gateway/authorize") {
+      const body = await readRequest(req);
+      observations.auth.push({
+        method: req.method,
+        url: req.url,
+        headers: req.headers,
+        body: body.toString(),
+      });
+      if (
+        req.method !== "GET" ||
+        req.headers["x-workload-authorization"] !==
+          `Bearer ${gatewayCredential}` ||
+        req.headers.authorization !== `Bearer ${browserToken}`
+      ) {
+        res.writeHead(401, { "content-type": "application/json" });
+        return res.end('{"error":"unauthorized"}');
+      }
+      res.writeHead(204, {
+        "x-actor-context": actorProof,
+        "x-request-id": requestId,
+      });
+      return res.end();
+    }
+    const body = await readRequest(req);
+    observations.authOwner.push({
+      method: req.method,
+      url: req.url,
+      headers: req.headers,
+      body: body.toString(),
     });
-    servers.push(server); instance.port = await listen(server, port, host); instance.host = host;
-    instances[name] = instance;
-    return instance;
-  }
-  const tutorA = await business('tutor-a', '127.0.0.2');
-  await business('tutor-b', '127.0.0.3', tutorA.port);
-  const booking = await business('booking', '127.0.0.1');
-  const wallet = await business('wallet', '127.0.0.1');
-  const ports = { 'auth-service': authPort, 'tutor-service': tutorA.port, 'booking-service': booking.port, 'wallet-service': wallet.port };
-  const networkID = 'gateway-test-network';
-  const network = { Id: networkID, Name: 'tutor-matcher_backend', Driver: 'overlay', Scope: 'swarm' };
-  function labels(name) {
-    return { ...(provider === 'swarm' ? stack.services[name].deploy.labels : stack.services[name].labels),
-      'com.docker.stack.namespace': 'tutor-matcher',
-      [`traefik.http.services.${name}.loadbalancer.server.port`]: String(ports[name]),
-      [`traefik.http.services.${name}.loadbalancer.healthcheck.interval`]: '100ms' };
-  }
-  function containers() {
-    return Object.keys(ports).flatMap((name) => (name === 'tutor-service'
-      ? ['127.0.0.2', '127.0.0.3'].slice(0, state.tutorReplicas) : ['127.0.0.1'].slice(0, name === 'auth-service' ? state.authReplicas : 1))
-      .map((address, index) => ({ Id: `${name}-${index}`, Name: `/${name}-${index}`,
-        Names: [`/${name}-${index}`], Labels: labels(name),
-        Config: { Labels: labels(name), ExposedPorts: { [`${ports[name]}/tcp`]: {} } },
-        State: { Running: true, Health: { Status: 'healthy' } },
-        HostConfig: { NetworkMode: 'tutor-matcher_backend' },
-        NetworkSettings: { Networks: { 'tutor-matcher_backend': { NetworkID: networkID, IPAddress: address } } } })));
-  }
-  const docker = http.createServer((req, res) => {
-    res.setHeader('Content-Type', 'application/json');
-    res.setHeader('API-Version', '1.54');
-    if (!state.discovery) { res.writeHead(503); return res.end('{}'); }
-    const url = new URL(req.url, 'http://fixture');
-    const endpoint = url.pathname.replace(/^\/v[0-9.]+/, '');
-    if (endpoint === '/_ping') return res.end('OK');
-    if (endpoint === '/version') return res.end(JSON.stringify({ Version: '29.0.0', ApiVersion: '1.54', MinAPIVersion: '1.44', Os: 'linux' }));
-    if (endpoint === '/networks') return res.end(JSON.stringify([network]));
-    if (endpoint === '/containers/json') return res.end(JSON.stringify(containers().map((container) => ({ ...container, State: 'running' }))));
-    if (/^\/containers\/[^/]+\/json$/.test(endpoint)) {
-      return res.end(JSON.stringify(containers().find((container) => container.Id === endpoint.split('/')[2])));
+    const payload = JSON.stringify({
+      owner: "auth",
+      method: req.method,
+      url: req.url,
+      body: body.toString(),
+      headers: safeHeaders(req.headers),
+    });
+    res.writeHead(200, {
+      "content-type": "application/json",
+      "x-request-id": requestId,
+    });
+    res.end(payload);
+  });
+}
+
+function safeHeaders(headers) {
+  return {
+    authorization: headers.authorization,
+    actorContext: headers["x-actor-context"],
+    workloadProof: headers["x-workload-authorization"],
+    userId: headers["x-user-id"],
+    userEmail: headers["x-user-email"],
+    callerId: headers["x-caller-id"],
+    requestId: headers["x-request-id"],
+  };
+}
+
+function createOwnerServer(owner, instance, state, observations) {
+  return http.createServer(async (req, res) => {
+    if (req.url === "/health") {
+      res.writeHead(state.healthy ? 200 : 503, {
+        "content-type": "application/json",
+      });
+      return res.end(
+        state.healthy ? '{"status":"ok"}' : '{"status":"unavailable"}',
+      );
     }
-    if (endpoint === '/events') {
-      res.setHeader('Content-Type', 'application/x-ndjson'); res.flushHeaders();
-      const timer = setInterval(() => {
-        if (state.discovery) res.write(JSON.stringify({ Type: 'container', Action: 'start', Actor: { ID: 'fixture' } }) + '\n');
-      }, 200);
-      req.on('close', () => clearInterval(timer)); return;
+    const body = await readRequest(req);
+    if (req.method === "GET" && state.failReads > 0) {
+      state.failReads -= 1;
+      res.writeHead(502);
+      return res.end();
     }
-    if (endpoint === '/services') return res.end(JSON.stringify(Object.entries(ports).map(([name, port]) => ({
-      ID: name,
-      Spec: { Name: `tutor-matcher_${name}`, Mode: { Replicated: { Replicas: name === 'tutor-service' ? state.tutorReplicas : 1 } },
-        Labels: labels(name) },
-    }))));
-    if (endpoint === '/tasks') {
-      const filters = JSON.parse(url.searchParams.get('filters') || '{}');
-      const name = Object.keys(filters.service || {})[0] || filters.service?.[0];
-      const addresses = name === 'tutor-service' ? ['127.0.0.2', '127.0.0.3'].slice(0, state.tutorReplicas) : ['127.0.0.1'].slice(0, name === 'auth-service' ? state.authReplicas : 1);
-      return res.end(JSON.stringify(addresses.map((address, index) => ({ ID: `${name}-${index}`, ServiceID: name, Slot: index + 1,
-        Status: { State: 'running' }, NetworksAttachments: [{ Network: { ID: networkID }, Addresses: [`${address}/32`] }] }))));
+    const record = {
+      owner,
+      instance,
+      method: req.method,
+      url: req.url,
+      headers: req.headers,
+      body: body.toString(),
+    };
+    observations.owners.push(record);
+    if (state.disconnectOnce > 0) {
+      state.disconnectOnce -= 1;
+      return req.socket.destroy();
     }
-    res.writeHead(501); res.end(JSON.stringify({ error: 'Unmodeled Docker API request' }));
-  }); servers.push(docker);
-  const dockerPort = await listen(docker);
-  const webPort = await freePort(); const authListenerPort = await freePort(); const pingPort = await freePort();
-  const routes = path.join(cache, 'routes.yaml');
-  writeFileSync(routes, readFileSync(path.join(root, 'api-gateway/routes.yaml'), 'utf8')
-    .replace('http://127.0.0.1:8081/', `http://127.0.0.1:${authListenerPort}/`));
-  const args = stack.services['api-gateway'].command.map((arg) => arg
-    .replace('tcp://docker-api:2375', `http://127.0.0.1:${dockerPort}`)
-    .replaceAll('${STACK_NAME:-tutor-matcher}', 'tutor-matcher')
-    .replace('/etc/traefik/dynamic/routes.yaml', routes)
-    .replace('--entrypoints.web.address=:8080', `--entrypoints.web.address=127.0.0.1:${webPort}`)
-    .replace('--entrypoints.auth.address=127.0.0.1:8081', `--entrypoints.auth.address=127.0.0.1:${authListenerPort}`)
-    .replace('--entrypoints.traefik.address=127.0.0.1:8082', `--entrypoints.traefik.address=127.0.0.1:${pingPort}`)
-    .replace('--providers.swarm.refreshseconds=2s', '--providers.swarm.refreshseconds=200ms'));
-  const traefik = spawn(binary, args, { cwd: root, env: { ...process.env, TRAEFIK_DISCOVERY_PROVIDER: provider } });
-  children.push(traefik);
-  traefik.stdout.on('data', (data) => { traefikLog += data; });
-  traefik.stderr.on('data', (data) => { traefikLog += data; });
-  const base = `http://127.0.0.1:${webPort}`;
-  async function request(route, options = {}) {
-    const response = await fetch(base + route, { ...options, signal: AbortSignal.timeout(5000) });
+    if (state.disconnect) return req.socket.destroy();
+    const payload = JSON.stringify({
+      owner,
+      instance,
+      method: req.method,
+      url: req.url,
+      body: body.toString(),
+      headers: safeHeaders(req.headers),
+    });
+    res.writeHead(200, {
+      "content-type": "application/json",
+      "x-request-id": requestId,
+    });
+    res.end(payload);
+  });
+}
+
+async function startProviderCase(t, provider) {
+  const observations = { auth: [], authOwner: [], owners: [] };
+  const servers = [];
+  const authState = { healthy: true };
+  const auth = createAuthServer(observations, authState);
+  servers.push(auth);
+  const authPort = await listen(auth);
+  const ownerUrls = {};
+  const ownerStates = {};
+  for (const owner of [
+    "booking",
+    "messaging",
+    "notification",
+    "review",
+    "tutor",
+    "wallet",
+  ]) {
+    const replicas = owner === "tutor" ? 2 : 1;
+    ownerUrls[owner] = [];
+    ownerStates[owner] = [];
+    let sharedPort;
+    for (let index = 0; index < replicas; index += 1) {
+      const state = { healthy: true, disconnect: false };
+      const host = owner === "tutor" ? `127.0.0.${index + 2}` : "127.0.0.1";
+      const server = createOwnerServer(
+        owner,
+        `${owner}-${index + 1}`,
+        state,
+        observations,
+      );
+      servers.push(server);
+      sharedPort = await listen(server, host, sharedPort || 0);
+      ownerStates[owner].push(state);
+      ownerUrls[owner].push(`http://${host}:${sharedPort}`);
+    }
+  }
+  const { startTestGateway } = await import(
+    pathToFileURL(path.join(root, "scripts/traefik-test-runtime.mjs"))
+  );
+  let gateway;
+  t.after(async () => {
+    await gateway?.close();
+    for (const server of servers.reverse()) await closeServer(server);
+  });
+  gateway = await startTestGateway({
+    authUrl: `http://127.0.0.1:${authPort}`,
+    ownerUrls,
+    workloadCredential: gatewayCredential,
+    provider,
+    redactValues: [browserToken, actorProof],
+    initialTaskCounts: { "tutor-service": 1 },
+  });
+  observations.auth.length = 0;
+  observations.authOwner.length = 0;
+  observations.owners.length = 0;
+  const request = async (route, options = {}) => {
+    const response = await fetch(gateway.url + route, {
+      ...options,
+      signal: AbortSignal.timeout(5000),
+    });
     const text = await response.text();
-    let body; try { body = JSON.parse(text); } catch { body = text; }
-    return { status: response.status, body };
-  }
-  const token = jwt.sign({ sub: user.id, email: 'stale@example.invalid' }, secret, { expiresIn: '5m' });
-  const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
-  await eventually(async () => {
-    assert.equal(traefik.exitCode, null, 'Traefik exited; inspect .cache/gateway/traefik.log');
-    assert.equal((await request('/tutors')).status, 200);
-  }, 'discover initial Swarm task');
+    let body;
+    try {
+      body = JSON.parse(text);
+    } catch {
+      body = text;
+    }
+    return { status: response.status, body, headers: response.headers };
+  };
 
-  await t.test('the configured container readiness command reaches Traefik ping', () => {
-    execFileSync(binary, ['healthcheck', '--ping', `--entrypoints.traefik.address=127.0.0.1:${pingPort}`], { stdio: 'pipe' });
+  await t.test(
+    `${provider}: public routes forward path, query, body and workload credentials`,
+    async () => {
+      const response = await request("/api/auth/signup?source=test", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          authorization: `Bearer ${browserToken}`,
+          "x-user-id": "forged-id",
+          "x-user-email": "forged@example.invalid",
+          "x-actor-context": "forged-actor",
+          "x-caller-id": "forged-caller",
+          "x-workload-authorization": "forged-workload",
+        },
+        body: JSON.stringify({ synthetic: true }),
+      });
+      assert.equal(response.status, 200);
+      assert.equal(response.body.owner, "auth");
+      assert.equal(response.body.url, "/auth/signup?source=test");
+      assert.equal(JSON.parse(response.body.body).synthetic, true);
+      assert.ok(
+        response.body.headers.authorization === `Bearer ${gatewayCredential}`,
+        "public owner request must use the Gateway workload credential",
+      );
+      assert.equal(response.body.headers.workloadProof, undefined);
+      assert.equal(response.body.headers.actorContext, undefined);
+      assert.equal(response.body.headers.userId, undefined);
+      assert.equal(response.body.headers.userEmail, undefined);
+      assert.equal(response.body.headers.callerId, undefined);
+    },
+  );
+
+  await t.test(
+    `${provider}: protected route authenticates before forwarding and preserves conditionals`,
+    async () => {
+      const response = await request(
+        "/api/profiles/me/account?include=revision",
+        {
+          method: "PUT",
+          headers: {
+            "content-type": "application/json",
+            authorization: `Bearer ${browserToken}`,
+            "x-request-id": requestId,
+            "idempotency-key": "b0b0b0b0-0000-4000-8000-000000000002",
+            "if-match": '"3"',
+            "x-actor-context": "forged-actor",
+            "x-workload-authorization": "forged-workload",
+          },
+          body: JSON.stringify({ name: "synthetic" }),
+        },
+      );
+      assert.equal(response.status, 200);
+      assert.equal(response.body.owner, "auth");
+      assert.equal(response.body.url, "/profiles/me/account?include=revision");
+      assert.ok(
+        response.body.headers.authorization === `Bearer ${gatewayCredential}`,
+        "protected owner request must use the Gateway workload credential",
+      );
+      assert.ok(
+        response.body.headers.actorContext === actorProof,
+        "protected owner request must receive Auth's actor proof",
+      );
+      assert.equal(response.body.headers.workloadProof, undefined);
+      assert.equal(response.body.headers.requestId, requestId);
+
+      const admitted = observations.auth.at(-1);
+      assert.equal(admitted.method, "GET");
+      assert.equal(admitted.url, "/internal/gateway/authorize");
+      assert.equal(
+        admitted.headers["x-forwarded-method"],
+        "PUT",
+        `ForwardAuth headers: ${Object.keys(admitted.headers).join(",")}`,
+      );
+      assert.equal(
+        admitted.headers["x-forwarded-uri"],
+        "/api/profiles/me/account?include=revision",
+      );
+      assert.ok(
+        admitted.headers["x-workload-authorization"] ===
+          `Bearer ${gatewayCredential}`,
+        "ForwardAuth must receive the Gateway workload credential",
+      );
+      assert.ok(
+        admitted.headers.authorization === `Bearer ${browserToken}`,
+        "ForwardAuth must receive the browser bearer token",
+      );
+      assert.equal(
+        admitted.headers["idempotency-key"],
+        "b0b0b0b0-0000-4000-8000-000000000002",
+      );
+      assert.equal(admitted.headers["if-match"], '"3"');
+      assert.equal(admitted.body, "", "ForwardAuth must not send JSON bodies");
+    },
+  );
+
+  await t.test(
+    `${provider}: provider adds/removes tasks, excludes unhealthy replicas, and keeps cached routes during API outage`,
+    async () => {
+      const readTutor = () => request("/api/discovery/learning-areas");
+      const waitUntil = async (check, label) => {
+        const deadline = Date.now() + 8000;
+        let last;
+        while (Date.now() < deadline) {
+          try {
+            await check();
+            return;
+          } catch (error) {
+            last = error;
+          }
+          await sleep(100);
+        }
+        throw new Error(
+          `${label}: ${last?.message || "condition did not occur"}`,
+        );
+      };
+
+      assert.equal((await readTutor()).body.instance, "tutor-1");
+      gateway.setTaskCount("tutor-service", 2);
+      await waitUntil(async () => {
+        const seen = new Set();
+        for (let index = 0; index < 12; index += 1) {
+          seen.add((await readTutor()).body.instance);
+        }
+        assert.deepEqual(seen, new Set(["tutor-1", "tutor-2"]));
+      }, "discover added Tutor task");
+
+      ownerStates.tutor[1].healthy = false;
+      await waitUntil(async () => {
+        for (let index = 0; index < 5; index += 1) {
+          assert.equal((await readTutor()).body.instance, "tutor-1");
+        }
+      }, "exclude unhealthy Tutor task");
+      ownerStates.tutor[1].healthy = true;
+      gateway.setTaskCount("tutor-service", 1);
+      await waitUntil(async () => {
+        const seen = new Set();
+        for (let index = 0; index < 20; index += 1) {
+          seen.add((await readTutor()).body.instance);
+        }
+        assert.deepEqual(seen, new Set(["tutor-1"]));
+      }, "remove Tutor task");
+
+      gateway.setDiscoveryAvailable(false);
+      await sleep(350);
+      assert.equal(
+        (await readTutor()).status,
+        200,
+        "last discovered configuration must keep routing during provider outage",
+      );
+      gateway.setDiscoveryAvailable(true);
+      await waitUntil(async () => {
+        assert.equal((await readTutor()).status, 200);
+      }, "recover provider discovery");
+    },
+  );
+
+  await t.test(
+    `${provider}: selected reads retry after an upstream disconnect`,
+    async () => {
+      ownerStates.tutor[0].disconnectOnce = 1;
+      ownerStates.tutor[1].disconnectOnce = 1;
+      const response = await request("/api/discovery/learning-areas");
+      assert.equal(response.status, 200);
+      assert.ok(["tutor-1", "tutor-2"].includes(response.body.instance));
+    },
+  );
+
+  await t.test(`${provider}: selected reads retry a 502 response`, async () => {
+    ownerStates.tutor[0].healthy = true;
+    ownerStates.tutor[0].failReads = 1;
+    const response = await request("/api/discovery/learning-areas");
+    assert.equal(response.status, 200);
   });
 
-  await t.test('public reads strip spoofed identity and preserve the query', async () => {
-    const response = await request('/tutors?subject=Math&maxRate=1000', { headers: { ...headers,
-      'X-User-Id': 'forged', 'X-User-Email': 'forged@example.invalid', 'X-Actor-Context': 'forged' } });
-    assert.equal(response.status, 200); assert.equal(response.body.userId, null);
-    assert.equal(response.body.hasBrowserToken, false); assert.equal(response.body.hasActorContext, false);
-    assert.equal(response.body.url, '/tutors?subject=Math&maxRate=1000');
-  });
-  await t.test('login/register stay public and private/unknown paths stay closed', async () => {
-    assert.equal((await request('/auth/register', { method: 'POST' })).status, 201);
-    assert.equal((await request('/auth/login', { method: 'POST' })).status, 200);
-    for (const route of ['/internal/gateway/authorize', '/internal/charge', '/health', '/api/rawdata', '/tutors/id/internal', '/wallet/internal']) {
-      assert.equal((await request(route, { headers: { Host: 'tutor-matcher_auth-service' } })).status, 404, route);
-    }
-    assert.equal((await request('/tutors', { method: 'PATCH', headers })).status, 404);
-  });
-  await t.test('protected routes reject missing, invalid, expired and malformed tokens', async () => {
-    const badTokens = ['', 'invalid', jwt.sign({ sub: user.id }, randomBytes(32)),
-      jwt.sign({ sub: user.id }, secret, { expiresIn: -1 }), jwt.sign({ sub: 'not-an-id' }, secret),
-      jwt.sign({ sub: user.id }, secret, { algorithm: 'HS384' })];
-    for (const bad of badTokens) {
-      assert.equal((await request('/wallet', { headers: bad ? { Authorization: `Bearer ${bad}` } : {} })).status, 401);
-    }
-  });
-  await t.test('Auth replaces spoofed identity using current database data', async () => {
-    const response = await request('/wallet', { headers: { ...headers, 'X-User-Id': 'forged', 'X-User-Email': 'forged', 'X-Actor-Context': 'forged' } });
-    assert.equal(response.status, 200); assert.equal(response.body.userId, user.id);
-    assert.equal(response.body.email, user.email); assert.equal(response.body.hasBrowserToken, false);
-    assert.equal(response.body.hasActorContext, false);
-    assert.deepEqual((await request('/auth/me', { headers })).body, user);
-  });
-  await t.test('protected writes preserve the method and JSON body', async () => {
-    for (const [method, route] of [['POST','/tutors'], ['PUT','/tutors/id'], ['DELETE','/tutors/id'],
-      ['POST','/availability'], ['POST','/bookings'], ['POST','/bookings/id/pay'], ['POST','/bookings/id/cancel'],
-      ['POST','/wallet/topups'], ['POST','/wallet/topups/id/confirm']]) {
-      const response = await request(route, { method, headers, body: JSON.stringify({ synthetic: true }) });
-      assert.equal(response.status, 200, route); assert.equal(response.body.method, method);
-      assert.deepEqual(response.body.body, { synthetic: true });
-    }
-  });
-  await t.test('account removal and database failure fail closed before a write', async () => {
-    const before = wallet.writes;
-    state.account = false;
-    assert.equal((await request('/wallet/topups', { method: 'POST', headers })).status, 401);
-    state.account = true; state.database = false;
-    assert.equal((await request('/wallet/topups', { method: 'POST', headers })).status, 503);
-    state.database = true; assert.equal(wallet.writes, before);
-  });
-  await t.test('scale and health changes update routing without app registration', async () => {
-    state.tutorReplicas = 2;
-    await eventually(async () => {
-      const seen = new Set();
-      for (let i = 0; i < 8; i++) seen.add((await request('/tutors')).body.instance);
-      assert.deepEqual(seen, new Set(['tutor-a','tutor-b']));
-    }, 'discover added Tutor task');
-    tutorA.disconnect = true;
-    for (let i = 0; i < 8; i++) assert.equal((await request('/tutors')).status, 200);
-    tutorA.disconnect = false;
-    tutorA.healthy = false;
-    await eventually(async () => {
-      for (let i = 0; i < 5; i++) assert.equal((await request('/tutors')).body.instance, 'tutor-b');
-    }, 'exclude unhealthy Tutor');
-    state.tutorReplicas = 1; tutorA.healthy = true;
-    await eventually(async () => assert.equal((await request('/tutors')).body.instance, 'tutor-a'), 'remove Tutor task');
-  });
-  await t.test('discovery outage retains known routing; Auth pool outage returns 503', async () => {
-    state.discovery = false; await pause(500);
-    assert.equal((await request('/tutors')).status, 200);
-    assert.equal((await request('/wallet', { headers })).status, 200);
-    state.discovery = true; state.authHealthy = false;
-    await eventually(async () => assert.equal((await request('/wallet', { headers })).status, 503), 'exclude unhealthy Auth');
-    state.authHealthy = true;
-    await eventually(async () => assert.equal((await request('/wallet', { headers })).status, 200), 'recover Auth');
-  });
-  await t.test('a lost write response never triggers a gateway retry', async () => {
-    const before = wallet.writes; wallet.disconnect = true;
-    assert.equal((await request('/wallet/topups', { method: 'POST', headers })).status, 502);
-    wallet.disconnect = false; assert.equal(wallet.writes - before, 1);
-  });
-  await t.test('zero-task services return 503 without opening private paths', async () => {
-    state.tutorReplicas = 0;
-    await eventually(async () => assert.equal((await request('/tutors')).status, 503), 'remove all Tutor tasks');
-    assert.equal((await request('/tutors/id/internal')).status, 404);
-    state.tutorReplicas = 1; state.authReplicas = 0;
-    await eventually(async () => assert.equal((await request('/wallet', { headers })).status, 503), 'remove all Auth tasks');
-    state.authReplicas = 1;
-    await eventually(async () => assert.equal((await request('/wallet', { headers })).status, 200), 'rediscover Auth');
-  });
-  await t.test('simulation logs establish business requests reached Postman', async () => {
-    await eventually(async () => {
-      const events = postmanLog.split('\n').flatMap((line) => { try { return [JSON.parse(line)]; } catch { return []; } });
-      for (const route of ['/tutors', '/wallet']) {
-        assert.ok(events.some((event) => event.event === 'request' && event.routeKey === 'business' && event.path.startsWith(route)));
+  await t.test(
+    `${provider}: gateway never retries a mutation after owner disconnect`,
+    async () => {
+      const before = observations.owners.filter(
+        (entry) => entry.owner === "booking" && entry.method === "POST",
+      ).length;
+      ownerStates.booking[0].disconnect = true;
+      try {
+        await request("/api/bookings", {
+          method: "POST",
+          headers: { authorization: `Bearer ${browserToken}` },
+          body: JSON.stringify({ synthetic: true }),
+        });
+      } catch {
+        // The owner intentionally closes the upstream connection before a response.
       }
-    }, 'record routed business requests');
-  });
-});
+      ownerStates.booking[0].disconnect = false;
+      const after = observations.owners.filter(
+        (entry) => entry.owner === "booking" && entry.method === "POST",
+      ).length;
+      assert.equal(after - before, 1);
+    },
+  );
+
+  await t.test(
+    `${provider}: owner-operation routes are fixed and rewrite to private owner paths`,
+    async () => {
+      const response = await request(
+        "/api/operations/booking/b0b0b0b0-0000-4000-8000-000000000002",
+        {
+          headers: {
+            authorization: `Bearer ${browserToken}`,
+            "x-request-id": requestId,
+          },
+        },
+      );
+      assert.equal(response.status, 200);
+      assert.equal(response.body.owner, "booking");
+      assert.equal(
+        response.body.url,
+        "/internal/v1/booking/operations/b0b0b0b0-0000-4000-8000-000000000002",
+      );
+      assert.ok(
+        response.body.headers.actorContext === actorProof,
+        "operation owner must receive Auth's actor proof",
+      );
+      assert.equal(
+        (
+          await request(
+            "/api/operations/unknown/b0b0b0b0-0000-4000-8000-000000000002",
+          )
+        ).status,
+        404,
+      );
+    },
+  );
+
+  await t.test(
+    `${provider}: exact inventory has 86 routes and unknown paths stay closed`,
+    async () => {
+      assert.equal(inventory.length, 86);
+      assert.equal(
+        new Set(inventory.map(({ method, path }) => `${method} ${path}`)).size,
+        86,
+      );
+      const routeFile = readFileSync(
+        path.join(root, "api-gateway/routes.yaml"),
+        "utf8",
+      );
+      assert.match(
+        routeFile,
+        /authResponseHeaders: \[X-Actor-Context, X-Request-Id\]/,
+      );
+      assert.doesNotMatch(routeFile, /PathPrefix\(`\/api`\)/);
+      assert.doesNotMatch(routeFile, /\/auth\/register/);
+      const routerPriority = (name) =>
+        Number(
+          routeFile.match(
+            new RegExp(
+              `    ${name}:\\n      entryPoints: \\[web\\]\\n      rule: [^\\n]+\\n      priority: (\\d+)`,
+            ),
+          )?.[1],
+        );
+      assert.ok(
+        routerPriority("get-tutor-upcoming") > routerPriority("get-booking"),
+        "fixed booking paths must outrank the booking ID parameter route",
+      );
+      for (const route of [
+        "/api/rawdata",
+        "/internal/gateway/authorize",
+        "/health",
+        "/api/discovery/no-such-route",
+      ]) {
+        assert.equal(
+          (
+            await request(route, {
+              headers: { host: "tutor-matcher_auth-service" },
+            })
+          ).status,
+          404,
+          route,
+        );
+      }
+      assert.equal((await request("/api/health")).status, 200);
+      const generated = execFileSync(
+        process.execPath,
+        ["scripts/generate-traefik-routes.mjs", "--check"],
+        { cwd: root, encoding: "utf8" },
+      );
+      assert.equal(generated, "");
+    },
+  );
+
+  await t.test(
+    `${provider}: provider-missing owners use explicit 503 fallbacks`,
+    async () => {
+      gateway.setTaskCount("notification-service", 0);
+      const missingOwners = await request("/api/notifications", {
+        headers: { authorization: `Bearer ${browserToken}` },
+      });
+      const missingNotificationDeadline = Date.now() + 8000;
+      let notificationStatus = missingOwners.status;
+      while (
+        notificationStatus !== 503 &&
+        Date.now() < missingNotificationDeadline
+      ) {
+        await sleep(100);
+        notificationStatus = (
+          await request("/api/notifications", {
+            headers: { authorization: `Bearer ${browserToken}` },
+          })
+        ).status;
+      }
+      assert.equal(notificationStatus, 503);
+      gateway.setTaskCount("tutor-service", 0);
+      const missingTutorDeadline = Date.now() + 8000;
+      while (Date.now() < missingTutorDeadline) {
+        if ((await request("/api/discovery/learning-areas")).status === 503)
+          break;
+        await sleep(100);
+      }
+      assert.equal(
+        (await request("/api/discovery/learning-areas")).status,
+        503,
+      );
+      gateway.setTaskCount("tutor-service", 1);
+      const authRecoveryDeadline = Date.now() + 8000;
+      while (Date.now() < authRecoveryDeadline) {
+        if ((await request("/api/discovery/learning-areas")).status === 200)
+          break;
+        await sleep(100);
+      }
+      authState.healthy = false;
+      const authUnavailableDeadline = Date.now() + 8000;
+      let authStatus = 200;
+      while (authStatus !== 503 && Date.now() < authUnavailableDeadline) {
+        await sleep(100);
+        authStatus = (
+          await request("/api/profiles/me/account", {
+            headers: { authorization: `Bearer ${browserToken}` },
+          })
+        ).status;
+      }
+      assert.equal(authStatus, 503);
+    },
+  );
+}
+
+test(
+  "Traefik gateway uses native Docker and Swarm discovery with exact allowlist",
+  { timeout: 180000 },
+  async (t) => {
+    for (const provider of providers) {
+      await t.test(
+        `${provider} discovery integration`,
+        { timeout: 85000 },
+        async (providerTest) => {
+          await startProviderCase(providerTest, provider);
+        },
+      );
+    }
+  },
+);

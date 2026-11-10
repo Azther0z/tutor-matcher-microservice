@@ -25,6 +25,18 @@ _Avoid_: Meeting organizer
 A submitted profile version that requests Tutor capability on the same account.
 _Avoid_: Tutor registration, second account
 
+**Suspension**:
+An account restriction that lasts until an admin restores access.
+_Avoid_: Timed ban, deactivation
+
+**Ban**:
+A permanent account restriction for the course delivery, with no restoration.
+_Avoid_: Suspension
+
+**Deactivation**:
+A user's voluntary disabling of account access that preserves their account and history and allows admin-only restoration.
+_Avoid_: Account deletion, ban
+
 **Listing**:
 The tutor's approved public profile and its publication state.
 _Avoid_: Application, draft

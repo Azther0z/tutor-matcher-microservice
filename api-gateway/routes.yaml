@@ -1,8 +1,8 @@
-# Shared by local Compose (docker provider) and hosted Swarm (swarm provider).
-# Discovery supplies service addresses; only this file defines public routes.
+# Generated from contracts/public.openapi.json and contracts/operation-map.json by scripts/generate-traefik-routes.mjs.
+# Edit the source contracts, then regenerate. Do not add wildcard public routes.
 http:
   middlewares:
-    strip-identity:
+    strip-client-identity:
       headers:
         customRequestHeaders:
           X-User-Id: ""
@@ -10,27 +10,31 @@ http:
           X-Actor-Context: ""
           X-Caller-Id: ""
           X-Workload-Authorization: ""
-    drop-browser-token:
+    gateway-auth-credential:
       headers:
         customRequestHeaders:
-          Authorization: ""
+          X-Workload-Authorization: 'Bearer {{ env "GATEWAY_WORKLOAD_CREDENTIAL" }}'
+    owner-credential:
+      headers:
+        customRequestHeaders:
+          Authorization: 'Bearer {{ env "GATEWAY_WORKLOAD_CREDENTIAL" }}'
+    strip-forwardauth-proof:
+      headers:
+        customRequestHeaders:
+          X-Workload-Authorization: ""
     authorize:
       forwardAuth:
-        # This listener is bound to loopback inside Traefik. It uses the
-        # discovered, health-checked Auth pool and returns 503 when empty.
         address: http://127.0.0.1:8081/internal/gateway/authorize
         trustForwardHeader: false
-        authRequestHeaders:
-          - Authorization
-        authResponseHeaders:
-          - X-User-Id
-          - X-User-Email
-    public:
-      chain:
-        middlewares: [strip-identity, drop-browser-token]
-    protected:
-      chain:
-        middlewares: [strip-identity, authorize, drop-browser-token]
+        authRequestHeaders: [Authorization, X-Workload-Authorization, X-Request-Id, X-Forwarded-Method, X-Forwarded-Uri, Idempotency-Key, If-Match, If-None-Match, Content-Type]
+        authResponseHeaders: [X-Actor-Context, X-Request-Id]
+    strip-api-prefix:
+      stripPrefix:
+        prefixes: [/api]
+    replace-operation-prefix:
+      replacePathRegex:
+        regex: ^/api/operations/([^/]+)/([^/]+)$
+        replacement: /internal/v1/$1/operations/$2
     retry-read:
       retry:
         attempts: 2
@@ -41,113 +45,1112 @@ http:
       loadBalancer:
         servers: []
   routers:
-    auth-check: &auth-check
+    auth-check:
       entryPoints: [auth]
       rule: Path(`/internal/gateway/authorize`) && Method(`GET`)
+      middlewares: [gateway-auth-credential]
       service: auth-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
-    auth-public: &auth-public
+    cancel-booking:
       entryPoints: [web]
-      rule: ((Path(`/auth/register`) || Path(`/auth/register/`) || Path(`/auth/login`) || Path(`/auth/login/`))) && Method(`POST`)
-      middlewares: [public]
+      rule: PathRegexp(`^/api/bookings/[^/]+/cancel$`) && Method(`POST`)
+      priority: 10304
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix]
+      service: booking-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
+    cancel-booking-unavailable:
+      entryPoints: [web]
+      rule: PathRegexp(`^/api/bookings/[^/]+/cancel$`) && Method(`POST`)
+      priority: 1
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix]
+      service: unavailable
+    complete-booking:
+      entryPoints: [web]
+      rule: PathRegexp(`^/api/bookings/[^/]+/confirm-completion$`) && Method(`POST`)
+      priority: 10304
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix]
+      service: booking-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
+    complete-booking-unavailable:
+      entryPoints: [web]
+      rule: PathRegexp(`^/api/bookings/[^/]+/confirm-completion$`) && Method(`POST`)
+      priority: 1
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix]
+      service: unavailable
+    confirm-password-reset:
+      entryPoints: [web]
+      rule: Path(`/api/auth/password-reset/confirm`) && Method(`POST`)
+      priority: 10404
+      middlewares: [strip-client-identity, owner-credential, strip-api-prefix]
       service: auth-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
-    auth-me: &auth-me
+    confirm-password-reset-unavailable:
       entryPoints: [web]
-      rule: (Path(`/auth/me`) || Path(`/auth/me/`)) && (Method(`GET`) || Method(`HEAD`))
-      middlewares: [protected, retry-read]
-      service: auth-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
-    tutors-read: &tutors-read
+      rule: Path(`/api/auth/password-reset/confirm`) && Method(`POST`)
+      priority: 1
+      middlewares: [strip-client-identity, owner-credential, strip-api-prefix]
+      service: unavailable
+    copy-tutor-submission:
       entryPoints: [web]
-      rule: ((Path(`/tutors`) || Path(`/tutors/`)) || PathRegexp(`^/tutors/[^/]+/?$`)) && (Method(`GET`) || Method(`HEAD`))
-      middlewares: [public, retry-read]
+      rule: PathRegexp(`^/api/profiles/me/tutor/submissions/[^/]+/copy$`) && Method(`POST`)
+      priority: 10607
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix]
       service: tutor-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
-    tutors-create: &tutors-create
+    copy-tutor-submission-unavailable:
       entryPoints: [web]
-      rule: (Path(`/tutors`) || Path(`/tutors/`)) && Method(`POST`)
-      middlewares: [protected]
-      service: tutor-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
-    tutors-edit: &tutors-edit
+      rule: PathRegexp(`^/api/profiles/me/tutor/submissions/[^/]+/copy$`) && Method(`POST`)
+      priority: 1
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix]
+      service: unavailable
+    create-booking:
       entryPoints: [web]
-      rule: PathRegexp(`^/tutors/[^/]+/?$`) && (Method(`PUT`) || Method(`DELETE`))
-      middlewares: [protected]
-      service: tutor-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
-    availability: &availability
-      entryPoints: [web]
-      rule: (Path(`/availability`) || Path(`/availability/`)) && Method(`POST`)
-      middlewares: [protected]
+      rule: Path(`/api/bookings`) && Method(`POST`)
+      priority: 10202
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix]
       service: booking-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
-    bookings: &bookings
+    create-booking-unavailable:
       entryPoints: [web]
-      rule: (Path(`/bookings`) || Path(`/bookings/`)) && (Method(`GET`) || Method(`HEAD`) || Method(`POST`))
-      middlewares: [protected]
-      service: booking-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
-    booking-read: &booking-read
+      rule: Path(`/api/bookings`) && Method(`POST`)
+      priority: 1
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix]
+      service: unavailable
+    create-payout:
       entryPoints: [web]
-      rule: PathRegexp(`^/bookings/[^/]+/?$`) && (Method(`GET`) || Method(`HEAD`))
-      middlewares: [protected, retry-read]
-      service: booking-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
-    booking-action: &booking-action
-      entryPoints: [web]
-      rule: PathRegexp(`^/bookings/[^/]+/(pay|cancel)/?$`) && Method(`POST`)
-      middlewares: [protected]
-      service: booking-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
-    wallet: &wallet
-      entryPoints: [web]
-      rule: (Path(`/wallet`) || Path(`/wallet/`)) && (Method(`GET`) || Method(`HEAD`))
-      middlewares: [protected, retry-read]
+      rule: Path(`/api/payouts`) && Method(`POST`)
+      priority: 10202
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix]
       service: wallet-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
-    topups: &topups
+    create-payout-unavailable:
       entryPoints: [web]
-      rule: ((Path(`/wallet/topups`) || Path(`/wallet/topups/`)) || PathRegexp(`^/wallet/topups/[^/]+/confirm/?$`)) && Method(`POST`)
-      middlewares: [protected]
+      rule: Path(`/api/payouts`) && Method(`POST`)
+      priority: 1
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix]
+      service: unavailable
+    create-payout-account:
+      entryPoints: [web]
+      rule: Path(`/api/payout-accounts`) && Method(`POST`)
+      priority: 10202
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix]
       service: wallet-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
-
-    # If a provider has no tasks, its service disappears. These lower-priority
-    # routes keep known API operations at 503 rather than an accidental 404.
-    auth-check-unavailable:
-      <<: *auth-check
+    create-payout-account-unavailable:
+      entryPoints: [web]
+      rule: Path(`/api/payout-accounts`) && Method(`POST`)
       priority: 1
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix]
       service: unavailable
-    auth-public-unavailable:
-      <<: *auth-public
+    create-review:
+      entryPoints: [web]
+      rule: PathRegexp(`^/api/bookings/[^/]+/review$`) && Method(`POST`)
+      priority: 10304
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix]
+      service: review-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
+    create-review-unavailable:
+      entryPoints: [web]
+      rule: PathRegexp(`^/api/bookings/[^/]+/review$`) && Method(`POST`)
       priority: 1
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix]
       service: unavailable
-    auth-me-unavailable:
-      <<: *auth-me
+    create-subject:
+      entryPoints: [web]
+      rule: Path(`/api/profiles/me/tutor/subjects`) && Method(`POST`)
+      priority: 10505
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix]
+      service: tutor-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
+    create-subject-unavailable:
+      entryPoints: [web]
+      rule: Path(`/api/profiles/me/tutor/subjects`) && Method(`POST`)
       priority: 1
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix]
       service: unavailable
-    tutors-read-unavailable:
-      <<: *tutors-read
+    create-topup:
+      entryPoints: [web]
+      rule: Path(`/api/wallet/topups`) && Method(`POST`)
+      priority: 10303
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix]
+      service: wallet-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
+    create-topup-unavailable:
+      entryPoints: [web]
+      rule: Path(`/api/wallet/topups`) && Method(`POST`)
       priority: 1
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix]
       service: unavailable
-    tutors-create-unavailable:
-      <<: *tutors-create
+    create-tutor-draft:
+      entryPoints: [web]
+      rule: Path(`/api/profiles/me/tutor/drafts`) && Method(`POST`)
+      priority: 10505
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix]
+      service: tutor-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
+    create-tutor-draft-unavailable:
+      entryPoints: [web]
+      rule: Path(`/api/profiles/me/tutor/drafts`) && Method(`POST`)
       priority: 1
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix]
       service: unavailable
-    tutors-edit-unavailable:
-      <<: *tutors-edit
+    decide-dispute:
+      entryPoints: [web]
+      rule: PathRegexp(`^/api/admin/disputes/[^/]+/decision$`) && Method(`POST`)
+      priority: 10405
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix]
+      service: wallet-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
+    decide-dispute-unavailable:
+      entryPoints: [web]
+      rule: PathRegexp(`^/api/admin/disputes/[^/]+/decision$`) && Method(`POST`)
       priority: 1
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix]
       service: unavailable
-    availability-unavailable:
-      <<: *availability
+    delete-payout-account:
+      entryPoints: [web]
+      rule: PathRegexp(`^/api/payout-accounts/[^/]+$`) && Method(`DELETE`)
+      priority: 10203
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix]
+      service: wallet-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
+    delete-payout-account-unavailable:
+      entryPoints: [web]
+      rule: PathRegexp(`^/api/payout-accounts/[^/]+$`) && Method(`DELETE`)
       priority: 1
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix]
       service: unavailable
-    bookings-unavailable:
-      <<: *bookings
+    delete-tutor-draft:
+      entryPoints: [web]
+      rule: PathRegexp(`^/api/profiles/me/tutor/drafts/[^/]+$`) && Method(`DELETE`)
+      priority: 10506
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix]
+      service: tutor-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
+    delete-tutor-draft-unavailable:
+      entryPoints: [web]
+      rule: PathRegexp(`^/api/profiles/me/tutor/drafts/[^/]+$`) && Method(`DELETE`)
       priority: 1
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix]
       service: unavailable
-    booking-read-unavailable:
-      <<: *booking-read
+    flag-review:
+      entryPoints: [web]
+      rule: PathRegexp(`^/api/reviews/[^/]+/flags$`) && Method(`POST`)
+      priority: 10304
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix]
+      service: review-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
+    flag-review-unavailable:
+      entryPoints: [web]
+      rule: PathRegexp(`^/api/reviews/[^/]+/flags$`) && Method(`POST`)
       priority: 1
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix]
       service: unavailable
-    booking-action-unavailable:
-      <<: *booking-action
+    get-account-settings:
+      entryPoints: [web]
+      rule: Path(`/api/profiles/me/account`) && Method(`GET`)
+      priority: 10404
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix, retry-read]
+      service: auth-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
+    get-account-settings-unavailable:
+      entryPoints: [web]
+      rule: Path(`/api/profiles/me/account`) && Method(`GET`)
       priority: 1
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix, retry-read]
       service: unavailable
-    wallet-unavailable:
-      <<: *wallet
+    get-admin-account:
+      entryPoints: [web]
+      rule: PathRegexp(`^/api/admin/users/[^/]+$`) && Method(`GET`)
+      priority: 10304
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix, retry-read]
+      service: auth-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
+    get-admin-account-unavailable:
+      entryPoints: [web]
+      rule: PathRegexp(`^/api/admin/users/[^/]+$`) && Method(`GET`)
       priority: 1
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix, retry-read]
       service: unavailable
-    topups-unavailable:
-      <<: *topups
+    get-admin-dispute:
+      entryPoints: [web]
+      rule: PathRegexp(`^/api/admin/disputes/[^/]+$`) && Method(`GET`)
+      priority: 10304
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix, retry-read]
+      service: wallet-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
+    get-admin-dispute-unavailable:
+      entryPoints: [web]
+      rule: PathRegexp(`^/api/admin/disputes/[^/]+$`) && Method(`GET`)
       priority: 1
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix, retry-read]
+      service: unavailable
+    get-booking:
+      entryPoints: [web]
+      rule: PathRegexp(`^/api/bookings/[^/]+$`) && Method(`GET`)
+      priority: 10203
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix, retry-read]
+      service: booking-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
+    get-booking-unavailable:
+      entryPoints: [web]
+      rule: PathRegexp(`^/api/bookings/[^/]+$`) && Method(`GET`)
+      priority: 1
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix, retry-read]
+      service: unavailable
+    get-current-account:
+      entryPoints: [web]
+      rule: Path(`/api/auth/me`) && Method(`GET`)
+      priority: 10303
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix, retry-read]
+      service: auth-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
+    get-current-account-unavailable:
+      entryPoints: [web]
+      rule: Path(`/api/auth/me`) && Method(`GET`)
+      priority: 1
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix, retry-read]
+      service: unavailable
+    get-demo-reset-content:
+      entryPoints: [web]
+      rule: PathRegexp(`^/api/demo/password-resets/[^/]+$`) && Method(`GET`)
+      priority: 10304
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix, retry-read]
+      service: auth-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
+    get-demo-reset-content-unavailable:
+      entryPoints: [web]
+      rule: PathRegexp(`^/api/demo/password-resets/[^/]+$`) && Method(`GET`)
+      priority: 1
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix, retry-read]
+      service: unavailable
+    get-health:
+      entryPoints: [web]
+      rule: Path(`/api/health`) && Method(`GET`)
+      priority: 10202
+      middlewares: [strip-client-identity, owner-credential, strip-api-prefix, retry-read]
+      service: auth-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
+    get-health-unavailable:
+      entryPoints: [web]
+      rule: Path(`/api/health`) && Method(`GET`)
+      priority: 1
+      middlewares: [strip-client-identity, owner-credential, strip-api-prefix, retry-read]
+      service: unavailable
+    get-inbox:
+      entryPoints: [web]
+      rule: Path(`/api/messages/inbox`) && Method(`GET`)
+      priority: 10303
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix, retry-read]
+      service: messaging-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
+    get-inbox-unavailable:
+      entryPoints: [web]
+      rule: Path(`/api/messages/inbox`) && Method(`GET`)
+      priority: 1
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix, retry-read]
+      service: unavailable
+    get-learning-areas:
+      entryPoints: [web]
+      rule: Path(`/api/discovery/learning-areas`) && Method(`GET`)
+      priority: 10303
+      middlewares: [strip-client-identity, owner-credential, strip-api-prefix, retry-read]
+      service: tutor-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
+    get-learning-areas-unavailable:
+      entryPoints: [web]
+      rule: Path(`/api/discovery/learning-areas`) && Method(`GET`)
+      priority: 1
+      middlewares: [strip-client-identity, owner-credential, strip-api-prefix, retry-read]
+      service: unavailable
+    get-needs-confirmation:
+      entryPoints: [web]
+      rule: Path(`/api/bookings/tutor/needs-confirmation`) && Method(`GET`)
+      priority: 10404
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix, retry-read]
+      service: booking-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
+    get-needs-confirmation-unavailable:
+      entryPoints: [web]
+      rule: Path(`/api/bookings/tutor/needs-confirmation`) && Method(`GET`)
+      priority: 1
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix, retry-read]
+      service: unavailable
+    get-notification-preferences:
+      entryPoints: [web]
+      rule: Path(`/api/notifications/preferences`) && Method(`GET`)
+      priority: 10303
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix, retry-read]
+      service: notification-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
+    get-notification-preferences-unavailable:
+      entryPoints: [web]
+      rule: Path(`/api/notifications/preferences`) && Method(`GET`)
+      priority: 1
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix, retry-read]
+      service: unavailable
+    getOperation-auth:
+      entryPoints: [web]
+      rule: PathRegexp(`^/api/operations/auth/[^/]+$`) && Method(`GET`)
+      priority: 10304
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, replace-operation-prefix, retry-read]
+      service: auth-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
+    getOperation-auth-unavailable:
+      entryPoints: [web]
+      rule: PathRegexp(`^/api/operations/auth/[^/]+$`) && Method(`GET`)
+      priority: 1
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, replace-operation-prefix, retry-read]
+      service: unavailable
+    getOperation-booking:
+      entryPoints: [web]
+      rule: PathRegexp(`^/api/operations/booking/[^/]+$`) && Method(`GET`)
+      priority: 10304
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, replace-operation-prefix, retry-read]
+      service: booking-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
+    getOperation-booking-unavailable:
+      entryPoints: [web]
+      rule: PathRegexp(`^/api/operations/booking/[^/]+$`) && Method(`GET`)
+      priority: 1
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, replace-operation-prefix, retry-read]
+      service: unavailable
+    getOperation-messaging:
+      entryPoints: [web]
+      rule: PathRegexp(`^/api/operations/messaging/[^/]+$`) && Method(`GET`)
+      priority: 10304
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, replace-operation-prefix, retry-read]
+      service: messaging-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
+    getOperation-messaging-unavailable:
+      entryPoints: [web]
+      rule: PathRegexp(`^/api/operations/messaging/[^/]+$`) && Method(`GET`)
+      priority: 1
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, replace-operation-prefix, retry-read]
+      service: unavailable
+    getOperation-notification:
+      entryPoints: [web]
+      rule: PathRegexp(`^/api/operations/notification/[^/]+$`) && Method(`GET`)
+      priority: 10304
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, replace-operation-prefix, retry-read]
+      service: notification-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
+    getOperation-notification-unavailable:
+      entryPoints: [web]
+      rule: PathRegexp(`^/api/operations/notification/[^/]+$`) && Method(`GET`)
+      priority: 1
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, replace-operation-prefix, retry-read]
+      service: unavailable
+    getOperation-review:
+      entryPoints: [web]
+      rule: PathRegexp(`^/api/operations/review/[^/]+$`) && Method(`GET`)
+      priority: 10304
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, replace-operation-prefix, retry-read]
+      service: review-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
+    getOperation-review-unavailable:
+      entryPoints: [web]
+      rule: PathRegexp(`^/api/operations/review/[^/]+$`) && Method(`GET`)
+      priority: 1
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, replace-operation-prefix, retry-read]
+      service: unavailable
+    getOperation-tutor:
+      entryPoints: [web]
+      rule: PathRegexp(`^/api/operations/tutor/[^/]+$`) && Method(`GET`)
+      priority: 10304
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, replace-operation-prefix, retry-read]
+      service: tutor-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
+    getOperation-tutor-unavailable:
+      entryPoints: [web]
+      rule: PathRegexp(`^/api/operations/tutor/[^/]+$`) && Method(`GET`)
+      priority: 1
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, replace-operation-prefix, retry-read]
+      service: unavailable
+    getOperation-wallet:
+      entryPoints: [web]
+      rule: PathRegexp(`^/api/operations/wallet/[^/]+$`) && Method(`GET`)
+      priority: 10304
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, replace-operation-prefix, retry-read]
+      service: wallet-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
+    getOperation-wallet-unavailable:
+      entryPoints: [web]
+      rule: PathRegexp(`^/api/operations/wallet/[^/]+$`) && Method(`GET`)
+      priority: 1
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, replace-operation-prefix, retry-read]
+      service: unavailable
+    get-own-availability-calendar:
+      entryPoints: [web]
+      rule: Path(`/api/profiles/me/tutor/availability/calendar`) && Method(`GET`)
+      priority: 10606
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix, retry-read]
+      service: booking-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
+    get-own-availability-calendar-unavailable:
+      entryPoints: [web]
+      rule: Path(`/api/profiles/me/tutor/availability/calendar`) && Method(`GET`)
+      priority: 1
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix, retry-read]
+      service: unavailable
+    get-own-availability-day:
+      entryPoints: [web]
+      rule: PathRegexp(`^/api/profiles/me/tutor/availability/[^/]+$`) && Method(`GET`)
+      priority: 10506
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix, retry-read]
+      service: booking-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
+    get-own-availability-day-unavailable:
+      entryPoints: [web]
+      rule: PathRegexp(`^/api/profiles/me/tutor/availability/[^/]+$`) && Method(`GET`)
+      priority: 1
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix, retry-read]
+      service: unavailable
+    get-own-dispute:
+      entryPoints: [web]
+      rule: PathRegexp(`^/api/disputes/[^/]+$`) && Method(`GET`)
+      priority: 10203
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix, retry-read]
+      service: wallet-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
+    get-own-dispute-unavailable:
+      entryPoints: [web]
+      rule: PathRegexp(`^/api/disputes/[^/]+$`) && Method(`GET`)
+      priority: 1
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix, retry-read]
+      service: unavailable
+    get-payout:
+      entryPoints: [web]
+      rule: PathRegexp(`^/api/payouts/[^/]+$`) && Method(`GET`)
+      priority: 10203
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix, retry-read]
+      service: wallet-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
+    get-payout-unavailable:
+      entryPoints: [web]
+      rule: PathRegexp(`^/api/payouts/[^/]+$`) && Method(`GET`)
+      priority: 1
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix, retry-read]
+      service: unavailable
+    get-payout-banks:
+      entryPoints: [web]
+      rule: Path(`/api/payout-accounts/banks`) && Method(`GET`)
+      priority: 10303
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix, retry-read]
+      service: wallet-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
+    get-payout-banks-unavailable:
+      entryPoints: [web]
+      rule: Path(`/api/payout-accounts/banks`) && Method(`GET`)
+      priority: 1
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix, retry-read]
+      service: unavailable
+    get-public-subject:
+      entryPoints: [web]
+      rule: PathRegexp(`^/api/discovery/tutors/[^/]+/subjects/[^/]+$`) && Method(`GET`)
+      priority: 10406
+      middlewares: [strip-client-identity, owner-credential, strip-api-prefix, retry-read]
+      service: tutor-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
+    get-public-subject-unavailable:
+      entryPoints: [web]
+      rule: PathRegexp(`^/api/discovery/tutors/[^/]+/subjects/[^/]+$`) && Method(`GET`)
+      priority: 1
+      middlewares: [strip-client-identity, owner-credential, strip-api-prefix, retry-read]
+      service: unavailable
+    get-public-tutor:
+      entryPoints: [web]
+      rule: PathRegexp(`^/api/discovery/tutors/[^/]+/profile$`) && Method(`GET`)
+      priority: 10405
+      middlewares: [strip-client-identity, owner-credential, strip-api-prefix, retry-read]
+      service: tutor-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
+    get-public-tutor-unavailable:
+      entryPoints: [web]
+      rule: PathRegexp(`^/api/discovery/tutors/[^/]+/profile$`) && Method(`GET`)
+      priority: 1
+      middlewares: [strip-client-identity, owner-credential, strip-api-prefix, retry-read]
+      service: unavailable
+    get-search-price-range:
+      entryPoints: [web]
+      rule: Path(`/api/discovery/price-range`) && Method(`GET`)
+      priority: 10303
+      middlewares: [strip-client-identity, owner-credential, strip-api-prefix, retry-read]
+      service: tutor-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
+    get-search-price-range-unavailable:
+      entryPoints: [web]
+      rule: Path(`/api/discovery/price-range`) && Method(`GET`)
+      priority: 1
+      middlewares: [strip-client-identity, owner-credential, strip-api-prefix, retry-read]
+      service: unavailable
+    get-student-cancellation-quote:
+      entryPoints: [web]
+      rule: PathRegexp(`^/api/bookings/[^/]+/cancellation-quote$`) && Method(`GET`)
+      priority: 10304
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix, retry-read]
+      service: booking-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
+    get-student-cancellation-quote-unavailable:
+      entryPoints: [web]
+      rule: PathRegexp(`^/api/bookings/[^/]+/cancellation-quote$`) && Method(`GET`)
+      priority: 1
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix, retry-read]
+      service: unavailable
+    get-student-profile:
+      entryPoints: [web]
+      rule: Path(`/api/profiles/me/student`) && Method(`GET`)
+      priority: 10404
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix, retry-read]
+      service: auth-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
+    get-student-profile-unavailable:
+      entryPoints: [web]
+      rule: Path(`/api/profiles/me/student`) && Method(`GET`)
+      priority: 1
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix, retry-read]
+      service: unavailable
+    get-thread:
+      entryPoints: [web]
+      rule: PathRegexp(`^/api/messages/thread/[^/]+$`) && Method(`GET`)
+      priority: 10304
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix, retry-read]
+      service: messaging-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
+    get-thread-unavailable:
+      entryPoints: [web]
+      rule: PathRegexp(`^/api/messages/thread/[^/]+$`) && Method(`GET`)
+      priority: 1
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix, retry-read]
+      service: unavailable
+    get-topup:
+      entryPoints: [web]
+      rule: PathRegexp(`^/api/wallet/topups/[^/]+$`) && Method(`GET`)
+      priority: 10304
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix, retry-read]
+      service: wallet-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
+    get-topup-unavailable:
+      entryPoints: [web]
+      rule: PathRegexp(`^/api/wallet/topups/[^/]+$`) && Method(`GET`)
+      priority: 1
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix, retry-read]
+      service: unavailable
+    get-tutor-cancellation-quote:
+      entryPoints: [web]
+      rule: PathRegexp(`^/api/bookings/[^/]+/tutor-cancellation-quote$`) && Method(`GET`)
+      priority: 10304
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix, retry-read]
+      service: booking-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
+    get-tutor-cancellation-quote-unavailable:
+      entryPoints: [web]
+      rule: PathRegexp(`^/api/bookings/[^/]+/tutor-cancellation-quote$`) && Method(`GET`)
+      priority: 1
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix, retry-read]
+      service: unavailable
+    get-tutor-request:
+      entryPoints: [web]
+      rule: PathRegexp(`^/api/admin/tutor-requests/[^/]+$`) && Method(`GET`)
+      priority: 10304
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix, retry-read]
+      service: tutor-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
+    get-tutor-request-unavailable:
+      entryPoints: [web]
+      rule: PathRegexp(`^/api/admin/tutor-requests/[^/]+$`) && Method(`GET`)
+      priority: 1
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix, retry-read]
+      service: unavailable
+    get-tutor-upcoming:
+      entryPoints: [web]
+      rule: Path(`/api/bookings/tutor/upcoming`) && Method(`GET`)
+      priority: 10404
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix, retry-read]
+      service: booking-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
+    get-tutor-upcoming-unavailable:
+      entryPoints: [web]
+      rule: Path(`/api/bookings/tutor/upcoming`) && Method(`GET`)
+      priority: 1
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix, retry-read]
+      service: unavailable
+    get-tutor-workspace:
+      entryPoints: [web]
+      rule: Path(`/api/profiles/me/tutor`) && Method(`GET`)
+      priority: 10404
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix, retry-read]
+      service: tutor-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
+    get-tutor-workspace-unavailable:
+      entryPoints: [web]
+      rule: Path(`/api/profiles/me/tutor`) && Method(`GET`)
+      priority: 1
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix, retry-read]
+      service: unavailable
+    get-wallet:
+      entryPoints: [web]
+      rule: Path(`/api/wallet`) && Method(`GET`)
+      priority: 10202
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix, retry-read]
+      service: wallet-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
+    get-wallet-unavailable:
+      entryPoints: [web]
+      rule: Path(`/api/wallet`) && Method(`GET`)
+      priority: 1
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix, retry-read]
+      service: unavailable
+    get-wallet-transaction:
+      entryPoints: [web]
+      rule: PathRegexp(`^/api/wallet/transactions/[^/]+$`) && Method(`GET`)
+      priority: 10304
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix, retry-read]
+      service: wallet-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
+    get-wallet-transaction-unavailable:
+      entryPoints: [web]
+      rule: PathRegexp(`^/api/wallet/transactions/[^/]+$`) && Method(`GET`)
+      priority: 1
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix, retry-read]
+      service: unavailable
+    list-admin-disputes:
+      entryPoints: [web]
+      rule: Path(`/api/admin/disputes`) && Method(`GET`)
+      priority: 10303
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix, retry-read]
+      service: wallet-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
+    list-admin-disputes-unavailable:
+      entryPoints: [web]
+      rule: Path(`/api/admin/disputes`) && Method(`GET`)
+      priority: 1
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix, retry-read]
+      service: unavailable
+    list-bookings:
+      entryPoints: [web]
+      rule: Path(`/api/bookings`) && Method(`GET`)
+      priority: 10202
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix, retry-read]
+      service: booking-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
+    list-bookings-unavailable:
+      entryPoints: [web]
+      rule: Path(`/api/bookings`) && Method(`GET`)
+      priority: 1
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix, retry-read]
+      service: unavailable
+    list-own-disputes:
+      entryPoints: [web]
+      rule: Path(`/api/disputes`) && Method(`GET`)
+      priority: 10202
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix, retry-read]
+      service: wallet-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
+    list-own-disputes-unavailable:
+      entryPoints: [web]
+      rule: Path(`/api/disputes`) && Method(`GET`)
+      priority: 1
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix, retry-read]
+      service: unavailable
+    list-own-notifications:
+      entryPoints: [web]
+      rule: Path(`/api/notifications`) && Method(`GET`)
+      priority: 10202
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix, retry-read]
+      service: notification-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
+    list-own-notifications-unavailable:
+      entryPoints: [web]
+      rule: Path(`/api/notifications`) && Method(`GET`)
+      priority: 1
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix, retry-read]
+      service: unavailable
+    list-own-subjects:
+      entryPoints: [web]
+      rule: Path(`/api/profiles/me/tutor/subjects`) && Method(`GET`)
+      priority: 10505
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix, retry-read]
+      service: tutor-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
+    list-own-subjects-unavailable:
+      entryPoints: [web]
+      rule: Path(`/api/profiles/me/tutor/subjects`) && Method(`GET`)
+      priority: 1
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix, retry-read]
+      service: unavailable
+    list-payout-accounts:
+      entryPoints: [web]
+      rule: Path(`/api/payout-accounts`) && Method(`GET`)
+      priority: 10202
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix, retry-read]
+      service: wallet-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
+    list-payout-accounts-unavailable:
+      entryPoints: [web]
+      rule: Path(`/api/payout-accounts`) && Method(`GET`)
+      priority: 1
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix, retry-read]
+      service: unavailable
+    list-payouts:
+      entryPoints: [web]
+      rule: Path(`/api/payouts`) && Method(`GET`)
+      priority: 10202
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix, retry-read]
+      service: wallet-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
+    list-payouts-unavailable:
+      entryPoints: [web]
+      rule: Path(`/api/payouts`) && Method(`GET`)
+      priority: 1
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix, retry-read]
+      service: unavailable
+    list-public-reviews:
+      entryPoints: [web]
+      rule: Path(`/api/reviews`) && Method(`GET`)
+      priority: 10202
+      middlewares: [strip-client-identity, owner-credential, strip-api-prefix, retry-read]
+      service: review-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
+    list-public-reviews-unavailable:
+      entryPoints: [web]
+      rule: Path(`/api/reviews`) && Method(`GET`)
+      priority: 1
+      middlewares: [strip-client-identity, owner-credential, strip-api-prefix, retry-read]
+      service: unavailable
+    list-review-flags:
+      entryPoints: [web]
+      rule: Path(`/api/admin/review-flags`) && Method(`GET`)
+      priority: 10303
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix, retry-read]
+      service: review-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
+    list-review-flags-unavailable:
+      entryPoints: [web]
+      rule: Path(`/api/admin/review-flags`) && Method(`GET`)
+      priority: 1
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix, retry-read]
+      service: unavailable
+    list-tutor-requests:
+      entryPoints: [web]
+      rule: Path(`/api/admin/tutor-requests`) && Method(`GET`)
+      priority: 10303
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix, retry-read]
+      service: tutor-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
+    list-tutor-requests-unavailable:
+      entryPoints: [web]
+      rule: Path(`/api/admin/tutor-requests`) && Method(`GET`)
+      priority: 1
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix, retry-read]
+      service: unavailable
+    list-wallet-transactions:
+      entryPoints: [web]
+      rule: Path(`/api/wallet/transactions`) && Method(`GET`)
+      priority: 10303
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix, retry-read]
+      service: wallet-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
+    list-wallet-transactions-unavailable:
+      entryPoints: [web]
+      rule: Path(`/api/wallet/transactions`) && Method(`GET`)
+      priority: 1
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix, retry-read]
+      service: unavailable
+    login:
+      entryPoints: [web]
+      rule: Path(`/api/auth/login`) && Method(`POST`)
+      priority: 10303
+      middlewares: [strip-client-identity, owner-credential, strip-api-prefix]
+      service: auth-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
+    login-unavailable:
+      entryPoints: [web]
+      rule: Path(`/api/auth/login`) && Method(`POST`)
+      priority: 1
+      middlewares: [strip-client-identity, owner-credential, strip-api-prefix]
+      service: unavailable
+    logout:
+      entryPoints: [web]
+      rule: Path(`/api/auth/logout`) && Method(`POST`)
+      priority: 10303
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix]
+      service: auth-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
+    logout-unavailable:
+      entryPoints: [web]
+      rule: Path(`/api/auth/logout`) && Method(`POST`)
+      priority: 1
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix]
+      service: unavailable
+    mark-thread-read:
+      entryPoints: [web]
+      rule: PathRegexp(`^/api/messages/thread/[^/]+/read$`) && Method(`PUT`)
+      priority: 10405
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix]
+      service: messaging-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
+    mark-thread-read-unavailable:
+      entryPoints: [web]
+      rule: PathRegexp(`^/api/messages/thread/[^/]+/read$`) && Method(`PUT`)
+      priority: 1
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix]
+      service: unavailable
+    moderate-review:
+      entryPoints: [web]
+      rule: PathRegexp(`^/api/admin/reviews/[^/]+/moderation$`) && Method(`POST`)
+      priority: 10405
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix]
+      service: review-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
+    moderate-review-unavailable:
+      entryPoints: [web]
+      rule: PathRegexp(`^/api/admin/reviews/[^/]+/moderation$`) && Method(`POST`)
+      priority: 1
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix]
+      service: unavailable
+    open-dispute:
+      entryPoints: [web]
+      rule: Path(`/api/disputes`) && Method(`POST`)
+      priority: 10202
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix]
+      service: wallet-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
+    open-dispute-unavailable:
+      entryPoints: [web]
+      rule: Path(`/api/disputes`) && Method(`POST`)
+      priority: 1
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix]
+      service: unavailable
+    pay-booking:
+      entryPoints: [web]
+      rule: PathRegexp(`^/api/bookings/[^/]+/confirm-payment$`) && Method(`POST`)
+      priority: 10304
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix]
+      service: booking-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
+    pay-booking-unavailable:
+      entryPoints: [web]
+      rule: PathRegexp(`^/api/bookings/[^/]+/confirm-payment$`) && Method(`POST`)
+      priority: 1
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix]
+      service: unavailable
+    put-availability-slot:
+      entryPoints: [web]
+      rule: PathRegexp(`^/api/profiles/me/tutor/availability/[^/]+/[^/]+$`) && Method(`PUT`)
+      priority: 10507
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix]
+      service: booking-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
+    put-availability-slot-unavailable:
+      entryPoints: [web]
+      rule: PathRegexp(`^/api/profiles/me/tutor/availability/[^/]+/[^/]+$`) && Method(`PUT`)
+      priority: 1
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix]
+      service: unavailable
+    put-meeting-override:
+      entryPoints: [web]
+      rule: PathRegexp(`^/api/bookings/[^/]+/meeting-link$`) && Method(`PATCH`)
+      priority: 10304
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix]
+      service: booking-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
+    put-meeting-override-unavailable:
+      entryPoints: [web]
+      rule: PathRegexp(`^/api/bookings/[^/]+/meeting-link$`) && Method(`PATCH`)
+      priority: 1
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix]
+      service: unavailable
+    put-notification-preferences:
+      entryPoints: [web]
+      rule: Path(`/api/notifications/preferences`) && Method(`PUT`)
+      priority: 10303
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix]
+      service: notification-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
+    put-notification-preferences-unavailable:
+      entryPoints: [web]
+      rule: Path(`/api/notifications/preferences`) && Method(`PUT`)
+      priority: 1
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix]
+      service: unavailable
+    put-student-profile:
+      entryPoints: [web]
+      rule: Path(`/api/profiles/me/student`) && Method(`PUT`)
+      priority: 10404
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix]
+      service: auth-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
+    put-student-profile-unavailable:
+      entryPoints: [web]
+      rule: Path(`/api/profiles/me/student`) && Method(`PUT`)
+      priority: 1
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix]
+      service: unavailable
+    reply-to-review:
+      entryPoints: [web]
+      rule: PathRegexp(`^/api/reviews/[^/]+/reply$`) && Method(`POST`)
+      priority: 10304
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix]
+      service: review-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
+    reply-to-review-unavailable:
+      entryPoints: [web]
+      rule: PathRegexp(`^/api/reviews/[^/]+/reply$`) && Method(`POST`)
+      priority: 1
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix]
+      service: unavailable
+    request-password-reset:
+      entryPoints: [web]
+      rule: Path(`/api/auth/password-reset/request`) && Method(`POST`)
+      priority: 10404
+      middlewares: [strip-client-identity, owner-credential, strip-api-prefix]
+      service: auth-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
+    request-password-reset-unavailable:
+      entryPoints: [web]
+      rule: Path(`/api/auth/password-reset/request`) && Method(`POST`)
+      priority: 1
+      middlewares: [strip-client-identity, owner-credential, strip-api-prefix]
+      service: unavailable
+    restrict-account:
+      entryPoints: [web]
+      rule: PathRegexp(`^/api/admin/users/[^/]+/restrictions$`) && Method(`POST`)
+      priority: 10405
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix]
+      service: auth-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
+    restrict-account-unavailable:
+      entryPoints: [web]
+      rule: PathRegexp(`^/api/admin/users/[^/]+/restrictions$`) && Method(`POST`)
+      priority: 1
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix]
+      service: unavailable
+    review-tutor-submission:
+      entryPoints: [web]
+      rule: PathRegexp(`^/api/admin/tutor-requests/[^/]+/review$`) && Method(`POST`)
+      priority: 10405
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix]
+      service: tutor-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
+    review-tutor-submission-unavailable:
+      entryPoints: [web]
+      rule: PathRegexp(`^/api/admin/tutor-requests/[^/]+/review$`) && Method(`POST`)
+      priority: 1
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix]
+      service: unavailable
+    search-accounts:
+      entryPoints: [web]
+      rule: Path(`/api/admin/users`) && Method(`GET`)
+      priority: 10303
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix, retry-read]
+      service: auth-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
+    search-accounts-unavailable:
+      entryPoints: [web]
+      rule: Path(`/api/admin/users`) && Method(`GET`)
+      priority: 1
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix, retry-read]
+      service: unavailable
+    search-tutor-subjects:
+      entryPoints: [web]
+      rule: Path(`/api/discovery/tutors`) && Method(`GET`)
+      priority: 10303
+      middlewares: [strip-client-identity, owner-credential, strip-api-prefix, retry-read]
+      service: tutor-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
+    search-tutor-subjects-unavailable:
+      entryPoints: [web]
+      rule: Path(`/api/discovery/tutors`) && Method(`GET`)
+      priority: 1
+      middlewares: [strip-client-identity, owner-credential, strip-api-prefix, retry-read]
+      service: unavailable
+    send-message:
+      entryPoints: [web]
+      rule: Path(`/api/messages`) && Method(`POST`)
+      priority: 10202
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix]
+      service: messaging-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
+    send-message-unavailable:
+      entryPoints: [web]
+      rule: Path(`/api/messages`) && Method(`POST`)
+      priority: 1
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix]
+      service: unavailable
+    set-default-payout-account:
+      entryPoints: [web]
+      rule: PathRegexp(`^/api/payout-accounts/[^/]+/default$`) && Method(`PATCH`)
+      priority: 10304
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix]
+      service: wallet-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
+    set-default-payout-account-unavailable:
+      entryPoints: [web]
+      rule: PathRegexp(`^/api/payout-accounts/[^/]+/default$`) && Method(`PATCH`)
+      priority: 1
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix]
+      service: unavailable
+    set-demo-meetings-outcome:
+      entryPoints: [web]
+      rule: PathRegexp(`^/api/demo/meetings/[^/]+/outcome$`) && Method(`POST`)
+      priority: 10405
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix]
+      service: booking-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
+    set-demo-meetings-outcome-unavailable:
+      entryPoints: [web]
+      rule: PathRegexp(`^/api/demo/meetings/[^/]+/outcome$`) && Method(`POST`)
+      priority: 1
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix]
+      service: unavailable
+    set-demo-payouts-outcome:
+      entryPoints: [web]
+      rule: PathRegexp(`^/api/demo/payouts/[^/]+/outcome$`) && Method(`POST`)
+      priority: 10405
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix]
+      service: wallet-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
+    set-demo-payouts-outcome-unavailable:
+      entryPoints: [web]
+      rule: PathRegexp(`^/api/demo/payouts/[^/]+/outcome$`) && Method(`POST`)
+      priority: 1
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix]
+      service: unavailable
+    set-demo-topups-outcome:
+      entryPoints: [web]
+      rule: PathRegexp(`^/api/demo/topups/[^/]+/outcome$`) && Method(`POST`)
+      priority: 10405
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix]
+      service: wallet-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
+    set-demo-topups-outcome-unavailable:
+      entryPoints: [web]
+      rule: PathRegexp(`^/api/demo/topups/[^/]+/outcome$`) && Method(`POST`)
+      priority: 1
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix]
+      service: unavailable
+    set-tutor-publication:
+      entryPoints: [web]
+      rule: Path(`/api/profiles/me/tutor/publication`) && Method(`PATCH`)
+      priority: 10505
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix]
+      service: tutor-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
+    set-tutor-publication-unavailable:
+      entryPoints: [web]
+      rule: Path(`/api/profiles/me/tutor/publication`) && Method(`PATCH`)
+      priority: 1
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix]
+      service: unavailable
+    signup:
+      entryPoints: [web]
+      rule: Path(`/api/auth/signup`) && Method(`POST`)
+      priority: 10303
+      middlewares: [strip-client-identity, owner-credential, strip-api-prefix]
+      service: auth-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
+    signup-unavailable:
+      entryPoints: [web]
+      rule: Path(`/api/auth/signup`) && Method(`POST`)
+      priority: 1
+      middlewares: [strip-client-identity, owner-credential, strip-api-prefix]
+      service: unavailable
+    submit-tutor-draft:
+      entryPoints: [web]
+      rule: PathRegexp(`^/api/profiles/me/tutor/drafts/[^/]+/submit$`) && Method(`POST`)
+      priority: 10607
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix]
+      service: tutor-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
+    submit-tutor-draft-unavailable:
+      entryPoints: [web]
+      rule: PathRegexp(`^/api/profiles/me/tutor/drafts/[^/]+/submit$`) && Method(`POST`)
+      priority: 1
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix]
+      service: unavailable
+    tutor-cancel-booking:
+      entryPoints: [web]
+      rule: PathRegexp(`^/api/bookings/[^/]+/tutor-cancel$`) && Method(`POST`)
+      priority: 10304
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix]
+      service: booking-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
+    tutor-cancel-booking-unavailable:
+      entryPoints: [web]
+      rule: PathRegexp(`^/api/bookings/[^/]+/tutor-cancel$`) && Method(`POST`)
+      priority: 1
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix]
+      service: unavailable
+    update-account-settings:
+      entryPoints: [web]
+      rule: Path(`/api/profiles/me/account`) && Method(`PUT`)
+      priority: 10404
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix]
+      service: auth-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
+    update-account-settings-unavailable:
+      entryPoints: [web]
+      rule: Path(`/api/profiles/me/account`) && Method(`PUT`)
+      priority: 1
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix]
+      service: unavailable
+    update-subject:
+      entryPoints: [web]
+      rule: PathRegexp(`^/api/profiles/me/tutor/subjects/[^/]+$`) && Method(`PUT`)
+      priority: 10506
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix]
+      service: tutor-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
+    update-subject-unavailable:
+      entryPoints: [web]
+      rule: PathRegexp(`^/api/profiles/me/tutor/subjects/[^/]+$`) && Method(`PUT`)
+      priority: 1
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix]
+      service: unavailable
+    update-tutor-draft:
+      entryPoints: [web]
+      rule: PathRegexp(`^/api/profiles/me/tutor/drafts/[^/]+$`) && Method(`PUT`)
+      priority: 10506
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix]
+      service: tutor-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
+    update-tutor-draft-unavailable:
+      entryPoints: [web]
+      rule: PathRegexp(`^/api/profiles/me/tutor/drafts/[^/]+$`) && Method(`PUT`)
+      priority: 1
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix]
+      service: unavailable
+    validate-password-reset:
+      entryPoints: [web]
+      rule: Path(`/api/auth/password-reset/validate`) && Method(`POST`)
+      priority: 10404
+      middlewares: [strip-client-identity, owner-credential, strip-api-prefix]
+      service: auth-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
+    validate-password-reset-unavailable:
+      entryPoints: [web]
+      rule: Path(`/api/auth/password-reset/validate`) && Method(`POST`)
+      priority: 1
+      middlewares: [strip-client-identity, owner-credential, strip-api-prefix]
+      service: unavailable
+    withdraw-tutor-submission:
+      entryPoints: [web]
+      rule: Path(`/api/profiles/me/tutor/withdraw`) && Method(`POST`)
+      priority: 10505
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix]
+      service: tutor-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
+    withdraw-tutor-submission-unavailable:
+      entryPoints: [web]
+      rule: Path(`/api/profiles/me/tutor/withdraw`) && Method(`POST`)
+      priority: 1
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix]
       service: unavailable

@@ -1,0 +1,25 @@
+# Review instructions for homelab-gitops/infrastructure/cloudflare/.
+# This is a patch sketch, not an independently applicable Terraform root.
+# Keep the existing Tutor Matcher hostname and localhost:3333 route unchanged.
+# Candidate hostname/port require an authorized conflict and access check.
+
+# 1. Add "tutor-matcher-microservice.${var.zone_name}" to
+#    locals.tunnel_hostnames in dns.tf.
+
+# 2. Insert this object into the EXISTING tunnel.tf config.ingress list,
+#    before its final http_status:404 catch-all:
+# {
+#   hostname = "tutor-matcher-microservice.${var.zone_name}"
+#   service  = "http://localhost:3334"
+# }
+
+# 3. Review the intended course audience before changing access.tf.
+#    Do not inherit a personal-only Access allowlist without checking that the
+#    instructor and demo users can reach the application. Tutor Matcher still
+#    enforces its own sessions, capabilities and resource ownership.
+#    Tunnel routing alone is not an Access policy.
+
+# 4. Keep origin port 3334 unavailable from LAN/Internet; host-mode Swarm
+#    publication is not loopback-only. Validate the host's actual Docker-aware
+#    IPv4/IPv6 firewall boundary before enabling this route.
+# No Cloudflare account/tunnel identifiers, tokens or state are copied here.

@@ -1,6 +1,6 @@
-# Gateway replacement validation
+# PR4 Traefik gateway validation (standalone)
 
-Validated locally on 8 November 2026, Asia/Bangkok. This is local implementation evidence, not a hosted rollout or the full delivery acceptance record.
+Validated locally on 8 November 2026, Asia/Bangkok, against PR4's standalone Traefik routes and its earlier Auth authorization adapter. These results remain evidence for the pinned Traefik/provider/proxy behavior. They are not evidence for the stacked Saint identity implementation, the final 86 `/api` routes, current-session/capability admission, or an integrated owner request.
 
 | Check | Result and scope |
 | --- | --- |
@@ -20,4 +20,4 @@ Postman simulation request events show that business requests reached the stand-
 
 The local Docker CLI has no reachable daemon at its default socket. No real Swarm manager, overlay, service image rollout, mounted runtime credentials, persistent data, HTTPS entry, backup/restore or throughput was tested. Podman was used only for pinned test images, binary extraction and the synthetic socket-proxy check. The socket test's SELinux setting is test-specific; it does not change host policy or the deployed manifest.
 
-The larger target's sessions, bans, capabilities, signed actor admissions, per-workload credentials, owner-operation routing and `/api` inventory remain implementation work. Old Express/Consul load-test outputs and rendered deployment assets remain historical evidence. See [gateway verification](README.md#verification) for repeatable commands and [hosted prerequisites](../deploy/README.md) before any authorized rollout.
+The former Express/Consul load-test outputs and Consul-rendered diagrams remain historical. Current integration status and pending proof are tracked in the [Traefik integration evidence](../docs/evidence/saint/traefik-integration.md). Use the [gateway guide](README.md) for the current architecture and [hosted prerequisites](../deploy/README.md) before any authorized rollout.

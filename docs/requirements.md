@@ -70,6 +70,9 @@ AUTH-03: A password-reset link lasts 30 minutes and works once. A new request in
 Reset requests give the same response for registered and unknown email addresses. Delivery uses the simulated notification provider.
 AUTH-04: The backend must enforce capabilities and resource ownership on every protected action. Admin provisioning must use a controlled mechanism.
 AUTH-05: Account settings support name, email, password, and account deactivation, following the monolith journey.
+Changing a password revokes all sessions, including the current session, and requires login again. Password reset also revokes all sessions; name and email edits preserve sessions.
+Deactivation disables access and revokes all sessions while retaining the account, reserved email address, bookings, funds, and history. Only an active admin can restore a deactivated account; restoration requires fresh login and never revives old sessions.
+Deactivation does not automatically cancel bookings or move money. These account-lifecycle rules were confirmed by the user on 8 November 2026.
 
 Evidence: [account journeys][journeys], [authentication issues #122–#138](https://github.com/Azther0z/tutor-matcher/issues/123), and [admin provisioning issue #193](https://github.com/Azther0z/tutor-matcher/issues/193).
 
@@ -204,6 +207,10 @@ Retries must not create duplicate delivery effects. Notification failures cannot
 SUP-04: Admins can search users by name, filter account capabilities, message a selected user, and suspend or ban with a reason.
 Restricted accounts lose protected access. Record and notify the reason, reject duplicate bans, and preserve bookings and financial audit history.
 Restrictions do not silently delete or settle existing paid bookings. Any financial remedy follows UC-09.
+Suspensions have no automatic expiry and last until an active admin restores access with a reason. Bans are permanent for this delivery and cannot be restored or changed to suspension or deactivation.
+Suspension and ban revoke all sessions. Restoring a suspended account requires fresh login; its old sessions remain revoked. Record restoration and its reason in the audit history and notify the affected account.
+
+Account acceptance: Prove that settings password changes and resets invalidate every session, while name/email edits preserve sessions. Suspend and restore an account, deactivate and restore an account, reject restoration of a banned account, and verify that preserved bookings, funds, and history are unchanged.
 
 Evidence: PDF pp. 7–9, [messaging PR #76](https://github.com/Azther0z/tutor-matcher/pull/76), [notification issue #156](https://github.com/Azther0z/tutor-matcher/issues/156), and [account-safety issue #172](https://github.com/Azther0z/tutor-matcher/issues/172).
 

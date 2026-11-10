@@ -1,4 +1,12 @@
 **/node_modules
-.cache
+**/.next
+**/dist
 **/.env
+**/.env.*
 .git
+.runtime
+docs
+postman
+loadtest/results
+*.log
+.cache

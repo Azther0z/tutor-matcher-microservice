@@ -1,5 +1,8 @@
 # Step-3 validation record
 
+Implementation follow-up, 8 November 2026: dependencies are now installed and the protobuf codec check passes in this worktree. The missing-dependency note in the account-lifecycle section below is historical. See the [implementation evidence](../docs/evidence/saint/README.md) for the earlier Auth/TypeScript-Gateway/database/browser/broker checks and their limits. The full 20-RPC target is not deployed.
+These contract checks establish schema, inventory and codec consistency. They do not establish the stacked Traefik routes, the private ForwardAuth exchange, or owner-side runtime behavior; see the [Traefik integration evidence](../docs/evidence/saint/traefik-integration.md).
+
 Verified locally on 6 November 2026 on the PR branch. Target services were not executed or deployed.
 The latest user-confirmed split replaces 18 private domain HTTP operations with gRPC and retains the two availability methods.
 
@@ -19,6 +22,14 @@ Both bundled OpenAPI specs pass Postman syntax lint with zero violations. The 86
 The updated container, collaboration and payment-recovery diagrams were rendered to SVG/PNG and visually inspected. Their SVG XML parses.
 All 46 Markdown files and 274 local links/anchors pass. The ADR sequence is 0001–0028.
 These checks establish contract consistency. They do not establish target runtime, concurrency, provider, UI or deployment acceptance.
+
+## Account lifecycle clarification: 8 November 2026
+
+Recorded the user-confirmed all-session revocation, permanent bans, manually restored suspensions and admin-only restoration of soft-deactivated accounts. The public login contract now declares its existing invalid-credential and restricted-account outcomes as HTTP 401 and 403. Request shapes, operation inventory, protobuf files and the target Postman collection remain unchanged.
+
+The offline contract checker passed all 129 shared definitions, 24 gRPC validation definitions, 21 event variants, 114 operations, 82 schema cases, nine money/time cases, 40 gRPC request/response messages and 12 invalid gRPC cases. All 86 target collection requests still match the public spec. The updated bundled public OpenAPI passed Postman syntax lint with zero violations. The six changed requirements/design/ADR/handoff/glossary/contract-guide files passed 61 local link/anchor checks, and `git diff --check` passed.
+
+The protobuf codec check could not run in this worktree because Booking's `@grpc/proto-loader` dependency is not installed. The earlier codec results above are historical; no new codec or runtime pass is claimed. No dependencies were installed and no application or deployment code changed.
 
 ## Repeat the checks
 

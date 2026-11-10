@@ -143,7 +143,7 @@ Auth owns account identity, current account capabilities, and restrictions. Tuto
 Tutor records link to the immutable Auth account ID, rather than treating a matching email as ownership.
 There is no second approval workflow in Auth and no client-controlled publication or capability grant.
 
-For protected new requests, Traefik delegates signed-token and current-account checks to the private Auth ForwardAuth adapter. The target adapter issues the short-lived signed actor admission for the logical gateway boundary. Signature and expiry alone cannot enforce a recent suspension.
+For protected requests, Traefik calls Auth's private `GET /internal/gateway/authorize` ForwardAuth endpoint. Auth verifies Gateway workload proof, the current browser session/account state, and the required capability before issuing the 60-second RS256 actor assertion with logical issuer `api-gateway`. Traefik removes the browser token and forwards the signed assertion with Gateway workload identity. Signature and expiry alone cannot enforce a recent suspension, so Auth checks current state at admission.
 If current authorization cannot be established, reject the protected action. Public catalogue reads can remain available.
 Strip and replace client identity headers. Internal operations require trusted workload identity and preserve the original actor for audit.
 The [identity contract](../contracts/README.md#identity-capability-and-privacy) specifies how identity crosses each REST, gRPC, and event interface. No internal write operation is publicly routed.
@@ -151,6 +151,7 @@ The [identity contract](../contracts/README.md#identity-capability-and-privacy) 
 Each service checks ownership and its domain permissions. Gateway authentication does not allow one user to edit another tutor, conversation, payout account, or booking.
 Public Tutor responses exclude verification-document URLs. Admin workflows expose only the private data required for their authorized task.
 Restrictions preserve paid bookings and financial records. They do not silently move money or erase evidence.
+The user confirmed the [account lifecycle](../contracts/README.md#account-lifecycle) on 8 November 2026: password changes and resets revoke every session; name/email edits preserve sessions. Suspensions require manual admin restoration, bans are permanent for this delivery, and soft-deactivated accounts permit admin-only restoration. Restored accounts require fresh login; old sessions stay revoked. Auth commits credential/status changes and the required session revocation together. Preserve existing bookings, funds, account identity and audit history.
 
 Tutor approval uses a recoverable activation workflow:
 

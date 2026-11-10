@@ -12,4 +12,6 @@ Stateless token verification does not replace ownership or current account restr
 The [system design](../system-design.md#identity-permissions-and-tutor-activation) keeps approval decisions in Tutor and account capability grants in Auth.
 Activation is a durable, idempotent workflow. Protected new actions check current Auth state, rather than waiting for an old token to expire after a ban.
 
+On 8 November 2026 the user confirmed the [account lifecycle](../../contracts/README.md#account-lifecycle): password changes and resets revoke all sessions; suspensions last until admin restoration; bans are permanent for this delivery; soft-deactivated accounts allow admin-only restoration. Restoration requires fresh login, never resurrects sessions, and preserves bookings and financial records. Name/email edits preserve sessions. Auth owns the local transaction that changes credentials/status and revokes sessions. Reusing the existing admin RESTORE operation avoids a separate public reactivation flow.
+
 Source: [Tutor Matcher PDF](../sources/tutor-matcher.pdf), pp. 15, original ADR-013. Reconciled against the [accepted requirements](../requirements.md) on 6 November 2026.

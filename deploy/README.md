@@ -1,56 +1,30 @@
-# Hosted backend demo on Docker Swarm
+# Hosted Docker Swarm stack
 
-`compose.yaml` deploys the existing backend demo with Traefik's Swarm provider. It is separate from root local Compose and does not claim implementation of the nine-use-case target, Next.js, Review, Messaging, PostgreSQL Booking, signed admissions or the planned outbox workers. Nothing in this change deploys to the homelab.
+[`compose.yaml`](compose.yaml) is the canonical hosted stack template for the integrated platform. It uses Traefik OSS 3.7.17 with Swarm task discovery through a restricted Docker API proxy. Traefik uses the official image; there is no custom Node/Express gateway image or separate Consul registry. The root [`compose.yaml`](../compose.yaml) is the local development stack.
+
+The identity implementation is local work. This guide is a deployment review template, not evidence of a hosted rollout. The existing homelab sources are recorded in [homelab references](../docs/evidence/saint/homelab-references.md): architecture revision [`e1f8c88`](https://github.com/azther0z-homelab/homelab-architecture/tree/e1f8c88a09793d1474d03d41d56647946004e1bf) and GitOps revision [`841efb4`](https://github.com/azther0z-homelab/homelab-gitops/tree/841efb4a3c312326ceb2856dc4532433982b4879). Those references document the existing Swarm, Doco-CD, private registry, host-level Cloudflare Tunnel and Access setup. No server, registry, GitOps or Cloudflare write was made for this stack.
 
 ## Inputs and prerequisites
 
-- A supported Docker Swarm manager and a reachable registry containing all five application images. Set `AUTH_IMAGE`, `TUTOR_IMAGE`, `BOOKING_IMAGE`, `WALLET_IMAGE` and `NOTIFICATION_IMAGE` to immutable release references. Build each from its service Dockerfile using repository-root context. Traefik and the socket proxy use pinned version tags. Image publication is separate authorized work; no publishing workflow is added here.
-- `STACK_NAME`, default `tutor-matcher`, must match the name passed to `docker stack deploy`. Set `CONFIG_REVISION` to a unique source revision when releasing configuration, so immutable Swarm configs receive versioned names.
-- Exactly one intended storage node labeled `tutor-matcher.data=true`, with sufficient persistent storage and a tested backup/restore procedure. MongoDB, PostgreSQL and RabbitMQ stay on that node. This is a single-storage-host demo, not a highly available data tier.
-- An approved HTTPS entry and firewall configuration. The manifest publishes only gateway HTTP 8080. Restrict that port to the intended entry/demo network; Swarm does not enforce the root Compose loopback binding. No database, broker-management, application, private Auth, ping or Docker API port is published.
-- The external Swarm secrets below, provisioned through the approved SOPS/age/runtime mechanism. The stack deliberately refuses to start with missing inputs. No plaintext runtime credentials or encrypted secret contents are supplied by this change.
+- A supported Swarm manager and reviewed immutable images for Auth, the web UI and each of the six other business owners. Traefik and the restricted socket proxy use pinned images. Build application images from repository-root context. Image publication and promotion are separate release actions.
+- The existing Doco-CD reconciler and one reviewed application directory under the existing GitOps repository. Do not add a second reconciler or change its polling configuration.
+- The existing monolith route on host port `3333` stays reserved. Host port `3334` is only a candidate origin for the new web service; it is not deployed or known to be free. Confirm host capacity, origin firewall, hostname and placement before any rollout.
+- One intended storage node and adequate persistent storage for PostgreSQL, MongoDB and RabbitMQ, with an approved isolated backup/restore procedure. A single storage host is not high availability.
+- An approved HTTPS entry and firewall policy. The current host-level Cloudflare Tunnel remains the ingress path; Cloudflare DNS/tunnel routing and Access policy are separate changes. The candidate app origin must not expose databases, broker management, owner services, private Auth endpoints or the Docker API.
+- Encrypted runtime configuration and mounted external secrets supplied through the existing SOPS/age workflow. Auth signing keys and the Gateway workload credential use mounted files. `GATEWAY_WORKLOAD_CREDENTIAL_FILE` is loaded by the local runtime setup; its value must not appear in Traefik configuration, logs or Git.
 
-| External secret suffix | Consumer and meaning |
-| --- | --- |
-| `postgres_password` | PostgreSQL initialization password for its configured `tutor` account |
-| `mongo_password` | MongoDB initialization password for its configured `tutor` admin account |
-| `rabbitmq_password` | RabbitMQ initialization password for its configured `tutor` account |
-| `auth_database_url` | Auth's PostgreSQL URL selecting `auth_db` |
-| `wallet_database_url` | Wallet's PostgreSQL URL selecting `wallet_db` |
-| `mongo_uri` | Authenticated MongoDB URL reachable as `mongo:27017`; the application selects its owned logical database |
-| `rabbitmq_url` | Authenticated AMQP URL reachable as `rabbitmq:5672` |
-| `jwt_secret` | Auth's HS256 signing/verification key |
-
-Each actual external secret name is `${STACK_NAME}_<suffix>`. URL credentials must match the initialized infrastructure accounts and be URL-encoded where required. Startup reads mounted files through `shared/runtime-env.js`; Traefik receives no signing key. The RabbitMQ wrapper exports its mounted password only to the broker process.
-
-The hosted volumes have distinct `hosted-` names so they do not accidentally mount root Compose data. Existing data does not migrate automatically. Changing initialization secrets does not change credentials inside an already initialized database or broker. Reuse or migration of existing storage requires an approved data/credential plan; never delete a volume to resolve authentication failure.
+The stack uses distinct hosted storage names. Existing volumes are not migrated automatically. Initialization values do not change credentials in already initialized stores. Reuse or migration requires a reviewed data and credential plan; never delete persistent volumes to resolve an authentication failure.
 
 ## Review and rollout
 
-Run these commands from the repository root. Validate the manifests locally without resolving or printing runtime values:
+Review the rendered stack without printing runtime secret values. Confirm the service images, mounted files, secret ownership, Docker API allowlist, manager placement, overlay membership, exposed web origin, persistence and health checks. Validate `deploy/compose.yaml` with the Docker stack parser and run the current [gateway integration checks](../docs/evidence/saint/traefik-integration.md) before asking for a hosted rollout.
 
-```sh
-docker compose config --quiet
-docker stack config --skip-interpolation --compose-file deploy/compose.yaml > /dev/null
-node --test tests/gateway.test.cjs
-```
+After separate release and server authorization, the existing deployment owner can apply the reviewed manifest through Doco-CD. Swarm does not wait for Compose `depends_on`; services must restart safely when a dependency is not ready. Inspect task convergence before exercising login, session revocation, account settings, protected owner routes, durable business workflows, notifications, restart persistence and isolated restoration. Use synthetic accounts and funds.
 
-The test needs the dependencies and binary described in [gateway verification](../api-gateway/README.md#verification). Ensure every release image exists before updating the desired deployment revision. Doco-CD can deploy this manifest using the same reviewed inputs; retain one deployment owner.
-
-After server authorization, the selected deployer can apply the reviewed manifest using the configured stack name:
-
-```sh
-docker stack deploy --with-registry-auth --compose-file deploy/compose.yaml "${STACK_NAME:-tutor-matcher}"
-```
-
-There is no dependency-start ordering in Swarm. Applications restart on startup failure until infrastructure is ready, and health checks prevent early routing. Inspect task convergence before testing public registration/login, tutor reads, authenticated writes, wallet/payment/cancellation, Notification consumption, restart persistence and isolated restoration. These checks use synthetic accounts and funds. The gateway-boundary test does not replace them.
-
-Rehearse one Tutor replica and multiple replicas with controlled traffic, then fail one task while observing errors and recovery. Use access logs for the chosen task address. Record the tested revision and environment; old Consul load-test numbers are historical evidence only.
-
-Traefik keeps previously discovered routes when discovery temporarily fails, while its active health checks continue. A restarted gateway with no Docker API cannot rediscover services. Do not promise zero errors during detection or permanent operation without a manager API.
+Traefik keeps previously discovered routes when the Docker API is temporarily unavailable, while active health checks continue. A restarted gateway needs the Docker API to discover routes again; tasks created during an API outage remain unknown. Record the tested revision, host and results. Do not promise zero errors during detection or permanent service without a manager API.
 
 ## Rollback and remaining work
 
-Application services use one-at-a-time start-first updates with rollback on failed rollout. Revert to known image/config revisions through the selected deployment owner. Gateway configuration is delivered as immutable, revision-named Swarm configs. Application rollback does not roll back schema or business data.
+Use the existing deployment owner to restore reviewed immutable image and configuration revisions. Application rollback does not roll back schema or business data. Keep the local Compose path ready if hosted access is unavailable.
 
-Before a hosted rollout, supply real reviewed image references, encrypted runtime inputs/external secrets, node placement, registry access and HTTPS/network configuration. Verify the socket proxy and actual manager/overlay behavior on the host, including the host's Docker-socket access policy if SELinux is enabled. The synthetic-socket test does not establish that host policy. No manager initialization, node labeling, secret creation, credential access, publication or deployment was executed here.
+Before a hosted rollout, verify host capacity, candidate origin availability, storage placement, trusted image publication, owner migrations, encrypted runtime inputs, HTTPS/Access audience, firewall rules and isolated restoration. The synthetic local tests do not establish real Swarm behavior, Cloudflare routing, or host policy. No server initialization, node labeling, secret provisioning, image publication, GitOps promotion or deployment was performed here.

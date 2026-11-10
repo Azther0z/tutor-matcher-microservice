@@ -1,0 +1,13 @@
+# yaml-language-server: $schema=https://doco.cd/latest/schemas/deploy.schema.json
+# Per-app override for homelab-gitops/apps/tutor-matcher-microservice/.
+# Existing root auto-discovery remains authoritative. No new poll is needed.
+compose_files:
+  - compose.yaml
+env_files:
+  - secrets/runtime.env.enc
+swarm:
+  enabled: true
+  config_retention: 2
+  secret_retention: 1
+timeout: 600
+prune_images: false

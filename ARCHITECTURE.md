@@ -1,10 +1,31 @@
-# Tutor Matcher — Current Project Architecture
+# Tutor Matcher — Implementation Architecture
 
-> This document describes the implementation in this repository. It is a backend microservice demo, not the broader target architecture or feature set described in the project proposal.
+The current stack combines PR4's Traefik OSS 3.7.17 gateway with Saint's TypeScript Auth and Next.js identity implementation. There is no custom Node/Express request gateway or Consul registry. The [platform guide](docs/platform.md) records local Compose and hosted Swarm setup. [Identity evidence](docs/evidence/saint/README.md) and [Traefik integration evidence](docs/evidence/saint/traefik-integration.md) separate completed earlier checks from pending stacked verification.
 
 The [accepted requirements](docs/requirements.md) govern the delivery target. The [ADR index](docs/adr/README.md) records retained decisions and reconciled changes. The [source documents](docs/sources/README.md) include both original PDFs and the pinned monolith reference.
 
-The [accepted system design](docs/system-design.md) is the future target. It selects PostgreSQL for Booking and adds Review and Messaging. The [step-3 contracts](contracts/README.md) specify the target interfaces. The implementation snapshot below still describes the existing MongoDB Booking demo.
+The [accepted system design](docs/system-design.md) remains the full delivery target. It selects PostgreSQL for Booking and adds Review and Messaging. The [contracts](contracts/README.md) specify 86 public REST operations, eight private REST inventory operations, and 20 private gRPC methods. The ForwardAuth control-plane endpoint is separate from those operation counts. Other owners' services still need migration and integration; the full target is not implemented.
+
+## Current integrated architecture
+
+The public API uses exact method/path routes from the public OpenAPI inventory under `/api`. Traefik strips caller-supplied identity headers and performs ForwardAuth only for protected routes. Auth's private `GET /internal/gateway/authorize` verifies Gateway workload proof, the browser session, current account state and the operation capability, then issues a 60-second RS256 actor assertion with logical issuer `api-gateway`. Traefik removes the browser token and forwards the actor assertion with its Gateway workload credential to the owning service. The owner validates the request body, resource ownership and business rules.
+
+```mermaid
+flowchart LR
+    Web["Next.js identity UI"] -->|"REST /api"| Edge["Traefik OSS 3.7.17"]
+    Edge -->|"Private ForwardAuth"| Auth["TypeScript Auth"]
+    Edge -->|"Exact OpenAPI routes<br/>verified actor + Gateway workload"| Owners["Six peer owners<br/>Tutor · Booking · Wallet<br/>Review · Messaging · Notification"]
+    Auth --> AuthDB[("PostgreSQL<br/>Auth sessions and outbox")]
+    Owners --> Stores[("Owner databases")]
+    Auth -->|"Durable events"| Rabbit[("RabbitMQ")]
+    Owners -->|"Durable events"| Rabbit
+```
+
+Root Compose starts the identity slice by default; the `target` profile requires real peer-owner images. Hosted deployment uses Traefik Swarm discovery through a restricted Docker API proxy and the existing Doco-CD/Cloudflare path. The existing monolith route on host port `3333` remains reserved; `3334` is a candidate origin only and is not deployed. The full target and hosted rollout are not verified by this documentation update.
+
+## Historical standalone backend demo
+
+The remaining sections preserve the earlier standalone backend demo, including legacy paths without `/api`, MongoDB Booking, former Gateway behavior and the absence of a web UI. Treat them as history, not current routing or deployment instructions. The current target is described above and in [system design](docs/system-design.md).
 
 ## 1. Overview
 
