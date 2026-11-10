@@ -305,6 +305,8 @@ services:
       MONGO_URI: mongodb://tutor_owner:${TUTOR_DB_PASSWORD}@mongo:27017/tutor_db?authSource=tutor_db&replicaSet=rs0
       BOOKING_GRPC_URL: booking-service:50052
       AUTH_GRPC_URL: auth-service:50051
+      REVIEW_HTTP_URL: http://review-service:4005
+      RABBITMQ_URL_FILE: /run/secrets/tutor_rabbitmq_url
       REVIEW_GRPC_URL: review-service:50055
       TUTOR_WORKLOAD_CREDENTIAL: ${TUTOR_WORKLOAD_CREDENTIAL:?supply distinct workload credential}
       AUTH_WORKLOAD_CREDENTIAL: ${AUTH_WORKLOAD_CREDENTIAL:?supply distinct workload credential}
@@ -312,6 +314,8 @@ services:
       WALLET_WORKLOAD_CREDENTIAL: ${WALLET_WORKLOAD_CREDENTIAL:?supply distinct workload credential}
       MESSAGING_WORKLOAD_CREDENTIAL: ${MESSAGING_WORKLOAD_CREDENTIAL:?supply distinct workload credential}
       GATEWAY_WORKLOAD_CREDENTIAL: ${GATEWAY_WORKLOAD_CREDENTIAL:?supply distinct workload credential}
+    secrets:
+    - tutor_rabbitmq_url
     deploy:
       replicas: 1
       restart_policy:
@@ -453,10 +457,13 @@ services:
       GRPC_PORT: '50055'
       MONGO_URI: mongodb://review_owner:${REVIEW_DB_PASSWORD}@mongo:27017/review_db?authSource=review_db&replicaSet=rs0
       AUTH_GRPC_URL: auth-service:50051
+      RABBITMQ_URL_FILE: /run/secrets/review_rabbitmq_url
       BOOKING_GRPC_URL: booking-service:50052
       REVIEW_WORKLOAD_CREDENTIAL: ${REVIEW_WORKLOAD_CREDENTIAL:?supply distinct workload credential}
       TUTOR_WORKLOAD_CREDENTIAL: ${TUTOR_WORKLOAD_CREDENTIAL:?supply distinct workload credential}
       GATEWAY_WORKLOAD_CREDENTIAL: ${GATEWAY_WORKLOAD_CREDENTIAL:?supply distinct workload credential}
+    secrets:
+    - review_rabbitmq_url
     deploy:
       replicas: 1
       restart_policy:
@@ -646,6 +653,12 @@ secrets:
   auth_gateway_workload_credential:
     external: true
     name: ${STACK_NAME:-tutor-matcher}_auth_gateway_workload_credential
+  tutor_rabbitmq_url:
+    external: true
+    name: ${STACK_NAME:-tutor-matcher}_tutor_rabbitmq_url
+  review_rabbitmq_url:
+    external: true
+    name: ${STACK_NAME:-tutor-matcher}_review_rabbitmq_url
   wallet_rabbitmq_url:
     external: true
     name: ${STACK_NAME:-tutor-matcher}_wallet_rabbitmq_url

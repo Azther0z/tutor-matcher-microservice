@@ -1,0 +1,38 @@
+{
+  "measuredAt": "2026-11-10T02:26:17.014Z",
+  "baseRevision": "8dff5c32743cc84fa57aeb12a7ad3522c00c325c",
+  "workingTree": true,
+  "sourceSha256": "e7c0750474f3a9386b54b18965c71f5c5f6be29806c84d578e09c187fe6967aa",
+  "node": "v25.9.0",
+  "platform": "darwin",
+  "arch": "arm64",
+  "cpuCount": 12,
+  "memoryBytes": 19327352832,
+  "catalogueSubjects": 20,
+  "tutorProcesses": 1,
+  "resourceLimits": "Native host processes, no per-service CPU caps; exploratory steady run overlapped a workspace build.",
+  "real": [
+    "Traefik 3.7.17",
+    "Auth/PostgreSQL",
+    "Tutor/MongoDB replica set",
+    "Review/MongoDB replica set",
+    "gRPC transport"
+  ],
+  "fixtures": [
+    "Booking availability",
+    "Swarm API discovery"
+  ],
+  "acceptance": "Diagnostic only. Does not establish Q-03 or a one-versus-three-replica result with real peers.",
+  "runs": [
+    {
+      "mode": "steady",
+      "exitCode": 0,
+      "summary": "diagnostic-steady.json"
+    },
+    {
+      "mode": "stress",
+      "exitCode": 0,
+      "summary": "diagnostic-stress.json"
+    }
+  ]
+}

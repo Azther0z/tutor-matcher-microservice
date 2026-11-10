@@ -5,6 +5,7 @@ COPY shared/package.json shared/package.json
 COPY auth-service/package.json auth-service/package.json
 COPY web/package.json web/package.json
 COPY tutor-service/package.json tutor-service/package.json
+COPY review-service/package.json review-service/package.json
 COPY booking-service/package.json booking-service/package.json
 COPY wallet-service/package.json wallet-service/package.json
 COPY notification-service/package.json notification-service/package.json

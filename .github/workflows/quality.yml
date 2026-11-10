@@ -62,16 +62,21 @@ jobs:
           TEST_DATABASE_URL: postgresql://postgres@127.0.0.1:5432/saint_auth_unit_test
           WALLET_TEST_DATABASE_URL: postgresql://postgres@127.0.0.1:5432/saint_wallet_test
           TEST_MONGO_URI: mongodb://127.0.0.1:27017/?replicaSet=rs0&directConnection=true
-      # Stop MongoDB before the Traefik/browser steps so it does not compete with them for the runner's CPU and memory.
-      - name: Stop the MongoDB replica set
-        if: always()
-        run: docker rm -f mongo-test
+          TUTOR_TEST_MONGO_URI: mongodb://127.0.0.1:27017/?replicaSet=rs0
+          REVIEW_TEST_MONGO_URI: mongodb://127.0.0.1:27017/?replicaSet=rs0
+          TUTOR_SOCKET_TESTS: '1'
       - run: uv run --with jsonschema==4.26.0 --with pyyaml==6.0.3 python contracts/validate.py --collection 'postman/collections/Tutor Matcher Target Public v1'
       - run: node contracts/check-proto.cjs
       - run: npm run build
       - run: npm run test:integrated
       - run: npx playwright install --with-deps chromium
       - run: npm run test:browser
+      - name: Marketplace services and real UI integration
+        run: npm run test:marketplace:integrated
+        env:
+          PG_TEST_ADMIN_URL: postgresql://postgres@127.0.0.1:5432/saint_test
+          MONGO_TEST_URI: mongodb://127.0.0.1:27017/?replicaSet=rs0
+          MARKETPLACE_BROWSER: '1'
       - run: npm run smoke:browser
         env:
           TEST_DATABASE_URL: postgresql://postgres@127.0.0.1:5432/saint_browser_test
