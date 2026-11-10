@@ -38,6 +38,28 @@ services:
       retries: 30
     networks:
     - backend
+  rabbitmq-provision:
+    image: node:22-bookworm-slim
+    restart: 'no'
+    profiles:
+    - target
+    networks:
+    - backend
+    command:
+    - node
+    - /provision/rabbitmq-provision.mjs
+    environment:
+      RABBITMQ_MANAGEMENT_URL: http://rabbitmq:15672
+      RABBITMQ_DEFINITIONS: /provision/rabbitmq-definitions.json
+      RABBITMQ_AUTH_PASSWORD: ${RABBITMQ_AUTH_PASSWORD:?supply broker producer credential}
+      RABBITMQ_WALLET_PASSWORD: ${RABBITMQ_WALLET_PASSWORD:?supply broker producer credential}
+      RABBITMQ_NOTIFICATION_PASSWORD: ${RABBITMQ_NOTIFICATION_PASSWORD:?supply broker producer credential}
+    volumes:
+    - ./docker/rabbitmq-provision.mjs:/provision/rabbitmq-provision.mjs:ro
+    - ./notification-service/deploy/rabbitmq-definitions.json:/provision/rabbitmq-definitions.json:ro
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
   auth-service:
     restart: unless-stopped
     init: true
@@ -290,19 +312,30 @@ services:
     - backend
     profiles:
     - target
-    image: ${WALLET_IMAGE:-tutor-matcher-wallet:pending}
+    build:
+      context: .
+      dockerfile: docker/workspace.Dockerfile
+      args:
+        WORKSPACE: wallet-service
     environment:
       ACTOR_ASSERTION_PUBLIC_KEY: ${ACTOR_ASSERTION_PUBLIC_KEY:?supply actor verification key}
       DEMO_MODE: 'true'
       PORT: '4003'
       GRPC_PORT: '50054'
       DATABASE_URL: postgresql://wallet_owner:${WALLET_DB_PASSWORD}@postgres:5432/wallet_db
+      RABBITMQ_URL: amqp://wallet:${RABBITMQ_WALLET_PASSWORD}@rabbitmq:5672
+      PAYOUT_FINGERPRINT_KEY: ${PAYOUT_FINGERPRINT_KEY:?supply payout duplicate-detection key}
       AUTH_GRPC_URL: auth-service:50051
       BOOKING_GRPC_URL: booking-service:50052
       TUTOR_GRPC_URL: tutor-service:50053
       WALLET_WORKLOAD_CREDENTIAL: ${WALLET_WORKLOAD_CREDENTIAL:?supply distinct workload credential}
       BOOKING_WORKLOAD_CREDENTIAL: ${BOOKING_WORKLOAD_CREDENTIAL:?supply distinct workload credential}
       GATEWAY_WORKLOAD_CREDENTIAL: ${GATEWAY_WORKLOAD_CREDENTIAL:?supply distinct workload credential}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq-provision:
+        condition: service_completed_successfully
     healthcheck:
       test:
       - CMD
@@ -403,18 +436,25 @@ services:
     - backend
     profiles:
     - target
-    image: ${NOTIFICATION_IMAGE:-tutor-matcher-notification:pending}
+    build:
+      context: .
+      dockerfile: docker/workspace.Dockerfile
+      args:
+        WORKSPACE: notification-service
     environment:
       ACTOR_ASSERTION_PUBLIC_KEY: ${ACTOR_ASSERTION_PUBLIC_KEY:?supply actor verification key}
       DEMO_MODE: 'true'
       PORT: '4007'
       MONGO_URI: mongodb://notification_owner:${NOTIFICATION_DB_PASSWORD}@mongo:27017/notification_db?authSource=notification_db&replicaSet=rs0
+      RABBITMQ_URL: amqp://notification:${RABBITMQ_NOTIFICATION_PASSWORD}@rabbitmq:5672
       AUTH_GRPC_URL: auth-service:50051
       BOOKING_GRPC_URL: booking-service:50052
       NOTIFICATION_WORKLOAD_CREDENTIAL: ${NOTIFICATION_WORKLOAD_CREDENTIAL:?supply distinct workload credential}
       GATEWAY_WORKLOAD_CREDENTIAL: ${GATEWAY_WORKLOAD_CREDENTIAL:?supply distinct workload credential}
     depends_on:
       mongo-init:
+        condition: service_completed_successfully
+      rabbitmq-provision:
         condition: service_completed_successfully
     healthcheck:
       test:

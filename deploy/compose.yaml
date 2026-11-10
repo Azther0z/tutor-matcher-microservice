@@ -407,6 +407,11 @@ services:
       WALLET_WORKLOAD_CREDENTIAL: ${WALLET_WORKLOAD_CREDENTIAL:?supply distinct workload credential}
       BOOKING_WORKLOAD_CREDENTIAL: ${BOOKING_WORKLOAD_CREDENTIAL:?supply distinct workload credential}
       GATEWAY_WORKLOAD_CREDENTIAL: ${GATEWAY_WORKLOAD_CREDENTIAL:?supply distinct workload credential}
+      RABBITMQ_URL_FILE: /run/secrets/wallet_rabbitmq_url
+      PAYOUT_FINGERPRINT_KEY_FILE: /run/secrets/wallet_payout_fingerprint_key
+    secrets:
+    - wallet_rabbitmq_url
+    - wallet_payout_fingerprint_key
     deploy:
       replicas: 1
       restart_policy:
@@ -538,6 +543,9 @@ services:
       BOOKING_GRPC_URL: booking-service:50052
       NOTIFICATION_WORKLOAD_CREDENTIAL: ${NOTIFICATION_WORKLOAD_CREDENTIAL:?supply distinct workload credential}
       GATEWAY_WORKLOAD_CREDENTIAL: ${GATEWAY_WORKLOAD_CREDENTIAL:?supply distinct workload credential}
+      RABBITMQ_URL_FILE: /run/secrets/notification_rabbitmq_url
+    secrets:
+    - notification_rabbitmq_url
     deploy:
       replicas: 1
       restart_policy:
@@ -638,3 +646,12 @@ secrets:
   auth_gateway_workload_credential:
     external: true
     name: ${STACK_NAME:-tutor-matcher}_auth_gateway_workload_credential
+  wallet_rabbitmq_url:
+    external: true
+    name: ${STACK_NAME:-tutor-matcher}_wallet_rabbitmq_url
+  wallet_payout_fingerprint_key:
+    external: true
+    name: ${STACK_NAME:-tutor-matcher}_wallet_payout_fingerprint_key
+  notification_rabbitmq_url:
+    external: true
+    name: ${STACK_NAME:-tutor-matcher}_notification_rabbitmq_url
