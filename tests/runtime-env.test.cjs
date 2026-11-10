@@ -13,7 +13,7 @@ test('runtime configuration accepts mounted files and rejects ambiguous/empty in
   writeFileSync(file, 'synthetic-test-value\n'); writeFileSync(empty, '\n');
   function run(env, assertion) {
     execFileSync(process.execPath, ['-e', `const assert = require('node:assert/strict');
-      const { loadRuntimeEnv } = require('./shared/runtime-env'); ${assertion}`], { cwd: root, env, stdio: 'pipe' });
+      const { loadRuntimeEnv } = require('./packages/shared/runtime-env'); ${assertion}`], { cwd: root, env, stdio: 'pipe' });
   }
   for (const name of ['DATABASE_URL','JWT_SECRET','MONGO_URI','RABBITMQ_URL']) {
     run({ [`${name}_FILE`]: file }, `loadRuntimeEnv(); assert.equal(process.env.${name}, 'synthetic-test-value');`);

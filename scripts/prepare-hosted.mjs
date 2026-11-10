@@ -26,19 +26,19 @@ if (realRelative.startsWith("..") || isAbsolute(realRelative))
 mkdirSync(output, { recursive: true });
 if (readdirSync(output).length)
   throw new Error("Output directory is not empty; no files were replaced.");
-let stack = readFileSync(resolve(root, "deploy/compose.yaml"), "utf8");
+let stack = readFileSync(resolve(root, "infra/hosted/compose.yaml"), "utf8");
 for (const [source, target] of [
   ["../docker/postgres-owned-databases.sh", "postgres-owned-databases.sh"],
   ["../docker/mongo-init.js", "mongo-init.js"],
   ["../docker/traefik-start.sh", "traefik-start.sh"],
-  ["../api-gateway/routes.yaml", "routes.yaml"],
+  ["../gateway/routes.yaml", "routes.yaml"],
 ]) {
   stack = stack.replace(`file: ${source}`, `file: ./${target}`);
-  copyFileSync(resolve(root, "deploy", source), resolve(output, target));
+  copyFileSync(resolve(root, "infra/hosted", source), resolve(output, target));
 }
 writeFileSync(resolve(output, "compose.yaml"), stack);
 copyFileSync(
-  resolve(root, "docker/hosted/doco-cd.yaml.example"),
+  resolve(root, "infra/hosted/doco-cd.yaml.example"),
   resolve(output, ".doco-cd.yaml"),
 );
 mkdirSync(resolve(output, "secrets"));

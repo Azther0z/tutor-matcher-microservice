@@ -367,7 +367,7 @@ Pin stateful workloads to storage-owning placement unless shared storage is expl
 Traefik discovers opt-in Swarm services/tasks through a restricted Docker API proxy; services do not register themselves. Local Compose uses the Docker provider. Public routes stay in an explicit shared allowlist, while labels supply private backend ports and active readiness checks.
 Use the intended private overlay network for backend addresses. Keep the Docker socket out of Traefik and application containers.
 Traefik retains its last successfully discovered configuration if the Docker API is unavailable, while active backend checks continue. A known pool with no healthy backend returns 503. Detection has delay, new tasks remain unknown during an API outage, and gateway startup requires discovery.
-Service-to-service REST/gRPC calls retain configured service DNS. [ADR-0029](adr/0029-traefik-swarm-discovery.md) supersedes the old Consul/fixed-name gateway fallback. The [hosted backend manifest](../deploy/README.md) is an implementation step, not evidence of target deployment completion.
+Service-to-service REST/gRPC calls retain configured service DNS. [ADR-0029](adr/0029-traefik-swarm-discovery.md) supersedes the old Consul/fixed-name gateway fallback. The [hosted backend manifest](../infra/hosted/README.md) is an implementation step, not evidence of target deployment completion.
 
 Tutor replicas remain stateless and can scale independently. Database-backed job claims make owner workers safe when an application has several replicas.
 The gateway, Auth, database engines, broker, discovery API, and physical host remain potential failure points. This is not a highly available deployment.

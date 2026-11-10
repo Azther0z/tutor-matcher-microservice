@@ -39,7 +39,7 @@ const { privateKey, publicKey } = generateKeyPairSync("rsa", {
 const password = randomBytes(24).toString("base64url");
 Object.assign(process.env, {
   DATABASE_URL: dbUrl.href,
-  AUTH_MIGRATIONS_DIR: path.join(root, "auth-service/migrations"),
+  AUTH_MIGRATIONS_DIR: path.join(root, "services/auth-service/migrations"),
   JWT_SECRET: randomBytes(48).toString("hex"),
   RESET_CONTENT_KEY: randomBytes(32).toString("base64url"),
   IDEMPOTENCY_SECRET: randomBytes(32).toString("hex"),
@@ -65,21 +65,21 @@ const {
   validateGrpcResponse,
   validateRequest,
   PROTO_LOADER_OPTIONS,
-} = require("../shared/dist/index.js");
-const { createAuthApp } = require("../auth-service/dist/index.js");
-const { createAuthGrpcServer } = require("../auth-service/dist/grpc.js");
-const { pool: authDb } = require("../auth-service/dist/db.js");
-const { seedDemoAccounts } = require("../auth-service/dist/seed.js");
-const { MongoStore } = require("../tutor-service/dist/store.js");
-const { TutorService } = require("../tutor-service/dist/service.js");
-const { GrpcPeers } = require("../tutor-service/dist/peers.js");
-const { createTutorApp } = require("../tutor-service/dist/http.js");
-const { createTutorGrpcServer } = require("../tutor-service/dist/grpc.js");
-const { connectStore } = require("../review-service/dist/store.js");
-const { ReviewService } = require("../review-service/dist/service.js");
-const { makePeerClients } = require("../review-service/dist/peers.js");
-const { createReviewApp } = require("../review-service/dist/routes.js");
-const { createRatingServer } = require("../review-service/dist/grpc.js");
+} = require("../packages/shared/dist/index.js");
+const { createAuthApp } = require("../services/auth-service/dist/index.js");
+const { createAuthGrpcServer } = require("../services/auth-service/dist/grpc.js");
+const { pool: authDb } = require("../services/auth-service/dist/db.js");
+const { seedDemoAccounts } = require("../services/auth-service/dist/seed.js");
+const { MongoStore } = require("../services/tutor-service/dist/store.js");
+const { TutorService } = require("../services/tutor-service/dist/service.js");
+const { GrpcPeers } = require("../services/tutor-service/dist/peers.js");
+const { createTutorApp } = require("../services/tutor-service/dist/http.js");
+const { createTutorGrpcServer } = require("../services/tutor-service/dist/grpc.js");
+const { connectStore } = require("../services/review-service/dist/store.js");
+const { ReviewService } = require("../services/review-service/dist/service.js");
+const { makePeerClients } = require("../services/review-service/dist/peers.js");
+const { createReviewApp } = require("../services/review-service/dist/routes.js");
+const { createRatingServer } = require("../services/review-service/dist/grpc.js");
 const { startTestGateway } =
   await import("../scripts/traefik-test-runtime.mjs");
 
@@ -474,7 +474,7 @@ try {
   bookingUnavailable = false;
   if (process.env.MARKETPLACE_BROWSER === "1") {
     const { runLiveSmoke } =
-      await import("../web/e2e/marketplace/live-smoke.mjs");
+      await import("../apps/web/e2e/marketplace/live-smoke.mjs");
     const result = await runLiveSmoke({
       gatewayUrl: gateway.url,
       password,

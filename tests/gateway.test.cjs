@@ -464,7 +464,7 @@ async function startProviderCase(t, provider) {
         86,
       );
       const routeFile = readFileSync(
-        path.join(root, "api-gateway/routes.yaml"),
+        path.join(root, "infra/gateway/routes.yaml"),
         "utf8",
       );
       assert.match(

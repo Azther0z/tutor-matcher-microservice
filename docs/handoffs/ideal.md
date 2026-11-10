@@ -11,21 +11,21 @@ Use the [pinned monolith](https://github.com/Azther0z/tutor-matcher/tree/ce3ec82
 The [source index](../sources/README.md) links both original PDFs.
 Use the shared reviewed baseline commit containing the requirements, design, contracts and handoffs.
 
-Existing Tutor code starts in `tutor-service/src/`. Review is a new service in this checkout.
+Existing Tutor code starts in `services/tutor-service/src/`. Review is a new service in this checkout.
 The existing public profile/availability callback is not the target catalogue interface.
 
 | Area | Your implementation ownership |
 | --- | --- |
-| Backend | `tutor-service/**`, new `review-service/**` |
-| Frontend features | `web/features/tutor/**`, `web/features/review/**` |
-| Frontend routes | `web/app/discover/**`, `web/app/tutors/**`, `web/app/teach/application/**`, `web/app/teach/profile/**`, `web/app/teach/subjects/**`, `web/app/reviews/**` |
-| Admin routes | `web/app/admin/tutor-requests/**`, `web/app/admin/review-flags/**` |
-| Browser tests | `web/e2e/marketplace/**` |
+| Backend | `services/tutor-service/**`, new `services/review-service/**` |
+| Frontend features | `apps/web/features/tutor/**`, `apps/web/features/review/**` |
+| Frontend routes | `apps/web/app/discover/**`, `apps/web/app/tutors/**`, `apps/web/app/teach/application/**`, `apps/web/app/teach/profile/**`, `apps/web/app/teach/subjects/**`, `apps/web/app/reviews/**` |
+| Admin routes | `apps/web/app/admin/tutor-requests/**`, `apps/web/app/admin/review-flags/**` |
+| Browser tests | `apps/web/e2e/marketplace/**` |
 | Measurement | `loadtest/**`, separate new results and interpretation |
 | Evidence | Planned `docs/evidence/ideal/**` |
 
-Treat frontend routes above as paths under `web/app/`. Use Saint's shared shell and API/session adapter.
-Santa owns availability editing at `web/app/teach/availability/**`.
+Treat frontend routes above as paths under `apps/web/app/`. Use Saint's shared shell and API/session adapter.
+Santa owns availability editing at `apps/web/app/teach/availability/**`.
 Link that editor from your tutor pages. Do not build a second slot store or editor.
 
 ## First deliverable

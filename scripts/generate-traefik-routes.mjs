@@ -5,7 +5,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const output = path.join(root, "api-gateway/routes.yaml");
+const output = path.join(root, "infra/gateway/routes.yaml");
 const checkOnly = process.argv.includes("--check");
 const spec = JSON.parse(
   await readFile(path.join(root, "contracts/public.openapi.json"), "utf8"),
@@ -215,7 +215,7 @@ if (checkOnly) {
   const current = await readFile(output, "utf8").catch(() => "");
   if (current !== generated) {
     console.error(
-      "api-gateway/routes.yaml is stale; run node scripts/generate-traefik-routes.mjs",
+      "infra/gateway/routes.yaml is stale; run node scripts/generate-traefik-routes.mjs",
     );
     process.exitCode = 1;
   }

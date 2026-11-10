@@ -8,12 +8,12 @@ const root = path.resolve(__dirname, "..");
 
 function run(env, port) {
   return new Promise((resolve) => {
-    const child = spawn(process.execPath, ["docker/rabbitmq-provision.mjs"], {
+    const child = spawn(process.execPath, ["infra/docker/rabbitmq-provision.mjs"], {
       cwd: root,
       env: {
         PATH: process.env.PATH,
         RABBITMQ_MANAGEMENT_URL: `http://127.0.0.1:${port}`,
-        RABBITMQ_DEFINITIONS: path.join(root, "notification-service/deploy/rabbitmq-definitions.json"),
+        RABBITMQ_DEFINITIONS: path.join(root, "services/notification-service/deploy/rabbitmq-definitions.json"),
         ...env,
       },
     });

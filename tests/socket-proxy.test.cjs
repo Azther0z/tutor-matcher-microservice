@@ -12,7 +12,7 @@ const pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 test('hosted socket proxy permits discovery reads and denies writes/secrets', { timeout: 30000 }, async (t) => {
   const cfg = JSON.parse(execFileSync('python', ['-c',
-    'import json,yaml; print(json.dumps(yaml.safe_load(open("deploy/compose.yaml"))["services"]["docker-api"]))'], { cwd: root }));
+    'import json,yaml; print(json.dumps(yaml.safe_load(open("infra/hosted/compose.yaml"))["services"]["docker-api"]))'], { cwd: root }));
   mkdirSync(path.join(root, '.cache/gateway'), { recursive: true });
   const directory = mkdtempSync(path.join(root, '.cache/gateway/socket-'));
   const socket = path.join(directory, 'docker.sock');

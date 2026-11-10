@@ -5,7 +5,7 @@ import { createRequire } from "node:module";
 import { isDeepStrictEqual } from "node:util";
 
 const require = createRequire(
-  new URL("../shared/package.json", import.meta.url),
+  new URL("../packages/shared/package.json", import.meta.url),
 );
 const Ajv = require("ajv/dist/2020").default;
 const addFormats = require("ajv-formats");
@@ -24,7 +24,7 @@ if (!testUrl || !new URL(testUrl).pathname.includes("test"))
 process.env.DATABASE_URL = testUrl;
 process.env.NODE_ENV = "test";
 process.env.AUTH_MIGRATIONS_DIR = fileURLToPath(
-  new URL("../auth-service/migrations", import.meta.url),
+  new URL("../services/auth-service/migrations", import.meta.url),
 );
 process.env.JWT_SECRET = randomBytes(32).toString("hex");
 process.env.IDEMPOTENCY_SECRET = randomBytes(32).toString("hex");
@@ -55,9 +55,10 @@ function validate(name, value) {
   const validator = ajv.getSchema(`shared#/$defs/${name}`);
   check(validator(value), `${name} response does not match the shared schema`);
 }
-const { migrate, pool } = await import("../auth-service/dist/db.js");
+const { migrate, pool } = await import("../services/auth-service/dist/db.js");
 await migrate();
-const { createAuthApp } = await import("../auth-service/dist/index.js");
+const { createAuthApp } =
+  await import("../services/auth-service/dist/index.js");
 const { startTestGateway } = await import("./traefik-test-runtime.mjs");
 const listen = (app) =>
   new Promise((resolve) => {

@@ -25,28 +25,28 @@ const root = path.resolve(fileURLToPath(new URL("../", import.meta.url)));
 const require = createRequire(import.meta.url);
 const amqp = require("amqplib");
 const { AmqpBroker } = require(
-  path.join(root, "wallet-service/dist/outbox/amqp.js"),
+  path.join(root, "services/wallet-service/dist/outbox/amqp.js"),
 );
 const { EventConsumer, QUEUE, EXCHANGE } = require(
-  path.join(root, "notification-service/dist/broker.js"),
+  path.join(root, "services/notification-service/dist/broker.js"),
 );
 const { EventAcceptor } = require(
-  path.join(root, "notification-service/dist/domain/events.js"),
+  path.join(root, "services/notification-service/dist/domain/events.js"),
 );
 const { Contracts } = require(
-  path.join(root, "notification-service/dist/contracts.js"),
+  path.join(root, "services/notification-service/dist/contracts.js"),
 );
 const { openStore } = require(
-  path.join(root, "notification-service/dist/store.js"),
+  path.join(root, "services/notification-service/dist/store.js"),
 );
 const { systemClock } = require(
-  path.join(root, "notification-service/dist/time.js"),
+  path.join(root, "services/notification-service/dist/time.js"),
 );
 const { RabbitPublisher: TutorPublisher } = require(
-  path.join(root, "tutor-service/dist/outbox.js"),
+  path.join(root, "services/tutor-service/dist/outbox.js"),
 );
 const { RabbitPublisher: ReviewPublisher } = require(
-  path.join(root, "review-service/dist/events.js"),
+  path.join(root, "services/review-service/dist/events.js"),
 );
 
 const host = process.env.RABBITMQ_AMQP_HOST || "127.0.0.1";
@@ -141,7 +141,7 @@ const event = (overrides = {}) => ({
 try {
   execFileSync(
     process.execPath,
-    [path.join(root, "docker/rabbitmq-provision.mjs")],
+    [path.join(root, "infra/docker/rabbitmq-provision.mjs")],
     {
       env: {
         PATH: process.env.PATH,
@@ -149,7 +149,7 @@ try {
         RABBITMQ_AUTH_PASSWORD: adminPassword,
         RABBITMQ_DEFINITIONS: path.join(
           root,
-          "notification-service/deploy/rabbitmq-definitions.json",
+          "services/notification-service/deploy/rabbitmq-definitions.json",
         ),
         RABBITMQ_WALLET_PASSWORD: passwords.wallet,
         RABBITMQ_NOTIFICATION_PASSWORD: passwords.notification,

@@ -37,26 +37,26 @@ The baseline PR publishes documentation and contracts. It does not deploy or imp
 
 ## Parallel work and shared files
 
-Keep the existing root service directories. Add `review-service/`, `messaging-service/` and `web/` as planned implementation locations.
+Services live under `services/`, the UI under `apps/web/` and shared code under `packages/shared/`. Add `services/messaging-service/` when it is implemented.
 These paths do not exist at handoff preparation. The Next.js pages below are frontend routes, not new REST endpoints.
 
 | Files or directories | Editor | Coordination rule |
 | --- | --- | --- |
-| `auth-service/**`, `api-gateway/**`, `shared/**` | Saint | Publish identity and discovery adapters early. |
-| `tutor-service/**`, `review-service/**`, `loadtest/**` | Ideal | Keep performance results separate from historical runs. |
-| `booking-service/**`, `messaging-service/**` | Santa | Own Booking PostgreSQL migration and gRPC server. |
-| `wallet-service/**`, `notification-service/**` | P | Own money, consumer jobs, simulated delivery and broker topology definitions. |
+| `services/auth-service/**`, `infra/gateway/**`, `packages/shared/**` | Saint | Publish identity and discovery adapters early. |
+| `services/tutor-service/**`, `services/review-service/**`, `loadtest/**` | Ideal | Keep performance results separate from historical runs. |
+| `services/booking-service/**`, `messaging-service/**` | Santa | Own Booking PostgreSQL migration and gRPC server. |
+| `services/wallet-service/**`, `services/notification-service/**` | P | Own money, consumer jobs, simulated delivery and broker topology definitions. |
 | Root `package.json`, root lockfile, root quality configuration | Saint | Other owners supply dependency requests. Saint updates the single lockfile. |
-| `web/package.json`, root layout, shared API/session adapter, navigation and common UI components | Saint | Share a small working shell first. Feature owners add their assigned paths. |
+| `apps/web/package.json`, root layout, shared API/session adapter, navigation and common UI components | Saint | Share a small working shell first. Feature owners add their assigned paths. |
 | `packages/contracts/**`, if a shared type package is introduced | Saint | Generate REST/RPC transport types and common presence/error adapters. Keep business rules inside their owners. |
-| `compose.yaml`, `docker/**`, hosted manifests, `.github/**` | Saint | Owners supply ports, migrations, health, volumes and variable names. |
+| `compose.yaml`, `infra/docker/**`, hosted manifests, `.github/**` | Saint | Owners supply ports, migrations, health, volumes and variable names. |
 | Each service's package manifest, Dockerfile, migrations and tests | That service owner | Coordinate dependencies with Saint before updating the root lockfile. |
 | `contracts/**`, `proto/**`, governing requirements and ADRs | Saint coordinates reviewed changes | The affected producer and consumer review a contract change before implementation diverges. |
 | Root README, current architecture description and final submission assembly | Saint | Each member supplies accurate service notes and evidence. |
 | `docs/evidence/<member>/**` | Named member | Planned output location for sanitized commands, results and demonstration notes. |
 
-Saint owns `web/app/layout.tsx`, `web/app/page.tsx`, `web/lib/**`, `web/components/ui/**` and shared navigation.
-Saint also owns the browser-test configuration and `web/e2e/support/**`.
+Saint owns `apps/web/app/layout.tsx`, `apps/web/app/page.tsx`, `apps/web/lib/**`, `apps/web/components/ui/**` and shared navigation.
+Saint also owns the browser-test configuration and `apps/web/e2e/support/**`.
 Members own their feature directories and matching tests, as listed in their handoffs.
 Do not edit a shared root file independently in four branches. Request its change through Saint.
 A service owner still fixes that service's failures after integration.
