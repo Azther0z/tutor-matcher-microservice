@@ -386,6 +386,7 @@ fieldset.field legend { font-size: 14px; font-weight: 500; padding: 0; margin-bo
 .result-bar { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin: 16px 0; }
 .sort-control { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 14px; }
 .sort-control > div, .sort-control button { min-width: 190px; }
+.sort-control .dropdown-trigger { padding: 9px 12px; border-radius: 8px; font-size: 14px; }
 .search-results .account-grid { max-width: none; margin: 0; }
 @media (max-width: 900px) { .search-layout { grid-template-columns: 1fr; } .search-side { position: static; height: auto; overflow: visible; } .search-fields { overflow: visible; } }
 
