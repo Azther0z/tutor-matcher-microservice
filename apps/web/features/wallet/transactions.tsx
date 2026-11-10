@@ -103,9 +103,6 @@ export function TransactionDetailPage({ params }: { params: Promise<{ transactio
               <code className="summary-note">{tx.operationId}</code>
             </div>
           </div>
-          <div className="slot-footer flush">
-            <Link className="button button-quiet" href="/wallet/transactions">Back to transactions</Link>
-          </div>
         </section>
       )}
     </>
