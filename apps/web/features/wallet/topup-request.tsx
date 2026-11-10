@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ErrorNotice, Field, Notice } from "@/components/field";
 import { LegalModal } from "@/components/legal-modal";
+import { ProgressStepper } from "@/components/progress-stepper";
+import { StatusBadge } from "./common";
 import { api, failureOf, fieldErrors, newIdempotencyKey, type Failure } from "@/lib/api";
 import { formatMoney, formatTime, normalizeAmount } from "./format";
 import type { Topup } from "./types";
@@ -26,7 +28,7 @@ function toBase64(file: File): Promise<string> {
  * Add funds by PromptPay: enter an amount, scan the QR to transfer, attach the slip and send the request. An admin approves
  * or rejects it; only one request can wait for review at a time.
  */
-export function TopupRequestPanel({ returnTo, unavailable, open, onClose }: { returnTo: string | null; unavailable: boolean; open: boolean; onClose: () => void }) {
+export function TopupRequestPanel({ returnTo, unavailable, open, onClose, onWaiting }: { returnTo: string | null; unavailable: boolean; open: boolean; onClose: () => void; onWaiting?: (waiting: boolean) => void }) {
   const [amount, setAmount] = useState("");
   const [slip, setSlip] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -55,6 +57,7 @@ export function TopupRequestPanel({ returnTo, unavailable, open, onClose }: { re
 
   const normalized = normalizeAmount(amount);
   const waiting = latest?.status === "PENDING";
+  useEffect(() => { onWaiting?.(waiting); }, [waiting, onWaiting]);
 
   function confirmAmount(event?: React.FormEvent) {
     event?.preventDefault();
@@ -117,19 +120,42 @@ export function TopupRequestPanel({ returnTo, unavailable, open, onClose }: { re
     <>
       {returnTo && <Notice kind="info">After an admin approves your top-up you can return to your booking.</Notice>}
       {unavailable && <Notice kind="info">Adding funds is unavailable until your wallet loads.</Notice>}
-      {loaded && latest?.status === "FAILED" && (
-        <Notice kind="error">Your last top-up of {formatMoney(latest.amount)} was rejected{latest.decisionReason ? `: ${latest.decisionReason}` : "."} You can send a new request.</Notice>
-      )}
-      {loaded && latest?.status === "SUCCEEDED" && (
-        <Notice kind="success">Your last top-up of {formatMoney(latest.amount)} was approved and added to your balance.</Notice>
-      )}
-      {waiting && latest && (
-        <div className="notice notice-info" role="status">
-          <strong>Your request is waiting for an admin.</strong>
-          <p>{formatMoney(latest.amount)} sent {formatTime(latest.createdAt)}.{" "}
-            <Link className="text-link" href={`/wallet/topups/${latest.id}${returnTo ? `?returnToBookingId=${returnTo}` : ""}`}>View request</Link>
-          </p>
-        </div>
+      {loaded && latest && (
+        <section className="panel booking-new" aria-label="Latest top-up request">
+          <StatusBadge value={latest.status === "SUCCEEDED" ? "APPROVED" : latest.status === "FAILED" ? "REJECTED" : "PENDING"} corner />
+          <div className="booking-title">
+            <h2>Top-up request</h2>
+            <p className="tutor-card-meta">Sent {formatTime(latest.createdAt)}</p>
+          </div>
+          <ProgressStepper
+            steps={["Submitted", "Admin review", "Credited"]}
+            reached={latest.status === "SUCCEEDED" ? 2 : 0}
+            failed={latest.status === "FAILED"}
+            label="Top-up rejected"
+          />
+          <div className="summary-rows">
+            <div>
+              <span>Amount</span>
+              <strong>{formatMoney(latest.amount)}</strong>
+            </div>
+            {latest.status === "FAILED" && latest.decisionReason && (
+              <div>
+                <span>Reason</span>
+                <strong className="summary-note">{latest.decisionReason}</strong>
+              </div>
+            )}
+          </div>
+          <div className="slot-footer flush">
+            <span className="tutor-card-meta">
+              {waiting
+                ? "You can send another top-up request after this one is approved or rejected."
+                : "You can send a new top-up request any time."}
+            </span>
+            <Link className="button button-quiet" href={`/wallet/topups/${latest.id}${returnTo ? `?returnToBookingId=${returnTo}` : ""}`}>
+              View request
+            </Link>
+          </div>
+        </section>
       )}
       <LegalModal
         open={open && !waiting}

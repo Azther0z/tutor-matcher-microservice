@@ -35,6 +35,7 @@ export function WalletOverviewPage() {
   const [wallet, setWallet] = useState<WalletOverview | null>(null);
   const [error, setError] = useState<Failure | null>(null);
   const [loading, setLoading] = useState(true);
+  const [waiting, setWaiting] = useState(false);
   const [topupOpen, setTopupOpen] = useState(Boolean(returnTo));
   const [recent, setRecent] = useState<WalletTransaction[]>([]);
   const isTutor = account?.capabilities.includes("TUTOR") ?? false;
@@ -74,7 +75,9 @@ export function WalletOverviewPage() {
               <span>Available balance</span>
               <strong>{formatMoney(wallet.availableBalance)}</strong>
             </div>
-            <button type="button" className="button" onClick={() => setTopupOpen(true)} disabled={Boolean(error) && !wallet}>Top up</button>
+            <span className={waiting ? "tooltip-wrap" : undefined} data-tip="A top-up request is waiting for review">
+              <button type="button" className="button" onClick={() => setTopupOpen(true)} disabled={waiting || (Boolean(error) && !wallet)}>Top up</button>
+            </span>
           </div>
           <div className="summary-rows">
             <Row label="Posted" value={formatMoney(wallet.postedBalance)} hint="Completed movements" />
@@ -85,7 +88,7 @@ export function WalletOverviewPage() {
           </div>
         </section>
       )}
-      <TopupRequestPanel returnTo={returnTo} unavailable={Boolean(error) && !wallet} open={topupOpen} onClose={() => setTopupOpen(false)} />
+      <TopupRequestPanel returnTo={returnTo} unavailable={Boolean(error) && !wallet} open={topupOpen} onClose={() => setTopupOpen(false)} onWaiting={setWaiting} />
       <section className="panel wallet-recent" aria-label="Recent activity">
         <div className="wallet-recent-head">
           <h2>Recent activity</h2>

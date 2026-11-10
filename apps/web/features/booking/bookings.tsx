@@ -5,6 +5,7 @@ import { use, useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Field, Notice } from "@/components/field";
 import { LegalModal } from "@/components/legal-modal";
+import { ProgressStepper } from "@/components/progress-stepper";
 import { Pager, StatusBadge } from "@/features/wallet/common";
 import { formatMoney, formatTime } from "@/features/wallet/format";
 import { ActionMessages, useAction } from "@/features/tutor/common";
@@ -40,7 +41,7 @@ const STEPS = ["Select time", "Booked", "Paid", "Completed"];
 function BookingProgress({ booking }: { booking: Booking }) {
   const { status } = booking;
   const cancelled = status === "CANCELLED";
-  // Last finished step. A cancelled booking stops at the step it never reached (marked with a cross).
+  // Last finished step. A cancelled booking stops at the step it never reached.
   const reached = cancelled
     ? booking.paidAt
       ? 2
@@ -50,48 +51,7 @@ function BookingProgress({ booking }: { booking: Booking }) {
       : status === "CONFIRMED"
         ? 2
         : 3;
-  // The next step is in progress: it gets a pulsing ring and a moving line leading to it.
-  const live = !cancelled && reached < STEPS.length - 1;
-  const fill = (reached / (STEPS.length - 1)) * 100;
-  return (
-    <div
-      className={`booking-progress${cancelled ? " is-cancelled" : ""}`}
-      role="img"
-      aria-label={cancelled ? "Booking cancelled" : `Step ${reached + 1} of ${STEPS.length}: ${STEPS[reached]}`}
-    >
-      <div className="booking-progress-track" aria-hidden="true">
-        <span style={{ width: `${fill}%` }} />
-        {live && (
-          <span
-            className="booking-progress-live"
-            style={{ left: `${(reached / (STEPS.length - 1)) * 100}%`, width: `${100 / (STEPS.length - 1)}%` }}
-          />
-        )}
-      </div>
-      <ol aria-hidden="true">
-        {STEPS.map((label, index) => {
-          const done = index <= reached;
-          const crossed = cancelled && index === reached + 1;
-          return (
-            <li key={label} className={crossed ? "is-crossed" : done ? "is-done" : live && index === reached + 1 ? "is-live" : ""}>
-              <i>
-                {crossed ? (
-                  <svg viewBox="0 0 12 12" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="butt">
-                    <path d="M2.5 2.5l7 7M9.5 2.5l-7 7" />
-                  </svg>
-                ) : done ? (
-                  <svg viewBox="0 0 12 12" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="butt" strokeLinejoin="miter">
-                    <path d="M2 6.5l2.8 2.8L10 3.5" />
-                  </svg>
-                ) : null}
-              </i>
-              {label}
-            </li>
-          );
-        })}
-      </ol>
-    </div>
-  );
+  return <ProgressStepper steps={STEPS} reached={reached} failed={cancelled} label="Booking cancelled" />;
 }
 
 function BookingCard({ booking }: { booking: Booking }) {

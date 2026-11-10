@@ -590,9 +590,9 @@ fieldset.field legend { font-size: 14px; font-weight: 500; padding: 0; margin-bo
 .slot-footer > .button-row:first-child > .button-quiet:first-child { margin-left: -12px; }
 .booking-title h2 { margin: 0; font-size: 26px; line-height: 1.2; }
 .booking-progress { position: relative; margin: 0 0 20px; --step: #4ade80; }
-.booking-progress-track { position: absolute; top: 11px; left: 12.5%; right: 12.5%; height: 2px; background: var(--line-strong); }
+.booking-progress-track { position: absolute; top: 11px; left: calc(50% / var(--n, 4)); right: calc(50% / var(--n, 4)); height: 2px; background: var(--line-strong); }
 .booking-progress-track span { display: block; height: 100%; background: var(--step); transition: width 0.3s; }
-.booking-progress ol { position: relative; display: grid; grid-template-columns: repeat(4, 1fr); margin: 0; padding: 0; list-style: none; font-size: 13px; color: var(--muted); }
+.booking-progress ol { position: relative; display: grid; grid-template-columns: repeat(var(--n, 4), 1fr); margin: 0; padding: 0; list-style: none; font-size: 13px; color: var(--muted); }
 .booking-progress li { display: grid; justify-items: center; gap: 6px; }
 .booking-progress li i { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--bg, #0a0a0a); border: 2px solid var(--line-strong); font-style: normal; font-size: 12px; font-weight: 700; color: #fff; line-height: 1; }
 .booking-progress li.is-done { color: var(--ink); }
