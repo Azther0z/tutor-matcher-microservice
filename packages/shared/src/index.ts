@@ -1,4 +1,5 @@
 export { AppError, toHttpError, type HttpErrorResponse } from "./errors.js";
+export { createGrpcHealth, type GrpcHealthController, type GrpcHealthServer } from "./grpc-health.js";
 export { validateRequest, validateSchema, validateGrpcRequest, validateGrpcResponse } from "./validation.js";
 export {
   signActorAssertion,

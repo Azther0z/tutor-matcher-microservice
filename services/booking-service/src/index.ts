@@ -38,6 +38,7 @@ async function main(): Promise<void> {
   });
   const http = app.listen(config.port, () => console.log(`[Booking] REST listening on :${config.port}`));
   const grpcServer = await startGrpcServer({ contractsDir: config.contractsDir, contracts, workload, ctx }, config.grpcPort);
+  grpcServer.health.setServing(true);
   console.log(`[Booking] gRPC Availability and BookingEvidence services listening on :${grpcServer.port}`);
 
   const broker = new AmqpBroker(config.rabbitmqUrl, config.rabbitmqUser);
@@ -51,6 +52,7 @@ async function main(): Promise<void> {
 
   const shutdown = async () => {
     console.log('[Booking] shutting down');
+    grpcServer.health.shutdown();
     workers.stop();
     publisher.stop();
     clearInterval(topology);

@@ -26,8 +26,10 @@ async function main() {
   const grpc = createRatingServer(
     service,
     required("TUTOR_WORKLOAD_CREDENTIAL"),
+    async () => (await store.ready()) && (await publisher.ready()),
   );
   await listenRatingServer(grpc);
+  grpc.health.setServing(true);
   const app = createReviewApp(service, {
     gatewayCredential: required("GATEWAY_WORKLOAD_CREDENTIAL"),
     actorPublicKey: required("ACTOR_ASSERTION_PUBLIC_KEY"),
@@ -38,6 +40,7 @@ async function main() {
   const close = async () => {
     if (closing) return;
     closing = true;
+    grpc.health.shutdown();
     http.close();
     grpc.forceShutdown();
     peers.close?.();

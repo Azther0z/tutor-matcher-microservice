@@ -22,7 +22,7 @@ Owners validate or generate `X-Request-Id` for anonymous requests. Protected adm
 
 ## Discovery, health and retries
 
-Traefik probes HTTP owners on `/health` with a two-second interval and one-second timeout; the gateway's health route is part of the public operation inventory. In the target, Notification owns public preference/inbox operations as well as a RabbitMQ consumer. The older standalone Notification consumer does not implement that target HTTP API. Swarm discovery refreshes through the restricted proxy; the local Docker provider uses Compose service labels. Internal REST and gRPC collaborators use their configured private service DNS names and ports.
+Traefik probes HTTP owners on `/health` with a two-second interval and one-second timeout; the gateway's health route is part of the public operation inventory. In the target, Notification owns public preference/inbox operations as well as a RabbitMQ consumer. The older standalone Notification consumer does not implement that target HTTP API. Swarm discovery refreshes through the restricted proxy; the local Docker provider uses Compose service labels. Service-to-service REST and gRPC use the separate private owner aliases documented in [internal Traefik](../internal-traefik/README.md); the public gateway continues to route directly to owners.
 
 When the Docker API becomes unavailable, Traefik retains its last discovered configuration and continues active health checks. A known owner with no healthy task returns 503. Detection takes time, a restarted gateway needs fresh discovery, and new tasks are unknown while the API is unavailable. This does not provide a fixed-DNS fallback or an availability guarantee.
 

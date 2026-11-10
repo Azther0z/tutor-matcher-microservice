@@ -5,6 +5,7 @@ import { randomUUID } from "node:crypto";
 import {
   AppError,
   PROTO_LOADER_OPTIONS,
+  createGrpcHealth,
   encodeErrorDetail,
   normalizeProtoMessage,
   validateGrpcRequest,
@@ -26,7 +27,7 @@ function clean(value: unknown): unknown {
       .map(([k, v]) => [k, clean(v)]),
   );
 }
-export function createTutorGrpcServer(service: TutorService): grpc.Server {
+export function createTutorGrpcServer(service: TutorService, isReady: () => Promise<boolean> | boolean = () => false): grpc.Server & { health: import('@tutor-matcher/shared').GrpcHealthController } {
   const root =
     process.env.CONTRACTS_GRPC_DIR ??
     path.resolve(__dirname, "../../../contracts/grpc");
@@ -155,5 +156,6 @@ export function createTutorGrpcServer(service: TutorService): grpc.Server {
       ),
     },
   );
-  return server;
+  const health = createGrpcHealth(server, ['tutor_matcher.tutor.v1.TutorCatalogueService'], isReady);
+  return Object.assign(server, { health });
 }

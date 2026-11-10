@@ -126,6 +126,18 @@ services:
           cpus: '0.5'
           memory: 384M
       labels:
+        tutor-matcher.internal: 'true'
+        traefik.swarm.lbswarm: 'false'
+        traefik.http.services.internal-auth-http.loadbalancer.server.port: '4002'
+        traefik.http.services.internal-auth-http.loadbalancer.healthcheck.path: '/health'
+        traefik.http.services.internal-auth-http.loadbalancer.healthcheck.interval: '2s'
+        traefik.http.services.internal-auth-http.loadbalancer.healthcheck.timeout: '1s'
+        traefik.http.services.internal-auth-grpc.loadbalancer.server.port: '50051'
+        traefik.http.services.internal-auth-grpc.loadbalancer.server.scheme: 'h2c'
+        traefik.http.services.internal-auth-grpc.loadbalancer.healthcheck.path: '/grpc.health.v1.Health/Check'
+        traefik.http.services.internal-auth-grpc.loadbalancer.healthcheck.mode: 'grpc'
+        traefik.http.services.internal-auth-grpc.loadbalancer.healthcheck.interval: '2s'
+        traefik.http.services.internal-auth-grpc.loadbalancer.healthcheck.timeout: '1s'
         traefik.enable: 'true'
         tutor-matcher.gateway: 'true'
         traefik.http.services.auth-service.loadbalancer.server.port: '4002'
@@ -203,6 +215,52 @@ services:
     - /usr/local/bin/traefik-start.sh
     secrets:
     - auth_gateway_workload_credential
+  internal-traefik:
+    image: traefik:v3.7.17
+    command:
+    - --entrypoints.internal.address=:8080
+    - --ping=true
+    - --entrypoints.traefik.address=127.0.0.1:8082
+    - --providers.file.filename=/etc/traefik/dynamic/routes.yaml
+    - --providers.file.watch=true
+    - --providers.swarm.endpoint=tcp://docker-api:2375
+    - --providers.swarm.exposedbydefault=false
+    - --providers.swarm.constraints=Label(`tutor-matcher.internal`, `true`) && Label(`com.docker.stack.namespace`, `${STACK_NAME:-tutor-matcher}`)
+    - --providers.swarm.defaultRule=PathRegexp(`a^`)
+    - --providers.swarm.allowEmptyServices=true
+    - --providers.swarm.network=${STACK_NAME:-tutor-matcher}_backend
+    - --providers.swarm.refreshseconds=2s
+    - --serversTransport.forwardingTimeouts.dialTimeout=2s
+    - --serversTransport.forwardingTimeouts.responseHeaderTimeout=5s
+    environment:
+      TRAEFIK_DISCOVERY_PROVIDER: swarm
+    configs:
+    - source: internal-traefik-routes
+      target: /etc/traefik/dynamic/routes.yaml
+    networks:
+      backend:
+        aliases: [auth.internal, booking.internal, tutor.internal, wallet.internal, review.internal, messaging.internal, notification.internal]
+      socket: {}
+    depends_on:
+    - docker-api
+    deploy:
+      replicas: 2
+      restart_policy:
+        condition: on-failure
+        delay: 2s
+      update_config:
+        parallelism: 1
+        order: start-first
+        failure_action: rollback
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 192M
+    healthcheck:
+      test: [CMD, traefik, healthcheck, --ping, --entrypoints.traefik.address=127.0.0.1:8082]
+      interval: 5s
+      timeout: 2s
+      retries: 3
   web:
     networks:
     - backend
@@ -303,11 +361,11 @@ services:
       PORT: '4001'
       GRPC_PORT: '50053'
       MONGO_URI: mongodb://tutor_owner:${TUTOR_DB_PASSWORD}@mongo:27017/tutor_db?authSource=tutor_db&replicaSet=rs0
-      BOOKING_GRPC_URL: booking-service:50052
-      AUTH_GRPC_URL: auth-service:50051
-      REVIEW_HTTP_URL: http://review-service:4005
+      BOOKING_GRPC_URL: booking.internal:8080
+      AUTH_GRPC_URL: auth.internal:8080
+      REVIEW_HTTP_URL: http://review.internal:8080
       RABBITMQ_URL_FILE: /run/secrets/tutor_rabbitmq_url
-      REVIEW_GRPC_URL: review-service:50055
+      REVIEW_GRPC_URL: review.internal:8080
       TUTOR_WORKLOAD_CREDENTIAL: ${TUTOR_WORKLOAD_CREDENTIAL:?supply distinct workload credential}
       AUTH_WORKLOAD_CREDENTIAL: ${AUTH_WORKLOAD_CREDENTIAL:?supply distinct workload credential}
       BOOKING_WORKLOAD_CREDENTIAL: ${BOOKING_WORKLOAD_CREDENTIAL:?supply distinct workload credential}
@@ -330,6 +388,18 @@ services:
           cpus: '0.5'
           memory: 384M
       labels:
+        tutor-matcher.internal: 'true'
+        traefik.swarm.lbswarm: 'false'
+        traefik.http.services.internal-tutor-http.loadbalancer.server.port: '4001'
+        traefik.http.services.internal-tutor-http.loadbalancer.healthcheck.path: '/health'
+        traefik.http.services.internal-tutor-http.loadbalancer.healthcheck.interval: '2s'
+        traefik.http.services.internal-tutor-http.loadbalancer.healthcheck.timeout: '1s'
+        traefik.http.services.internal-tutor-grpc.loadbalancer.server.port: '50053'
+        traefik.http.services.internal-tutor-grpc.loadbalancer.server.scheme: 'h2c'
+        traefik.http.services.internal-tutor-grpc.loadbalancer.healthcheck.path: '/grpc.health.v1.Health/Check'
+        traefik.http.services.internal-tutor-grpc.loadbalancer.healthcheck.mode: 'grpc'
+        traefik.http.services.internal-tutor-grpc.loadbalancer.healthcheck.interval: '2s'
+        traefik.http.services.internal-tutor-grpc.loadbalancer.healthcheck.timeout: '1s'
         traefik.enable: 'true'
         tutor-matcher.gateway: 'true'
         traefik.http.services.tutor-service.loadbalancer.server.port: '4001'
@@ -356,9 +426,9 @@ services:
       PORT: '4004'
       GRPC_PORT: '50052'
       DATABASE_URL: postgresql://booking_owner:${BOOKING_DB_PASSWORD}@postgres:5432/booking_db
-      TUTOR_GRPC_URL: tutor-service:50053
-      WALLET_GRPC_URL: wallet-service:50054
-      AUTH_GRPC_URL: auth-service:50051
+      TUTOR_GRPC_URL: tutor.internal:8080
+      WALLET_GRPC_URL: wallet.internal:8080
+      AUTH_GRPC_URL: auth.internal:8080
       BOOKING_WORKLOAD_CREDENTIAL: ${BOOKING_WORKLOAD_CREDENTIAL:?supply distinct workload credential}
       TUTOR_WORKLOAD_CREDENTIAL: ${TUTOR_WORKLOAD_CREDENTIAL:?supply distinct workload credential}
       WALLET_WORKLOAD_CREDENTIAL: ${WALLET_WORKLOAD_CREDENTIAL:?supply distinct workload credential}
@@ -379,6 +449,18 @@ services:
           cpus: '0.5'
           memory: 384M
       labels:
+        tutor-matcher.internal: 'true'
+        traefik.swarm.lbswarm: 'false'
+        traefik.http.services.internal-booking-http.loadbalancer.server.port: '4004'
+        traefik.http.services.internal-booking-http.loadbalancer.healthcheck.path: '/health'
+        traefik.http.services.internal-booking-http.loadbalancer.healthcheck.interval: '2s'
+        traefik.http.services.internal-booking-http.loadbalancer.healthcheck.timeout: '1s'
+        traefik.http.services.internal-booking-grpc.loadbalancer.server.port: '50052'
+        traefik.http.services.internal-booking-grpc.loadbalancer.server.scheme: 'h2c'
+        traefik.http.services.internal-booking-grpc.loadbalancer.healthcheck.path: '/grpc.health.v1.Health/Check'
+        traefik.http.services.internal-booking-grpc.loadbalancer.healthcheck.mode: 'grpc'
+        traefik.http.services.internal-booking-grpc.loadbalancer.healthcheck.interval: '2s'
+        traefik.http.services.internal-booking-grpc.loadbalancer.healthcheck.timeout: '1s'
         traefik.enable: 'true'
         tutor-matcher.gateway: 'true'
         traefik.http.services.booking-service.loadbalancer.server.port: '4004'
@@ -405,9 +487,9 @@ services:
       PORT: '4003'
       GRPC_PORT: '50054'
       DATABASE_URL: postgresql://wallet_owner:${WALLET_DB_PASSWORD}@postgres:5432/wallet_db
-      AUTH_GRPC_URL: auth-service:50051
-      BOOKING_GRPC_URL: booking-service:50052
-      TUTOR_GRPC_URL: tutor-service:50053
+      AUTH_GRPC_URL: auth.internal:8080
+      BOOKING_GRPC_URL: booking.internal:8080
+      TUTOR_GRPC_URL: tutor.internal:8080
       WALLET_WORKLOAD_CREDENTIAL: ${WALLET_WORKLOAD_CREDENTIAL:?supply distinct workload credential}
       BOOKING_WORKLOAD_CREDENTIAL: ${BOOKING_WORKLOAD_CREDENTIAL:?supply distinct workload credential}
       GATEWAY_WORKLOAD_CREDENTIAL: ${GATEWAY_WORKLOAD_CREDENTIAL:?supply distinct workload credential}
@@ -430,6 +512,18 @@ services:
           cpus: '0.5'
           memory: 384M
       labels:
+        tutor-matcher.internal: 'true'
+        traefik.swarm.lbswarm: 'false'
+        traefik.http.services.internal-wallet-http.loadbalancer.server.port: '4003'
+        traefik.http.services.internal-wallet-http.loadbalancer.healthcheck.path: '/health'
+        traefik.http.services.internal-wallet-http.loadbalancer.healthcheck.interval: '2s'
+        traefik.http.services.internal-wallet-http.loadbalancer.healthcheck.timeout: '1s'
+        traefik.http.services.internal-wallet-grpc.loadbalancer.server.port: '50054'
+        traefik.http.services.internal-wallet-grpc.loadbalancer.server.scheme: 'h2c'
+        traefik.http.services.internal-wallet-grpc.loadbalancer.healthcheck.path: '/grpc.health.v1.Health/Check'
+        traefik.http.services.internal-wallet-grpc.loadbalancer.healthcheck.mode: 'grpc'
+        traefik.http.services.internal-wallet-grpc.loadbalancer.healthcheck.interval: '2s'
+        traefik.http.services.internal-wallet-grpc.loadbalancer.healthcheck.timeout: '1s'
         traefik.enable: 'true'
         tutor-matcher.gateway: 'true'
         traefik.http.services.wallet-service.loadbalancer.server.port: '4003'
@@ -456,9 +550,9 @@ services:
       PORT: '4005'
       GRPC_PORT: '50055'
       MONGO_URI: mongodb://review_owner:${REVIEW_DB_PASSWORD}@mongo:27017/review_db?authSource=review_db&replicaSet=rs0
-      AUTH_GRPC_URL: auth-service:50051
+      AUTH_GRPC_URL: auth.internal:8080
       RABBITMQ_URL_FILE: /run/secrets/review_rabbitmq_url
-      BOOKING_GRPC_URL: booking-service:50052
+      BOOKING_GRPC_URL: booking.internal:8080
       REVIEW_WORKLOAD_CREDENTIAL: ${REVIEW_WORKLOAD_CREDENTIAL:?supply distinct workload credential}
       TUTOR_WORKLOAD_CREDENTIAL: ${TUTOR_WORKLOAD_CREDENTIAL:?supply distinct workload credential}
       GATEWAY_WORKLOAD_CREDENTIAL: ${GATEWAY_WORKLOAD_CREDENTIAL:?supply distinct workload credential}
@@ -478,6 +572,18 @@ services:
           cpus: '0.5'
           memory: 384M
       labels:
+        tutor-matcher.internal: 'true'
+        traefik.swarm.lbswarm: 'false'
+        traefik.http.services.internal-review-http.loadbalancer.server.port: '4005'
+        traefik.http.services.internal-review-http.loadbalancer.healthcheck.path: '/health'
+        traefik.http.services.internal-review-http.loadbalancer.healthcheck.interval: '2s'
+        traefik.http.services.internal-review-http.loadbalancer.healthcheck.timeout: '1s'
+        traefik.http.services.internal-review-grpc.loadbalancer.server.port: '50055'
+        traefik.http.services.internal-review-grpc.loadbalancer.server.scheme: 'h2c'
+        traefik.http.services.internal-review-grpc.loadbalancer.healthcheck.path: '/grpc.health.v1.Health/Check'
+        traefik.http.services.internal-review-grpc.loadbalancer.healthcheck.mode: 'grpc'
+        traefik.http.services.internal-review-grpc.loadbalancer.healthcheck.interval: '2s'
+        traefik.http.services.internal-review-grpc.loadbalancer.healthcheck.timeout: '1s'
         traefik.enable: 'true'
         tutor-matcher.gateway: 'true'
         traefik.http.services.review-service.loadbalancer.server.port: '4005'
@@ -503,8 +609,8 @@ services:
       DEMO_MODE: 'true'
       PORT: '4006'
       MONGO_URI: mongodb://messaging_owner:${MESSAGING_DB_PASSWORD}@mongo:27017/messaging_db?authSource=messaging_db&replicaSet=rs0
-      AUTH_GRPC_URL: auth-service:50051
-      TUTOR_GRPC_URL: tutor-service:50053
+      AUTH_GRPC_URL: auth.internal:8080
+      TUTOR_GRPC_URL: tutor.internal:8080
       MESSAGING_WORKLOAD_CREDENTIAL: ${MESSAGING_WORKLOAD_CREDENTIAL:?supply distinct workload credential}
       GATEWAY_WORKLOAD_CREDENTIAL: ${GATEWAY_WORKLOAD_CREDENTIAL:?supply distinct workload credential}
     deploy:
@@ -521,6 +627,12 @@ services:
           cpus: '0.5'
           memory: 384M
       labels:
+        tutor-matcher.internal: 'true'
+        traefik.swarm.lbswarm: 'false'
+        traefik.http.services.internal-messaging-http.loadbalancer.server.port: '4006'
+        traefik.http.services.internal-messaging-http.loadbalancer.healthcheck.path: '/health'
+        traefik.http.services.internal-messaging-http.loadbalancer.healthcheck.interval: '2s'
+        traefik.http.services.internal-messaging-http.loadbalancer.healthcheck.timeout: '1s'
         traefik.enable: 'true'
         tutor-matcher.gateway: 'true'
         traefik.http.services.messaging-service.loadbalancer.server.port: '4006'
@@ -546,8 +658,8 @@ services:
       DEMO_MODE: 'true'
       PORT: '4007'
       MONGO_URI: mongodb://notification_owner:${NOTIFICATION_DB_PASSWORD}@mongo:27017/notification_db?authSource=notification_db&replicaSet=rs0
-      AUTH_GRPC_URL: auth-service:50051
-      BOOKING_GRPC_URL: booking-service:50052
+      AUTH_GRPC_URL: auth.internal:8080
+      BOOKING_GRPC_URL: booking.internal:8080
       NOTIFICATION_WORKLOAD_CREDENTIAL: ${NOTIFICATION_WORKLOAD_CREDENTIAL:?supply distinct workload credential}
       GATEWAY_WORKLOAD_CREDENTIAL: ${GATEWAY_WORKLOAD_CREDENTIAL:?supply distinct workload credential}
       RABBITMQ_URL_FILE: /run/secrets/notification_rabbitmq_url
@@ -567,6 +679,12 @@ services:
           cpus: '0.5'
           memory: 384M
       labels:
+        tutor-matcher.internal: 'true'
+        traefik.swarm.lbswarm: 'false'
+        traefik.http.services.internal-notification-http.loadbalancer.server.port: '4007'
+        traefik.http.services.internal-notification-http.loadbalancer.healthcheck.path: '/health'
+        traefik.http.services.internal-notification-http.loadbalancer.healthcheck.interval: '2s'
+        traefik.http.services.internal-notification-http.loadbalancer.healthcheck.timeout: '1s'
         traefik.enable: 'true'
         tutor-matcher.gateway: 'true'
         traefik.http.services.notification-service.loadbalancer.server.port: '4007'
@@ -631,6 +749,9 @@ configs:
   traefik-start:
     file: ../docker/traefik-start.sh
     name: ${STACK_NAME:-tutor-matcher}_traefik-start_${CONFIG_REVISION:?supply release revision}
+  internal-traefik-routes:
+    file: ../internal-traefik/routes.swarm.yaml
+    name: ${STACK_NAME:-tutor-matcher}_internal-traefik-routes_${CONFIG_REVISION:?supply release revision}
 secrets:
   auth_database_url:
     external: true

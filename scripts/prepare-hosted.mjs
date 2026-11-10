@@ -32,6 +32,7 @@ for (const [source, target] of [
   ["../docker/mongo-init.js", "mongo-init.js"],
   ["../docker/traefik-start.sh", "traefik-start.sh"],
   ["../gateway/routes.yaml", "routes.yaml"],
+  ["../internal-traefik/routes.swarm.yaml", "internal-routes.yaml"],
 ]) {
   stack = stack.replace(`file: ${source}`, `file: ./${target}`);
   copyFileSync(resolve(root, "infra/hosted", source), resolve(output, target));
