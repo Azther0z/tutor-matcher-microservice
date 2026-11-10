@@ -465,7 +465,7 @@ function ApplicationContent({ profile = false }: { profile?: boolean }) {
           {workspace.submissions.length === 0 && (
             <p className="tutor-card-meta">No submissions yet.</p>
           )}
-          {workspace.submissions.map((submission) => (
+          {[...workspace.submissions].sort((a, b) => (b.submittedAt ?? "").localeCompare(a.submittedAt ?? "")).map((submission) => (
             <SubmissionHistory
               key={`${submission.id}:${submission.revision}`}
               submission={submission}
