@@ -7,13 +7,18 @@ import { Dropdown } from "@/components/dropdown";
 import { api, failureOf, type Failure } from "@/lib/api";
 import { Pager, StatusBadge } from "./common";
 import { formatMoney, formatTime, titleCase } from "./format";
-import { TRANSACTION_TYPES, type Paged, type WalletTransaction } from "./types";
+import { TRANSACTION_TYPES, type Paged, type Topup, type WalletTransaction } from "./types";
 
 export function TransactionsPage() {
   const [type, setType] = useState("");
   const [result, setResult] = useState<Paged<WalletTransaction> | null>(null);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<Failure | null>(null);
+  const [waitingTopup, setWaitingTopup] = useState<Topup | null>(null);
+  useEffect(() => {
+    api<{ items: Topup[] }>("/wallet/topups?pageSize=5").then((page) => setWaitingTopup(page.items.find((item) => item.manual && item.status === "PENDING") ?? null)).catch(() => setWaitingTopup(null));
+  }, []);
+  const showWaiting = Boolean(waitingTopup) && !type;
 
   const load = useCallback(async (page: number) => {
     setPending(true); setError(null);
@@ -38,9 +43,21 @@ export function TransactionsPage() {
       </header>
       <LoadError failure={error} onRetry={() => void load(1)}/>
       {pending && !result && <p role="status" className="tutor-card-meta">Loading transactions…</p>}
-      {result && result.items.length === 0 && <p className="tutor-card-meta">No transactions yet.</p>}
-      {result && result.items.length > 0 && (
+      {result && result.items.length === 0 && !showWaiting && <p className="tutor-card-meta">No transactions yet.</p>}
+      {result && (result.items.length > 0 || showWaiting) && (
         <div className="tx-list" aria-label="Transactions">
+          {showWaiting && waitingTopup && (
+            <Link className="panel tutor-card tx-card" href={`/wallet/topups/${waitingTopup.id}`}>
+              <span>
+                <strong>Top-up request</strong>
+                <small>{formatTime(waitingTopup.createdAt)}</small>
+              </span>
+              <span className="wallet-tx-amount">
+                <StatusBadge value="PENDING" />
+                <strong>{formatMoney(waitingTopup.amount)}</strong>
+              </span>
+            </Link>
+          )}
           {result.items.map((tx) => (
             <Link key={tx.id} className="panel tutor-card tx-card" href={`/wallet/transactions/${tx.id}`}>
               <span>
