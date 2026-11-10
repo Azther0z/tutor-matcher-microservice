@@ -43,10 +43,12 @@ function SlipImage({ topupId }: { topupId: string }) {
 function RequestCard({ topup, onDone }: { topup: Topup; onDone: () => void }) {
   const action = useAction(async () => {
     setRejecting(false);
+    setApproving(false);
     setReason("");
     onDone();
   });
   const [rejecting, setRejecting] = useState(false);
+  const [approving, setApproving] = useState(false);
   const [reason, setReason] = useState("");
   const waiting = topup.status === "PENDING";
   const decide = (decision: "APPROVE" | "REJECT") => void action.run(`/admin/topups/${topup.id}/decision`, { decision, ...(decision === "REJECT" ? { reason: reason.trim() } : {}) }, "POST");
@@ -56,7 +58,7 @@ function RequestCard({ topup, onDone }: { topup: Topup; onDone: () => void }) {
         <strong>{formatMoney(topup.amount)}</strong>
         <small>{topup.userDisplayName ?? "Unknown user"}, {formatTime(topup.createdAt)}</small>
         {topup.decisionReason && <small>Reason: {topup.decisionReason}</small>}
-        {!rejecting && <ActionMessages action={action} />}
+        {!rejecting && !approving && <ActionMessages action={action} />}
       </div>
       <div className="topup-row-side">
         {!waiting && <StatusBadge value={topup.status === "SUCCEEDED" ? "APPROVED" : "REJECTED"} />}
@@ -64,10 +66,29 @@ function RequestCard({ topup, onDone }: { topup: Topup; onDone: () => void }) {
         {waiting && (
           <>
             <button className="button button-quiet" disabled={action.pending} onClick={() => setRejecting(true)}>Reject</button>
-            <button className="button" disabled={action.pending} onClick={() => decide("APPROVE")}>{action.pending && !rejecting ? "Working…" : "Approve"}</button>
+            <button className="button" disabled={action.pending} onClick={() => setApproving(true)}>Approve</button>
           </>
         )}
       </div>
+      {waiting && approving && (
+        <LegalModal
+          open
+          title="Approve top-up"
+          onClose={() => setApproving(false)}
+          actions={
+            <div className="button-row" style={{ justifyContent: "flex-end" }}>
+              <button className="button button-quiet" disabled={action.pending} onClick={() => setApproving(false)}>Cancel</button>
+              <button className="button" disabled={action.pending} onClick={() => decide("APPROVE")}>{action.pending ? "Working…" : "Approve"}</button>
+            </div>
+          }
+        >
+          <ActionMessages action={action} />
+          <p>
+            Credit {formatMoney(topup.amount)} to {topup.userDisplayName ?? "this user"}'s wallet? Check that the
+            amount on the slip matches. This cannot be undone.
+          </p>
+        </LegalModal>
+      )}
       {waiting && rejecting && (
         <LegalModal
           open
