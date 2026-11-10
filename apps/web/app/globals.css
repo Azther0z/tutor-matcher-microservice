@@ -887,3 +887,12 @@ fieldset.field legend { font-size: 14px; font-weight: 500; padding: 0; margin-bo
 .submission-bio.full { -webkit-line-clamp: unset; display: block; }
 .summary-rows .mono-id { font-size: 12px; font-weight: 400; color: var(--muted); }
 .submission-card .summary-rows strong.mono-id { font-size: 12px; }
+
+/* Flat notices: plain colored text, no boxes (errors keep a light box) */
+.notice-info, .notice-success { padding: 0; border: 0; background: none; margin: 0; font-size: 14px; line-height: 1.5; }
+.notice-info { color: var(--muted); }
+.notice-success { color: var(--success); }
+.booking-new [role="status"] { margin: 0; font-size: 13px; color: var(--muted); display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.booking-new [role="status"] .button { min-height: 30px; padding: 4px 12px; font-size: 13px; }
+.slot-footer.flush > .button-quiet:first-child { margin-left: -14px; }
+.submission-card .summary-rows > div strong { font-weight: 500; }
