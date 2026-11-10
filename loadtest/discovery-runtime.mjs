@@ -710,6 +710,8 @@ export async function createRuntime() {
       });
       const samples = [];
       const sampler = (async () => {
+        // Let Compose create the named generator before the first inventory.
+        await sleep(1000);
         while (!stopped) {
           try {
             const value = await sample(name);

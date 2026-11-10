@@ -34,7 +34,7 @@ services:
       - --providers.docker.allowEmptyServices=true
       - --providers.docker.network=${COMPOSE_PROJECT_NAME:-tutor-matcher}_backend
     cpus: 0.5
-    mem_limit: 256m
+    mem_limit: 512m
     ports: !override
       - "127.0.0.1:${DISCOVERY_PORT:-18080}:8080"
   internal-traefik:
