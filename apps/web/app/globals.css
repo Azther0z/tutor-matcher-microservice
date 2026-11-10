@@ -579,3 +579,12 @@ fieldset.field legend { font-size: 14px; font-weight: 500; padding: 0; margin-bo
 .summary-rows > div { display: flex; justify-content: space-between; gap: 16px; padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
 .summary-rows span { color: var(--muted); }
 .summary-rows > div:last-child strong { font-size: 16px; }
+.booking-title { display: grid; gap: 4px; padding-right: 110px; }
+.booking-title h1 { margin: 0; font-size: 26px; line-height: 1.2; }
+.booking-title p { margin: 0; font-size: 15px; }
+.booking-who { color: var(--ink); font-weight: 600; font-size: 16px; }
+.summary-note { font-weight: 400; text-align: right; max-width: 60%; }
+.booking-meeting { display: grid; grid-template-columns: 1fr auto; align-items: end; gap: 10px; }
+.booking-meeting .field label { font-size: 13px; color: var(--muted); }
+.booking-meeting .field input { padding: 8px 12px; border-radius: 8px; font-size: 14px; }
+.legal-modal-body .summary-rows span { color: var(--muted); }

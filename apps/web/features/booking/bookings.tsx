@@ -4,6 +4,7 @@ import Link from "next/link";
 import { use, useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Field, Notice } from "@/components/field";
+import { LegalModal } from "@/components/legal-modal";
 import { Pager, StatusBadge } from "@/features/wallet/common";
 import { formatMoney, formatTime } from "@/features/wallet/format";
 import { ActionMessages, useAction } from "@/features/tutor/common";
@@ -340,8 +341,8 @@ function BookingDetailContent({ bookingId }: { bookingId: string }) {
   if (!isUuid(bookingId))
     return (
       <section className="panel">
-        <h1>We couldn’t find that booking.</h1>
-        <p>The booking address is invalid.</p>
+        <h1 style={{ fontSize: 22 }}>We couldn’t find that booking.</h1>
+        <p className="tutor-card-meta">The booking address is invalid.</p>
         <Link className="button" href="/bookings">
           Back to bookings
         </Link>
@@ -349,21 +350,12 @@ function BookingDetailContent({ bookingId }: { bookingId: string }) {
     );
   const isStudent = booking?.studentUserId === account?.id;
   const isTutor = booking?.tutorUserId === account?.id;
+  const busy = pending || action.pending || action.uncertain || action.operation?.status === "PENDING";
+  const endTime = booking
+    ? new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Bangkok", timeStyle: "short" }).format(new Date(booking.endsAt))
+    : "";
   return (
     <>
-      <p>
-        <Link className="text-link" href="/bookings">
-          ← All bookings
-        </Link>
-      </p>
-      <header className="section-heading">
-        <h1>Booking</h1>
-        <p>
-          {booking
-            ? `${booking.subject.name} with ${booking.tutorDisplayName}`
-            : "Lesson details"}
-        </p>
-      </header>
       {error && (
         <Notice kind="error">
           {error}
@@ -380,76 +372,87 @@ function BookingDetailContent({ bookingId }: { bookingId: string }) {
       )}
       {notice && <Notice kind="success">{notice}</Notice>}
       <ActionMessages action={action} />
-      {!booking && !error && <p role="status">Loading booking…</p>}
+      {!booking && !error && <p role="status" className="tutor-card-meta">Loading booking…</p>}
       {booking && (
-        <>
-          <section className="panel">
-            <StatusBadge value={booking.status} corner />
-            <div className="stat-line">
+        <section className="panel booking-new">
+          <StatusBadge value={booking.status} corner />
+          <div className="booking-title">
+            <h1>{booking.subject.name}</h1>
+            <p className="tutor-card-meta">
+              {isStudent ? "With " : "Student: "}
+              <strong className="booking-who">
+                {isStudent ? booking.tutorDisplayName : booking.studentDisplayName}
+              </strong>
+            </p>
+          </div>
+          <div className="summary-rows">
+            <div>
+              <span>Time</span>
+              <strong>{formatTime(booking.startsAt)} to {endTime}</strong>
+            </div>
+            {booking.description && (
+              <div>
+                <span>Learning note</span>
+                <strong className="summary-note">{booking.description}</strong>
+              </div>
+            )}
+            {booking.holdExpiresAt && (
+              <div>
+                <span>Time left to pay</span>
+                <HoldCountdown expiresAt={booking.holdExpiresAt} onExpired={() => void load()} />
+              </div>
+            )}
+            <div>
+              <span>Total</span>
               <strong>{formatMoney(booking.amount)}</strong>
             </div>
-            <h2>{booking.subject.name}</h2>
-            <dl className="detail-list">
-              <dt>Starts</dt>
-              <dd>{formatTime(booking.startsAt)}</dd>
-              <dt>Ends</dt>
-              <dd>{formatTime(booking.endsAt)}</dd>
-              <dt>Student</dt>
-              <dd>{booking.studentDisplayName}</dd>
-              <dt>Tutor</dt>
-              <dd>{booking.tutorDisplayName}</dd>
-              {booking.description && (
-                <>
-                  <dt>Learning note</dt>
-                  <dd>{booking.description}</dd>
-                </>
-              )}
-              {booking.holdExpiresAt && (
-                <>
-                  <dt>Payment hold expires</dt>
-                  <dd>{formatTime(booking.holdExpiresAt)}</dd>
-                  <dt>Time left to pay</dt>
-                  <dd><HoldCountdown expiresAt={booking.holdExpiresAt} onExpired={() => void load()} /></dd>
-                </>
-              )}
-            </dl>
-            {booking.meeting.canJoin && booking.meeting.effectiveUrl && (
-              <a
-                className="button"
-                href={booking.meeting.effectiveUrl}
-                target="_blank"
-                rel="noreferrer"
+          </div>
+          {booking.meeting.state === "PROVISIONING" && (
+            <Notice kind="info">Meeting access is being prepared.</Notice>
+          )}
+          {isTutor && booking.meeting.canEdit && (
+            <form
+              className="booking-meeting"
+              onSubmit={(event) => {
+                event.preventDefault();
+                const url = String(
+                  new FormData(event.currentTarget).get("meetingUrl") ?? "",
+                ).trim();
+                void command(
+                  `/bookings/${bookingId}/meeting-link`,
+                  { customMeetingUrl: url || null },
+                  "PATCH",
+                );
+              }}
+            >
+              <Field
+                id="meetingUrl"
+                label="Custom HTTPS meeting link"
+                type="url"
+                defaultValue={booking.meeting.customMeetingUrl ?? ""}
+              />
+              <button className="button button-quiet" disabled={busy}>
+                Save link
+              </button>
+            </form>
+          )}
+          <div className="slot-footer">
+            <span className="button-row">
+              <Link
+                className="button button-quiet"
+                href={`/messages/${isStudent ? booking.tutorUserId : booking.studentUserId}?view=${isStudent ? "STUDENT" : "TUTOR"}`}
               >
-                Join lesson
-              </a>
-            )}
-            {booking.meeting.state === "PROVISIONING" && (
-              <Notice kind="info">Meeting access is being prepared.</Notice>
-            )}
-          </section>
-          <section className="panel">
-            <h2>Booking actions</h2>
-            <div className="button-row">
-              {isStudent && booking.status === "PAYMENT_DUE" && (
-                <button
-                  className="button"
-                  disabled={pending || action.pending || action.uncertain || action.operation?.status === "PENDING"}
-                  onClick={() =>
-                    void command(`/bookings/${bookingId}/confirm-payment`)
-                  }
-                >
-                  {pending ? "Processing…" : "Pay from wallet"}
-                </button>
-              )}
-              {isStudent &&
-                booking.status === "COMPLETED" &&
-                booking.canReview && (
-                  <Link
-                    className="button"
-                    href={`/reviews/new?bookingId=${bookingId}`}
+                Message {isStudent ? "tutor" : "student"}
+              </Link>
+              {(isStudent || isTutor) &&
+                ["PAYMENT_DUE", "CONFIRMED"].includes(booking.status) && (
+                  <button
+                    className="button button-quiet"
+                    disabled={busy}
+                    onClick={() => void requestQuote()}
                   >
-                    Write a review
-                  </Link>
+                    Cancel booking
+                  </button>
                 )}
               {isStudent && booking.status === "COMPLETED" && (
                 <Link
@@ -459,101 +462,98 @@ function BookingDetailContent({ bookingId }: { bookingId: string }) {
                   Open a dispute
                 </Link>
               )}
+            </span>
+            <span className="button-row">
+              {booking.meeting.canJoin && booking.meeting.effectiveUrl && (
+                <a
+                  className="button"
+                  href={booking.meeting.effectiveUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Join lesson
+                </a>
+              )}
+              {isStudent && booking.status === "PAYMENT_DUE" && (
+                <button
+                  className="button"
+                  disabled={busy}
+                  onClick={() => void command(`/bookings/${bookingId}/confirm-payment`)}
+                >
+                  {pending ? "Processing…" : "Pay from wallet"}
+                </button>
+              )}
+              {isStudent && booking.status === "COMPLETED" && booking.canReview && (
+                <Link className="button" href={`/reviews/new?bookingId=${bookingId}`}>
+                  Write a review
+                </Link>
+              )}
               {isTutor &&
                 booking.status === "CONFIRMED" &&
                 new Date(booking.endsAt).getTime() <= Date.now() && (
                   <button
                     className="button"
-                    disabled={pending || action.pending || action.uncertain || action.operation?.status === "PENDING"}
-                    onClick={() =>
-                      void command(`/bookings/${bookingId}/confirm-completion`)
-                    }
+                    disabled={busy}
+                    onClick={() => void command(`/bookings/${bookingId}/confirm-completion`)}
                   >
                     Confirm lesson completed
                   </button>
                 )}
-              {(isStudent || isTutor) &&
-                ["PAYMENT_DUE", "CONFIRMED"].includes(booking.status) && (
-                  <button
-                    className="button button-quiet"
-                    disabled={pending || action.pending || action.uncertain || action.operation?.status === "PENDING"}
-                    onClick={() => void requestQuote()}
-                  >
-                    Review cancellation
-                  </button>
-                )}
-              <Link
-                className="button button-quiet"
-              href={`/messages/${isStudent ? booking.tutorUserId : booking.studentUserId}?view=${isStudent ? "STUDENT" : "TUTOR"}`}
-              >
-                Message {isStudent ? "tutor" : "student"}
-              </Link>
+            </span>
+          </div>
+        </section>
+      )}
+      {booking && (
+        <LegalModal
+          open={Boolean(quote)}
+          title="Cancel this booking"
+          onClose={() => setQuote(null)}
+          actions={
+            <div className="button-row" style={{ justifyContent: "flex-end" }}>
+              <button type="button" className="button button-quiet" onClick={() => setQuote(null)}>
+                Keep booking
+              </button>
+              <button type="submit" form="cancel-form" className="button button-danger" disabled={busy}>
+                Confirm cancellation
+              </button>
             </div>
-            {isTutor && booking.meeting.canEdit && (
-              <form
-                className="inline-form"
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  const url = String(
-                    new FormData(event.currentTarget).get("meetingUrl") ?? "",
-                  ).trim();
-                  void command(
-                    `/bookings/${bookingId}/meeting-link`,
-                    { customMeetingUrl: url || null },
-                    "PATCH",
-                  );
-                }}
-              >
-                <Field
-                  id="meetingUrl"
-                  label="Custom HTTPS meeting link"
-                  type="url"
-                  defaultValue={booking.meeting.customMeetingUrl ?? ""}
-                />
-                <button className="button" disabled={pending || action.pending || action.uncertain || action.operation?.status === "PENDING"}>
-                  Save meeting link
-                </button>
-              </form>
-            )}
-          </section>
+          }
+        >
           {quote && (
-            <section className="panel danger-panel">
-              <h2>Cancellation quote</h2>
-              <p>
-                Refund: <strong>{formatMoney(quote.refund)}</strong>, Fee:{" "}
-                <strong>{formatMoney(quote.fee)}</strong>
-              </p>
+            <form
+              id="cancel-form"
+              className="form"
+              onSubmit={(event) => {
+                event.preventDefault();
+                const reason = String(
+                  new FormData(event.currentTarget).get("cancelReason") ?? "",
+                ).trim();
+                void command(`/bookings/${bookingId}/${isStudent ? "cancel" : "tutor-cancel"}`, {
+                  quoteId: quote.quoteId,
+                  reason,
+                });
+              }}
+            >
+              <div className="summary-rows">
+                <div>
+                  <span>Refund</span>
+                  <strong>{formatMoney(quote.refund)}</strong>
+                </div>
+                <div>
+                  <span>Fee</span>
+                  <strong>{formatMoney(quote.fee)}</strong>
+                </div>
+              </div>
               {quote.requiresWarning && (
                 <Notice kind="info">
                   This is a late cancellation. Review the refund and fee before
                   confirming.
                 </Notice>
               )}
-              <form
-                className="form"
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  const reason = String(
-                    new FormData(event.currentTarget).get("cancelReason") ?? "",
-                  ).trim();
-                  void command(`/bookings/${bookingId}/${isStudent ? "cancel" : "tutor-cancel"}`, {
-                    quoteId: quote.quoteId,
-                    reason,
-                  });
-                }}
-              >
-                <Field
-                  id="cancelReason"
-                  label="Reason (optional)"
-                  maxLength={500}
-                />
-                <button className="button button-danger" disabled={pending || action.pending || action.uncertain || action.operation?.status === "PENDING"}>
-                  Confirm cancellation
-                </button>
-              </form>
-            </section>
+              <Field id="cancelReason" label="Reason (optional)" maxLength={500} />
+            </form>
           )}
-        </>
+        </LegalModal>
       )}
     </>
   );
