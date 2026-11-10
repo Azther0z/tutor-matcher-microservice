@@ -52,7 +52,7 @@ function BookingProgress({ booking }: { booking: Booking }) {
         : 3;
   // The next step is in progress: it gets a pulsing ring and a moving line leading to it.
   const live = !cancelled && reached < STEPS.length - 1;
-  const fill = ((cancelled ? reached + 1 : reached) / (STEPS.length - 1)) * 100;
+  const fill = (reached / (STEPS.length - 1)) * 100;
   return (
     <div
       className={`booking-progress${cancelled ? " is-cancelled" : ""}`}
@@ -61,6 +61,12 @@ function BookingProgress({ booking }: { booking: Booking }) {
     >
       <div className="booking-progress-track" aria-hidden="true">
         <span style={{ width: `${fill}%` }} />
+        {cancelled && (
+          <span
+            className="booking-progress-cut"
+            style={{ left: `${fill}%`, width: `${100 / (STEPS.length - 1)}%` }}
+          />
+        )}
         {live && (
           <span
             className="booking-progress-live"

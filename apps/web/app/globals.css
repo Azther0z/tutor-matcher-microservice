@@ -597,7 +597,6 @@ fieldset.field legend { font-size: 14px; font-weight: 500; padding: 0; margin-bo
 .slot-footer > .button-row:first-child > .button-quiet:first-child { margin-left: -12px; }
 .booking-title h2 { margin: 0; font-size: 26px; line-height: 1.2; }
 .booking-progress { position: relative; margin: 0 0 20px; --step: #4ade80; }
-.booking-progress.is-cancelled { --step: #f87171; }
 .booking-progress-track { position: absolute; top: 11px; left: 12.5%; right: 12.5%; height: 2px; background: var(--line-strong); }
 .booking-progress-track span { display: block; height: 100%; background: var(--step); transition: width 0.3s; }
 .booking-progress ol { position: relative; display: grid; grid-template-columns: repeat(4, 1fr); margin: 0; padding: 0; list-style: none; font-size: 13px; color: var(--muted); }
@@ -614,3 +613,4 @@ fieldset.field legend { font-size: 14px; font-weight: 500; padding: 0; margin-bo
 @keyframes progress-shine { from { background-position: 200% 0; } to { background-position: -100% 0; } }
 @keyframes progress-pulse { 0% { box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.5); } 100% { box-shadow: 0 0 0 9px rgba(74, 222, 128, 0); } }
 @media (prefers-reduced-motion: reduce) { .booking-progress-live, .booking-progress li.is-live i { animation: none; } }
+.booking-progress-cut { position: absolute; top: 0; height: 100%; background: #f87171; }
