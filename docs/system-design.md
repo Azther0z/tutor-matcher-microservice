@@ -8,7 +8,7 @@ It preserves the existing stack and most service ownership. It does not claim th
 
 ## Goals and retained choices
 
-Keep Next.js presentation separate from Express business services in TypeScript. Keep the gateway, REST, gRPC, RabbitMQ, Consul, npm workspaces, and service-owned data.
+Keep Next.js presentation separate from Express business services in TypeScript. Use Traefik with native Swarm discovery as the gateway, retaining REST, gRPC, RabbitMQ, npm workspaces, and service-owned data. [ADR-0029](adr/0029-traefik-swarm-discovery.md) records the 8 November replacement of Express gateway/Consul.
 Retain hosted Swarm/Doco-CD, commit-traceable images, SOPS/age, and local Compose fallback. Providers remain simulated in both environments.
 Use the [pinned monolith journeys][journeys] and existing policy evidence rather than redesigning navigation or business policy.
 
@@ -53,7 +53,7 @@ No service reads another service's tables or collections, even when both databas
 
 ```mermaid
 flowchart LR
-    Web["Next.js frontend"] -->|REST| Gateway["API Gateway"]
+    Web["Next.js frontend"] -->|REST| Gateway["Traefik Gateway"]
     Gateway -->|REST| Auth["Auth\nIdentity and access"]
     Gateway -->|REST| Tutor["Tutor\nApplications and catalogue"]
     Gateway -->|REST| Booking["Booking\nAvailability and lessons"]
@@ -143,7 +143,7 @@ Auth owns account identity, current account capabilities, and restrictions. Tuto
 Tutor records link to the immutable Auth account ID, rather than treating a matching email as ownership.
 There is no second approval workflow in Auth and no client-controlled publication or capability grant.
 
-For protected new requests, the gateway checks the signed token and current Auth account state. Signature and expiry alone cannot enforce a recent suspension.
+For protected new requests, Traefik delegates signed-token and current-account checks to the private Auth ForwardAuth adapter. The target adapter issues the short-lived signed actor admission for the logical gateway boundary. Signature and expiry alone cannot enforce a recent suspension.
 If current authorization cannot be established, reject the protected action. Public catalogue reads can remain available.
 Strip and replace client identity headers. Internal operations require trusted workload identity and preserve the original actor for audit.
 The [identity contract](../contracts/README.md#identity-capability-and-privacy) specifies how identity crosses each REST, gRPC, and event interface. No internal write operation is publicly routed.
@@ -346,7 +346,7 @@ flowchart TB
         Apps --> PG[("PostgreSQL\nThree owned databases")]
         Apps --> Mongo[("MongoDB\nFour owned databases\nSingle-member replica set")]
         Apps --> Broker[("RabbitMQ\nDurable queues")]
-        Apps --> Consul["Consul\nRegistry and health checks"]
+        Apps --> Discovery["Docker Swarm API\nTask discovery through restricted proxy"]
         PG --> Storage["Persistent host storage\nBackups tested separately"]
         Mongo --> Storage
         Broker --> Storage
@@ -363,13 +363,13 @@ Use separate local and hosted manifests. Images are built in CI and referenced b
 Persist PostgreSQL, MongoDB, and RabbitMQ storage. A one-time initialization/migration step is deployment work, not an additional business service.
 Pin stateful workloads to storage-owning placement unless shared storage is explicitly designed and tested.
 
-Every application service registers a reachable private address and a suitable health check in Consul.
-Swarm adds overlay networking and potentially several interfaces. Do not select an arbitrary first IP address for registry advertisement.
-Gateway health-aware routing uses Consul, and fixed service names provide fallback when the registry is unavailable.
-Service-to-service calls retain fixed names. This limit does not justify replacing Consul or adding another discovery platform in this step.
+Traefik discovers opt-in Swarm services/tasks through a restricted Docker API proxy; services do not register themselves. Local Compose uses the Docker provider. Public routes stay in an explicit shared allowlist, while labels supply private backend ports and active readiness checks.
+Use the intended private overlay network for backend addresses. Keep the Docker socket out of Traefik and application containers.
+Traefik retains its last successfully discovered configuration if the Docker API is unavailable, while active backend checks continue. A known pool with no healthy backend returns 503. Detection has delay, new tasks remain unknown during an API outage, and gateway startup requires discovery.
+Service-to-service REST/gRPC calls retain configured service DNS. [ADR-0029](adr/0029-traefik-swarm-discovery.md) supersedes the old Consul/fixed-name gateway fallback. The [hosted backend manifest](../deploy/README.md) is an implementation step, not evidence of target deployment completion.
 
 Tutor replicas remain stateless and can scale independently. Database-backed job claims make owner workers safe when an application has several replicas.
-The gateway, Auth, database engines, broker, registry, and physical host remain potential failure points. This is not a highly available deployment.
+The gateway, Auth, database engines, broker, discovery API, and physical host remain potential failure points. This is not a highly available deployment.
 Keep the full local Compose demo rehearsed in case hosted access fails.
 
 Use persisted synthetic fixtures, not a destructive database reset on every start. Define backups for each owned store and restore into an isolated environment.

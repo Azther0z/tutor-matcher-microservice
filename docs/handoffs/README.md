@@ -82,7 +82,7 @@ The local Gateway remains reachable on loopback port 8080. Saint coordinates the
 | Messaging | 4006 | MongoDB `messaging_db` | Auth/Tutor gRPC clients and versioned message events |
 | Notification | 4007 | MongoDB `notification_db` | Auth/Booking gRPC clients and versioned RabbitMQ consumer |
 
-Each backend exposes private health checks and registers the appropriate reachable address in Consul.
+Each HTTP backend exposes private health checks. Traefik uses Swarm task discovery and opt-in service labels; there is no application-side Consul registration. See [ADR-0029](../adr/0029-traefik-swarm-discovery.md).
 Each owner supplies migrations and runtime requirements to Saint. The database name alone does not grant another service access.
 
 ## First integration contracts
@@ -113,7 +113,7 @@ Use the new availability protobuf in both callers. Keep the old protobuf until i
 - Use PostgreSQL for Auth, Booking and Wallet, with separate owned databases.
 - Use separate MongoDB databases for Tutor, Review, Messaging and Notification.
 - Use the persistent single-member MongoDB replica set when local transactions require it. Do not claim database failover.
-- Preserve public REST, private domain gRPC, RabbitMQ, Gateway and Consul in actual business flows.
+- Preserve public REST, private domain gRPC, RabbitMQ and Traefik with native Swarm discovery in actual business flows.
 - Implement all 20 RPCs with explicit deadlines, workload metadata, scalar presence and the documented error mapping.
 - Implement UUID identities, exact THB calculations, UTC timestamps and Bangkok display from the contracts.
 - Save business changes and event work in the same owner transaction. Each producer owns its own outbox and publisher retries.

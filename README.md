@@ -16,7 +16,7 @@ This repository implements the Tutor Matcher services behind an API gateway. The
 
 | Service | Interface | Owns | Database |
 | --- | --- | --- | --- |
-| API gateway | REST on port `8080` | Routing and JWT checks; passes the signed-in user to services | none |
+| Traefik gateway | REST on port `8080` | Explicit routing, healthy backends and Auth ForwardAuth | none |
 | Auth | REST on port `4002` | Accounts, password hashes, login tokens | PostgreSQL `auth_db` |
 | Tutor | REST on port `4001` | Profiles, publication status, subjects, hourly rates, search | MongoDB `tutor_db` |
 | Booking | gRPC on port `50052`, REST on port `4004` | Availability slots, bookings, payment and cancellation state | MongoDB `booking_db` |
@@ -71,17 +71,17 @@ Import [the D4 demo collection](postman/d4-demo.postman_collection.json) and run
 
 ## Progress 3: service discovery and scalability
 
-### Service discovery with Consul
+### Service discovery with Traefik
 
-Compose also starts a Consul agent (dev mode). The UI is at `http://127.0.0.1:8500`.
+[ADR-0029](docs/adr/0029-traefik-swarm-discovery.md) replaces the custom Express gateway and Consul with Traefik. Root Compose is the local fallback; the [hosted Swarm manifest and procedure](deploy/README.md) use service/task discovery without application-side registration.
 
-- Every service registers itself in Consul on startup with its container IP and port (`shared/consul.js`). Running more replicas means more entries, nothing to configure by hand.
-- Consul checks `GET /health` on each HTTP service every 2 seconds. Notification has no HTTP port, so it sends a TTL heartbeat every 5 seconds instead.
-- A replica that stops cleanly deregisters itself. A replica that crashes turns red (critical) in about 2 seconds and is removed after 1 minute.
-- The gateway asks Consul for the healthy instances of a service (`/v1/health/service/<name>?passing=true`), caches the list for 1 second and round-robins across it. The `x-served-by` response header shows which instance answered. A GET that fails on one instance is tried once on the next one.
-- If Consul itself is down, the gateway falls back to the Compose DNS names (`tutor-service:4001` and so on), and services register again every 30 seconds, so the registry fills up again when Consul comes back.
+- Local Traefik uses Docker discovery; hosted Traefik uses Swarm discovery through a restricted Docker API proxy.
+- The shared [route allowlist](api-gateway/routes.yaml) preserves the current public paths on port 8080. Private, unknown and unsupported method/path combinations are not routed.
+- Protected requests call a private Auth ForwardAuth endpoint. Auth verifies the token and current account existence. Traefik replaces identity headers before forwarding.
+- Traefik checks backend `/health` every two seconds and distributes traffic among healthy tasks. Selected reads can retry once on connection failure or a 502–504 response; writes have no gateway retry middleware.
+- A Docker API outage retains the last discovered configuration while backend checks continue. Empty known pools return 503. Fresh discovery is needed after gateway restart. There is no separate registry or fixed-DNS gateway fallback.
 
-Calls between services (Tutor to Booking over gRPC, Booking to Tutor and Wallet) still use the Compose DNS names for now.
+See [gateway configuration and verification](api-gateway/README.md). Internal REST/gRPC calls continue using service DNS. The full target's session/ban/capability and signed-admission rules remain implementation work.
 
 ### Scalability load test (k6)
 
@@ -90,7 +90,7 @@ The NFR we measure is scalability of tutor search: with 50 concurrent users for 
 The test is [loadtest/tutor-search.js](loadtest/tutor-search.js). It seeds 20 published tutors once, then calls `GET /tutors?subject=Mathematics&maxRate=1000` through the gateway. k6 runs in Docker (`profiles: ["loadtest"]`), so nothing needs to be installed.
 
 ```bash
-docker compose down -v && docker compose up -d --build
+docker compose up -d --build
 
 # 1 replica
 docker compose run --rm k6 run /scripts/tutor-search.js
@@ -107,7 +107,7 @@ docker kill tutor-matcher-tutor-service-2
 docker compose up -d --scale tutor-service=3
 ```
 
-Results from our run (MacBook, local MongoDB, saved in [loadtest/results](loadtest/results)):
+Historical results from the former Express/Consul gateway (MacBook, local MongoDB, saved unchanged in [loadtest/results](loadtest/results)). These are not Traefik results; rerun for the new gateway:
 
 | Run | Requests/s | Avg | p95 | Errors |
 | --- | --- | --- | --- | --- |

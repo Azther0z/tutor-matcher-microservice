@@ -33,7 +33,7 @@ Gateway uses REST to Auth for introspection and to owners for operation polling.
 
 Use `<OWNER>_GRPC_URL` from the registry for the configured private target.
 Keep Booking's existing port 50052. The other four gRPC ports are target configuration choices for implementation.
-Register the reachable HTTP address in Consul and advertise `grpc_port` metadata for owners that serve RPCs.
+Swarm provides private service DNS for the configured gRPC ports; services do not register themselves with Consul. Supply the HTTP port and `/health` check through deployment labels for Traefik. Private domain RPC ports remain outside public gateway routing. See [ADR-0029](../../docs/adr/0029-traefik-swarm-discovery.md).
 Domain clients use the configured private service DNS names and explicit gRPC ports from the deployment.
 Do not mistake an HTTP registration port for a gRPC port or select an arbitrary Swarm interface address.
 

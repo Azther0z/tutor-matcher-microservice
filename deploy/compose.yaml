@@ -1,0 +1,412 @@
+# Backend demo stack. See deploy/README.md before using on a host.
+version: '3.8'
+services:
+  mongo:
+    image: mongo:7
+    volumes:
+    - hosted-mongo-data:/data/db
+    healthcheck:
+      test:
+      - CMD
+      - mongosh
+      - --quiet
+      - --eval
+      - db.adminCommand('ping')
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    networks:
+    - backend
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+      placement:
+        constraints:
+        - node.labels.tutor-matcher.data == true
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: tutor
+      MONGO_INITDB_ROOT_PASSWORD_FILE: /run/secrets/mongo_password
+    secrets:
+    - mongo_password
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: tutor
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+    volumes:
+    - hosted-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+      - CMD
+      - pg_isready
+      - -U
+      - tutor
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    networks:
+    - backend
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+      placement:
+        constraints:
+        - node.labels.tutor-matcher.data == true
+    secrets:
+    - postgres_password
+    configs:
+    - source: postgres-init
+      target: /docker-entrypoint-initdb.d/init.sql
+  rabbitmq:
+    image: rabbitmq:4.3.6-management
+    healthcheck:
+      test:
+      - CMD
+      - rabbitmq-diagnostics
+      - -q
+      - ping
+      interval: 10s
+      timeout: 5s
+      retries: 20
+    networks:
+    - backend
+    volumes:
+    - hosted-rabbitmq-data:/var/lib/rabbitmq
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+      placement:
+        constraints:
+        - node.labels.tutor-matcher.data == true
+    environment:
+      RABBITMQ_DEFAULT_USER: tutor
+    secrets:
+    - rabbitmq_password
+    configs:
+    - source: rabbitmq-start
+      target: /usr/local/bin/start-with-secret.sh
+      mode: 365
+    entrypoint:
+    - /bin/sh
+    - /usr/local/bin/start-with-secret.sh
+  booking-service:
+    environment:
+      GRPC_PORT: 50052
+      HTTP_PORT: 4004
+      TUTOR_URL: http://tutor-service:4001
+      WALLET_URL: http://wallet-service:4003
+      NODE_ENV: production
+      MONGO_URI_FILE: /run/secrets/mongo_uri
+      RABBITMQ_URL_FILE: /run/secrets/rabbitmq_url
+    networks:
+    - backend
+    healthcheck:
+      test:
+      - CMD
+      - node
+      - -e
+      - fetch('http://127.0.0.1:4004/health',{signal:AbortSignal.timeout(1000)}).then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))
+      interval: 5s
+      timeout: 2s
+      retries: 3
+      start_period: 30s
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+      labels:
+        traefik.enable: 'true'
+        tutor-matcher.gateway: 'true'
+        traefik.http.services.booking-service.loadbalancer.server.port: '4004'
+        traefik.http.services.booking-service.loadbalancer.healthcheck.path: /health
+        traefik.http.services.booking-service.loadbalancer.healthcheck.interval: 2s
+        traefik.http.services.booking-service.loadbalancer.healthcheck.timeout: 1s
+      update_config:
+        parallelism: 1
+        order: start-first
+        failure_action: rollback
+        monitor: 20s
+      rollback_config:
+        parallelism: 1
+        order: stop-first
+    image: ${BOOKING_IMAGE:?Set BOOKING_IMAGE to a published revision}
+    secrets:
+    - mongo_uri
+    - rabbitmq_url
+  tutor-service:
+    environment:
+      PORT: 4001
+      BOOKING_GRPC_URL: booking-service:50052
+      NODE_ENV: production
+      MONGO_URI_FILE: /run/secrets/mongo_uri
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+      labels:
+        traefik.enable: 'true'
+        tutor-matcher.gateway: 'true'
+        traefik.http.services.tutor-service.loadbalancer.server.port: '4001'
+        traefik.http.services.tutor-service.loadbalancer.healthcheck.path: /health
+        traefik.http.services.tutor-service.loadbalancer.healthcheck.interval: 2s
+        traefik.http.services.tutor-service.loadbalancer.healthcheck.timeout: 1s
+      update_config:
+        parallelism: 1
+        order: start-first
+        failure_action: rollback
+        monitor: 20s
+      rollback_config:
+        parallelism: 1
+        order: stop-first
+    networks:
+    - backend
+    healthcheck:
+      test:
+      - CMD
+      - node
+      - -e
+      - fetch('http://127.0.0.1:4001/health',{signal:AbortSignal.timeout(1000)}).then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))
+      interval: 5s
+      timeout: 2s
+      retries: 3
+      start_period: 30s
+    image: ${TUTOR_IMAGE:?Set TUTOR_IMAGE to a published revision}
+    secrets:
+    - mongo_uri
+  auth-service:
+    environment:
+      PORT: 4002
+      NODE_ENV: production
+      DATABASE_URL_FILE: /run/secrets/auth_database_url
+      JWT_SECRET_FILE: /run/secrets/jwt_secret
+      RABBITMQ_URL_FILE: /run/secrets/rabbitmq_url
+    networks:
+    - backend
+    healthcheck:
+      test:
+      - CMD
+      - node
+      - -e
+      - fetch('http://127.0.0.1:4002/health',{signal:AbortSignal.timeout(1000)}).then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))
+      interval: 5s
+      timeout: 2s
+      retries: 3
+      start_period: 30s
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+      labels:
+        traefik.enable: 'true'
+        tutor-matcher.gateway: 'true'
+        traefik.http.services.auth-service.loadbalancer.server.port: '4002'
+        traefik.http.services.auth-service.loadbalancer.healthcheck.path: /health
+        traefik.http.services.auth-service.loadbalancer.healthcheck.interval: 2s
+        traefik.http.services.auth-service.loadbalancer.healthcheck.timeout: 1s
+      update_config:
+        parallelism: 1
+        order: start-first
+        failure_action: rollback
+        monitor: 20s
+      rollback_config:
+        parallelism: 1
+        order: stop-first
+    image: ${AUTH_IMAGE:?Set AUTH_IMAGE to a published revision}
+    secrets:
+    - auth_database_url
+    - jwt_secret
+    - rabbitmq_url
+  wallet-service:
+    environment:
+      PORT: 4003
+      NODE_ENV: production
+      DATABASE_URL_FILE: /run/secrets/wallet_database_url
+      RABBITMQ_URL_FILE: /run/secrets/rabbitmq_url
+    networks:
+    - backend
+    healthcheck:
+      test:
+      - CMD
+      - node
+      - -e
+      - fetch('http://127.0.0.1:4003/health',{signal:AbortSignal.timeout(1000)}).then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))
+      interval: 5s
+      timeout: 2s
+      retries: 3
+      start_period: 30s
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+      labels:
+        traefik.enable: 'true'
+        tutor-matcher.gateway: 'true'
+        traefik.http.services.wallet-service.loadbalancer.server.port: '4003'
+        traefik.http.services.wallet-service.loadbalancer.healthcheck.path: /health
+        traefik.http.services.wallet-service.loadbalancer.healthcheck.interval: 2s
+        traefik.http.services.wallet-service.loadbalancer.healthcheck.timeout: 1s
+      update_config:
+        parallelism: 1
+        order: start-first
+        failure_action: rollback
+        monitor: 20s
+      rollback_config:
+        parallelism: 1
+        order: stop-first
+    image: ${WALLET_IMAGE:?Set WALLET_IMAGE to a published revision}
+    secrets:
+    - wallet_database_url
+    - rabbitmq_url
+  notification-service:
+    environment:
+      NODE_ENV: production
+      MONGO_URI_FILE: /run/secrets/mongo_uri
+      RABBITMQ_URL_FILE: /run/secrets/rabbitmq_url
+    networks:
+    - backend
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+      update_config:
+        parallelism: 1
+        order: start-first
+        failure_action: rollback
+        monitor: 20s
+      rollback_config:
+        parallelism: 1
+        order: stop-first
+    image: ${NOTIFICATION_IMAGE:?Set NOTIFICATION_IMAGE to a published revision}
+    secrets:
+    - mongo_uri
+    - rabbitmq_url
+  api-gateway:
+    image: traefik:v3.7.17
+    command:
+    - --entrypoints.web.address=:8080
+    - --entrypoints.auth.address=127.0.0.1:8081
+    - --entrypoints.traefik.address=127.0.0.1:8082
+    - --ping=true
+    - --api.dashboard=false
+    - --providers.file.filename=/etc/traefik/dynamic/routes.yaml
+    - --providers.file.watch=true
+    - --serversTransport.forwardingTimeouts.dialTimeout=2s
+    - --serversTransport.forwardingTimeouts.responseHeaderTimeout=5s
+    - --accesslog=true
+    - --accesslog.format=json
+    - --accesslog.fields.headers.defaultmode=drop
+    - --providers.swarm.endpoint=tcp://docker-api:2375
+    - --providers.swarm.exposedbydefault=false
+    - --providers.swarm.constraints=Label(`tutor-matcher.gateway`, `true`) && Label(`com.docker.stack.namespace`, `${STACK_NAME:-tutor-matcher}`)
+    - --providers.swarm.defaultRule=PathRegexp(`a^`)
+    - --providers.swarm.allowEmptyServices=true
+    - --providers.swarm.network=${STACK_NAME:-tutor-matcher}_backend
+    - --providers.swarm.refreshseconds=2s
+    environment:
+      TRAEFIK_DISCOVERY_PROVIDER: swarm
+    networks:
+    - backend
+    - socket
+    healthcheck:
+      test:
+      - CMD
+      - traefik
+      - healthcheck
+      - --ping
+      - --entrypoints.traefik.address=127.0.0.1:8082
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+    configs:
+    - source: gateway-routes
+      target: /etc/traefik/dynamic/routes.yaml
+    ports:
+    - target: 8080
+      published: 8080
+      protocol: tcp
+      mode: ingress
+  docker-api:
+    image: tecnativa/docker-socket-proxy:v0.5.0
+    environment:
+      SERVICES: '1'
+      TASKS: '1'
+      NETWORKS: '1'
+      NODES: '1'
+      POST: '0'
+      LOG_LEVEL: warning
+    volumes:
+    - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+    - socket
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+      placement:
+        constraints:
+        - node.role == manager
+volumes:
+  hosted-mongo-data: null
+  hosted-postgres-data: null
+  hosted-rabbitmq-data: null
+networks:
+  backend:
+    driver: overlay
+  socket:
+    driver: overlay
+    internal: true
+configs:
+  gateway-routes:
+    file: ../api-gateway/routes.yaml
+    name: ${STACK_NAME:-tutor-matcher}_gateway-routes_${CONFIG_REVISION:?Set CONFIG_REVISION to a release revision}
+  postgres-init:
+    file: ../docker/postgres-init.sql
+    name: ${STACK_NAME:-tutor-matcher}_postgres-init_${CONFIG_REVISION:?Set CONFIG_REVISION to a release revision}
+  rabbitmq-start:
+    file: ../docker/rabbitmq-start.sh
+    name: ${STACK_NAME:-tutor-matcher}_rabbitmq-start_${CONFIG_REVISION:?Set CONFIG_REVISION to a release revision}
+secrets:
+  postgres_password:
+    external: true
+    name: ${STACK_NAME:-tutor-matcher}_postgres_password
+  mongo_password:
+    external: true
+    name: ${STACK_NAME:-tutor-matcher}_mongo_password
+  rabbitmq_password:
+    external: true
+    name: ${STACK_NAME:-tutor-matcher}_rabbitmq_password
+  auth_database_url:
+    external: true
+    name: ${STACK_NAME:-tutor-matcher}_auth_database_url
+  wallet_database_url:
+    external: true
+    name: ${STACK_NAME:-tutor-matcher}_wallet_database_url
+  jwt_secret:
+    external: true
+    name: ${STACK_NAME:-tutor-matcher}_jwt_secret
+  mongo_uri:
+    external: true
+    name: ${STACK_NAME:-tutor-matcher}_mongo_uri
+  rabbitmq_url:
+    external: true
+    name: ${STACK_NAME:-tutor-matcher}_rabbitmq_url

@@ -1,0 +1,11 @@
+version: 1
+id: c1faf2bd-901d-4e25-a090-834f20acbb11
+name: gateway-business
+slug: gateway-business
+protocol: http
+interceptRequests: true
+port: 4510
+scenarios:
+  - name: default
+    path: ./default.js
+    default: true

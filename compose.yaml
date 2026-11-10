@@ -1,64 +1,71 @@
 name: tutor-matcher
-
 services:
   mongo:
     image: mongo:7
     ports:
-      - "127.0.0.1:27018:27017"
+    - 127.0.0.1:27018:27017
     volumes:
-      - mongo-data:/data/db
+    - mongo-data:/data/db
     healthcheck:
-      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
+      test:
+      - CMD
+      - mongosh
+      - --quiet
+      - --eval
+      - db.adminCommand('ping')
       interval: 5s
       timeout: 5s
       retries: 20
-
+    networks:
+    - backend
   postgres:
     image: postgres:16-alpine
     environment:
       POSTGRES_USER: tutor
       POSTGRES_PASSWORD: tutor
     ports:
-      - "127.0.0.1:5433:5432"
+    - 127.0.0.1:5433:5432
     volumes:
-      - postgres-data:/var/lib/postgresql/data
-      - ./docker/postgres-init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    - postgres-data:/var/lib/postgresql/data
+    - ./docker/postgres-init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     healthcheck:
-      test: ["CMD", "pg_isready", "-U", "tutor"]
+      test:
+      - CMD
+      - pg_isready
+      - -U
+      - tutor
       interval: 5s
       timeout: 5s
       retries: 20
-
+    networks:
+    - backend
   adminer:
     image: adminer:5
     ports:
-      - "127.0.0.1:8081:8080"
+    - 127.0.0.1:8081:8080
     environment:
       ADMINER_DEFAULT_SERVER: postgres
     depends_on:
-      - postgres
-
+    - postgres
+    networks:
+    - backend
   rabbitmq:
     image: rabbitmq:4.3.6-management
     ports:
-      - "127.0.0.1:15672:15672"
+    - 127.0.0.1:15672:15672
     healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      test:
+      - CMD
+      - rabbitmq-diagnostics
+      - -q
+      - ping
       interval: 10s
       timeout: 5s
       retries: 20
-
-  consul:
-    image: hashicorp/consul:1.21.4
-    command: agent -dev -client=0.0.0.0 -ui
-    ports:
-      - "127.0.0.1:8500:8500"
-    healthcheck:
-      test: ["CMD", "consul", "members"]
-      interval: 5s
-      timeout: 5s
-      retries: 20
-
+    networks:
+    - backend
+    volumes:
+    - rabbitmq-data:/var/lib/rabbitmq
   booking-service:
     build:
       context: .
@@ -70,16 +77,31 @@ services:
       TUTOR_URL: http://tutor-service:4001
       WALLET_URL: http://wallet-service:4003
       RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
-      CONSUL_URL: http://consul:8500
     depends_on:
       mongo:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
-      consul:
-        condition: service_healthy
     restart: on-failure
-
+    networks:
+    - backend
+    labels:
+      traefik.enable: 'true'
+      tutor-matcher.gateway: 'true'
+      traefik.http.services.booking-service.loadbalancer.server.port: '4004'
+      traefik.http.services.booking-service.loadbalancer.healthcheck.path: /health
+      traefik.http.services.booking-service.loadbalancer.healthcheck.interval: 2s
+      traefik.http.services.booking-service.loadbalancer.healthcheck.timeout: 1s
+    healthcheck:
+      test:
+      - CMD
+      - node
+      - -e
+      - fetch('http://127.0.0.1:4004/health',{signal:AbortSignal.timeout(1000)}).then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))
+      interval: 5s
+      timeout: 2s
+      retries: 3
+      start_period: 30s
   tutor-service:
     build:
       context: .
@@ -88,18 +110,33 @@ services:
       MONGO_URI: ${MONGO_URI:-mongodb://mongo:27017}
       PORT: 4001
       BOOKING_GRPC_URL: booking-service:50052
-      CONSUL_URL: http://consul:8500
     depends_on:
       mongo:
-        condition: service_healthy
-      consul:
         condition: service_healthy
     deploy:
       resources:
         limits:
-          cpus: "0.5"
+          cpus: '0.5'
     restart: on-failure
-
+    networks:
+    - backend
+    labels:
+      traefik.enable: 'true'
+      tutor-matcher.gateway: 'true'
+      traefik.http.services.tutor-service.loadbalancer.server.port: '4001'
+      traefik.http.services.tutor-service.loadbalancer.healthcheck.path: /health
+      traefik.http.services.tutor-service.loadbalancer.healthcheck.interval: 2s
+      traefik.http.services.tutor-service.loadbalancer.healthcheck.timeout: 1s
+    healthcheck:
+      test:
+      - CMD
+      - node
+      - -e
+      - fetch('http://127.0.0.1:4001/health',{signal:AbortSignal.timeout(1000)}).then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))
+      interval: 5s
+      timeout: 2s
+      retries: 3
+      start_period: 30s
   auth-service:
     build:
       context: .
@@ -109,16 +146,31 @@ services:
       DATABASE_URL: postgres://tutor:tutor@postgres:5432/auth_db
       JWT_SECRET: ${JWT_SECRET:-dev-only-secret}
       RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
-      CONSUL_URL: http://consul:8500
     depends_on:
       postgres:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
-      consul:
-        condition: service_healthy
     restart: on-failure
-
+    networks:
+    - backend
+    labels:
+      traefik.enable: 'true'
+      tutor-matcher.gateway: 'true'
+      traefik.http.services.auth-service.loadbalancer.server.port: '4002'
+      traefik.http.services.auth-service.loadbalancer.healthcheck.path: /health
+      traefik.http.services.auth-service.loadbalancer.healthcheck.interval: 2s
+      traefik.http.services.auth-service.loadbalancer.healthcheck.timeout: 1s
+    healthcheck:
+      test:
+      - CMD
+      - node
+      - -e
+      - fetch('http://127.0.0.1:4002/health',{signal:AbortSignal.timeout(1000)}).then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))
+      interval: 5s
+      timeout: 2s
+      retries: 3
+      start_period: 30s
   wallet-service:
     build:
       context: .
@@ -127,16 +179,31 @@ services:
       PORT: 4003
       DATABASE_URL: postgres://tutor:tutor@postgres:5432/wallet_db
       RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
-      CONSUL_URL: http://consul:8500
     depends_on:
       postgres:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
-      consul:
-        condition: service_healthy
     restart: on-failure
-
+    networks:
+    - backend
+    labels:
+      traefik.enable: 'true'
+      tutor-matcher.gateway: 'true'
+      traefik.http.services.wallet-service.loadbalancer.server.port: '4003'
+      traefik.http.services.wallet-service.loadbalancer.healthcheck.path: /health
+      traefik.http.services.wallet-service.loadbalancer.healthcheck.interval: 2s
+      traefik.http.services.wallet-service.loadbalancer.healthcheck.timeout: 1s
+    healthcheck:
+      test:
+      - CMD
+      - node
+      - -e
+      - fetch('http://127.0.0.1:4003/health',{signal:AbortSignal.timeout(1000)}).then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))
+      interval: 5s
+      timeout: 2s
+      retries: 3
+      start_period: 30s
   notification-service:
     build:
       context: .
@@ -144,46 +211,85 @@ services:
     environment:
       MONGO_URI: ${MONGO_URI:-mongodb://mongo:27017}
       RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
-      CONSUL_URL: http://consul:8500
     depends_on:
       mongo:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
-      consul:
-        condition: service_healthy
     restart: on-failure
-
+    networks:
+    - backend
   api-gateway:
-    build:
-      context: .
-      dockerfile: api-gateway/Dockerfile
-    ports:
-      - "127.0.0.1:8080:8080"
+    image: traefik:v3.7.17
+    command:
+    - --entrypoints.web.address=:8080
+    - --entrypoints.auth.address=127.0.0.1:8081
+    - --entrypoints.traefik.address=127.0.0.1:8082
+    - --ping=true
+    - --api.dashboard=false
+    - --providers.file.filename=/etc/traefik/dynamic/routes.yaml
+    - --providers.file.watch=true
+    - --serversTransport.forwardingTimeouts.dialTimeout=2s
+    - --serversTransport.forwardingTimeouts.responseHeaderTimeout=5s
+    - --accesslog=true
+    - --accesslog.format=json
+    - --accesslog.fields.headers.defaultmode=drop
+    - --providers.docker.endpoint=tcp://docker-api:2375
+    - --providers.docker.exposedbydefault=false
+    - --providers.docker.constraints=Label(`tutor-matcher.gateway`, `true`)
+    - --providers.docker.defaultRule=PathRegexp(`a^`)
+    - --providers.docker.allowEmptyServices=true
+    - --providers.docker.network=tutor-matcher_backend
     environment:
-      PORT: 8080
-      JWT_SECRET: ${JWT_SECRET:-dev-only-secret}
-      AUTH_URL: http://auth-service:4002
-      TUTOR_URL: http://tutor-service:4001
-      BOOKING_URL: http://booking-service:4004
-      WALLET_URL: http://wallet-service:4003
-      CONSUL_URL: http://consul:8500
+      TRAEFIK_DISCOVERY_PROVIDER: docker
+    ports:
+    - 127.0.0.1:8080:8080
+    volumes:
+    - ./api-gateway/routes.yaml:/etc/traefik/dynamic/routes.yaml:ro
+    networks:
+    - backend
+    - socket
     depends_on:
-      - consul
-      - auth-service
-      - tutor-service
-      - booking-service
-      - wallet-service
+    - docker-api
+    healthcheck:
+      test:
+      - CMD
+      - traefik
+      - healthcheck
+      - --ping
+      - --entrypoints.traefik.address=127.0.0.1:8082
+      interval: 10s
+      timeout: 3s
+      retries: 3
     restart: on-failure
-
   k6:
     image: grafana/k6:1.2.0
-    profiles: ["loadtest"]
+    profiles:
+    - loadtest
     environment:
       BASE_URL: http://api-gateway:8080
     volumes:
-      - ./loadtest:/scripts:ro
-
+    - ./loadtest:/scripts:ro
+    networks:
+    - backend
+  docker-api:
+    image: tecnativa/docker-socket-proxy:v0.5.0
+    environment:
+      CONTAINERS: '1'
+      NETWORKS: '1'
+      EVENTS: '1'
+      POST: '0'
+      LOG_LEVEL: warning
+    volumes:
+    - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+    - socket
+    restart: on-failure
 volumes:
-  mongo-data:
-  postgres-data:
+  mongo-data: null
+  postgres-data: null
+  rabbitmq-data: null
+networks:
+  backend: {}
+  socket:
+    internal: true
