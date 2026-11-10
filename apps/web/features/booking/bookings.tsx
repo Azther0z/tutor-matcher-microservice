@@ -373,8 +373,8 @@ function BookingDetailContent({ bookingId }: { bookingId: string }) {
       {booking && (
         <>
           <section className="panel">
+            <StatusBadge value={booking.status} corner />
             <div className="stat-line">
-              <StatusBadge value={booking.status} />
               <strong>{formatMoney(booking.amount)}</strong>
             </div>
             <h2>{booking.subject.name}</h2>

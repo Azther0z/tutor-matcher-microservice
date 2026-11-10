@@ -10,25 +10,24 @@ import type { Booking, BookingPage } from "./types";
 function LessonCard({ booking, confirmable, onDone }: { booking: Booking; confirmable: boolean; onDone: () => void }) {
   const action = useAction(onDone);
   return (
-    <article className="panel">
+    <article className="panel tutor-card">
+      <StatusBadge value={booking.status} corner />
       <div className="stat-line">
-        <StatusBadge value={booking.status} />
         <span>{formatTime(booking.startsAt)}</span>
       </div>
-      <h2>{booking.subject.name}</h2>
-      <p>
-        Student: {booking.studentDisplayName}, <strong>{formatMoney(booking.amount)}</strong>
+      <h2>
+        <Link href={`/bookings/${booking.id}`}>{booking.subject.name}</Link>
+      </h2>
+      <p className="tutor-card-meta">
+        Student: {booking.studentDisplayName}, <strong>{formatMoney(booking.amount)}</strong>, Online
       </p>
-      {booking.description && <p className="muted">“{booking.description}”</p>}
-      <p className="small-muted">
-        Meeting: {booking.meeting.state === "READY" ? "link ready" : booking.meeting.state === "MISSING" ? "no link yet — add one on the booking page" : booking.meeting.state === "PROVISIONING" ? "being prepared" : "closed"}
+      {booking.description && <p className="tutor-card-meta">“{booking.description}”</p>}
+      <p className="tutor-card-meta">
+        Meeting: {booking.meeting.state === "READY" ? "link ready" : booking.meeting.state === "MISSING" ? "no link yet, add one on the booking page" : booking.meeting.state === "PROVISIONING" ? "being prepared" : "closed"}
       </p>
       <ActionMessages action={action} />
-      <div className="button-row">
-        <Link className="button button-outline" href={`/bookings/${booking.id}`}>
-          View booking
-        </Link>
-        {confirmable && (
+      {confirmable && (
+        <div className="button-row" style={{ position: "relative", zIndex: 2 }}>
           <button
             className="button"
             disabled={action.pending}
@@ -36,8 +35,8 @@ function LessonCard({ booking, confirmable, onDone }: { booking: Booking; confir
           >
             {action.pending ? "Confirming…" : "Confirm lesson completed"}
           </button>
-        )}
-      </div>
+        </div>
+      )}
     </article>
   );
 }
