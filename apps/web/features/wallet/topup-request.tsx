@@ -121,10 +121,10 @@ export function TopupRequestPanel({ returnTo, unavailable, open, onClose, onWait
       {returnTo && <Notice kind="info">After an admin approves your top-up you can return to your booking.</Notice>}
       {unavailable && <Notice kind="info">Adding funds is unavailable until your wallet loads.</Notice>}
       {loaded && latest && (
-        <section className="panel booking-new" aria-label="Latest top-up request">
+        <section className="panel booking-new topup-card" aria-label="Latest top-up request">
           <StatusBadge value={latest.status === "SUCCEEDED" ? "APPROVED" : latest.status === "FAILED" ? "REJECTED" : "PENDING"} corner />
           <div className="booking-title">
-            <h2>Top-up request</h2>
+            <h2>Top-up request, {formatMoney(latest.amount)}</h2>
             <p className="tutor-card-meta">Sent {formatTime(latest.createdAt)}</p>
           </div>
           <ProgressStepper
@@ -133,18 +133,14 @@ export function TopupRequestPanel({ returnTo, unavailable, open, onClose, onWait
             failed={latest.status === "FAILED"}
             label="Top-up rejected"
           />
-          <div className="summary-rows">
-            <div>
-              <span>Amount</span>
-              <strong>{formatMoney(latest.amount)}</strong>
-            </div>
-            {latest.status === "FAILED" && latest.decisionReason && (
+          {latest.status === "FAILED" && latest.decisionReason && (
+            <div className="summary-rows">
               <div>
                 <span>Reason</span>
                 <strong className="summary-note">{latest.decisionReason}</strong>
               </div>
-            )}
-          </div>
+            </div>
+          )}
           <div className="slot-footer flush">
             <span className="tutor-card-meta">
               {waiting

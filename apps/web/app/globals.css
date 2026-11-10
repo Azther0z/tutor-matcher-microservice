@@ -674,3 +674,18 @@ fieldset.field legend { font-size: 14px; font-weight: 500; padding: 0; margin-bo
 .field textarea:focus, .field textarea:focus-visible,
 .dropdown-trigger:focus, .dropdown-trigger:focus-visible,
 .search-input:focus, .search-input:focus-visible { outline: none; box-shadow: none; border-color: var(--field-focus); }
+.topup-card { gap: 12px; padding: 14px 18px; }
+.topup-card .booking-title { padding-right: 90px; gap: 2px; }
+.topup-card .booking-title h2 { font-size: 16px; }
+.topup-card .booking-title p { font-size: 13px; }
+.topup-card .booking-progress { margin: 0; --size: 16px; }
+.topup-card .booking-progress-track { top: 7px; }
+.topup-card .booking-progress ol { font-size: 12px; }
+.topup-card .booking-progress li { gap: 4px; }
+.topup-card .booking-progress li i { width: 16px; height: 16px; border-width: 1.5px; }
+.topup-card .booking-progress li i svg { width: 9px; height: 9px; }
+.topup-card .slot-footer { gap: 8px; }
+.topup-card .slot-footer .tutor-card-meta { font-size: 13px; }
+.topup-card .slot-footer .button { min-height: 30px; padding: 4px 10px; font-size: 13px; }
+.topup-card .slot-footer .button-quiet { margin-right: -10px; }
+.topup-card .status-corner { top: 14px; }
