@@ -189,7 +189,6 @@ main:focus { outline: none; }
   background: var(--bg-raised); color: var(--ink);
 }
 .field input::placeholder, .field textarea::placeholder { color: #6b6b73; }
-.field input:focus, .dropdown-trigger:focus, .field textarea:focus { border-color: var(--amber); }
 .field input[aria-invalid="true"], .dropdown-trigger[aria-invalid="true"], .field textarea[aria-invalid="true"] { border-color: #ff7a66; }
 .field input[type="checkbox"], .field input[type="radio"] { width: auto; padding: 0; }
 .field input[type="date"], .field input[type="datetime-local"] { color-scheme: dark; }
@@ -207,10 +206,6 @@ main:focus { outline: none; }
 .form-card-compact h2 { margin-bottom: 6px; font-size: 21px; }
 .form-card-compact > p { margin-bottom: 16px; }
 .form-card-compact .form { gap: 16px; }
-.form-card-compact .field { gap: 6px; }
-.form-card-compact .field input { padding: 11px 14px; border-radius: 8px; }
-.form-card-compact .field input:focus-visible { outline: none; border-color: var(--amber); box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.28); }
-.form-card-compact .button { min-height: 44px; padding: 11px 24px; }
 .form-card-compact .auth-forgot { margin: -6px 0 0; text-align: right; font-size: 13px; }
 .form-card-compact .auth-forgot a { color: var(--muted); font-weight: 400; text-decoration: none; }
 .form-card-compact .auth-forgot a:hover { color: var(--ink); text-decoration: underline; }
@@ -495,8 +490,6 @@ fieldset.field legend { font-size: 14px; font-weight: 500; padding: 0; margin-bo
 .range-slider input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; pointer-events: auto; width: 16px; height: 16px; margin-top: 4px; border-radius: 50%; background: #fff; border: 2px solid var(--amber); cursor: grab; }
 .range-slider input[type="range"]::-moz-range-thumb { pointer-events: auto; width: 12px; height: 12px; border-radius: 50%; background: #fff; border: 2px solid var(--amber); cursor: grab; }
 .range-slider input[type="range"]:focus-visible::-webkit-slider-thumb { outline: 2px solid var(--amber); outline-offset: 2px; }
-.search-side .field input:focus-visible { outline: none; border-color: var(--amber); box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.28); }
-.dropdown-trigger:focus-visible { outline: none; border-color: var(--amber); box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.28); }
 
 .subject-head { display: grid; gap: 8px; margin: 12px 0 20px; }
 .subject-head p { margin: 0; }
@@ -668,9 +661,16 @@ fieldset.field legend { font-size: 14px; font-weight: 500; padding: 0; margin-bo
 .wallet-tx { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 0; border-top: 1px solid var(--line); color: var(--ink); text-decoration: none; font-size: 14px; }
 .wallet-tx:hover { background: #0b0b0b; }
 .wallet-tx small { display: block; margin-top: 2px; font-size: 12px; color: var(--muted); }
-.field input:focus-visible, .field textarea:focus-visible, .search-input:focus-visible { outline: none; border-color: var(--amber); box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.22); }
 .legal-modal:has(.topup-body) { width: min(440px, calc(100% - 32px)); }
 .topup-body .tutor-card-meta { margin: 0; }
 .topup-step, .topup-send { display: grid; gap: 14px; max-width: none; }
 .topup-send .promptpay-qr { justify-self: center; padding: 12px; }
 .topup-body .legal-copy, .legal-modal-body.legal-copy .topup-body p { color: var(--muted); }
+
+/* One focus style for every text control: a plain light grey border, no ring, no glow. */
+:root { --field-focus: #8b8b94; }
+.field input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):focus,
+.field input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):focus-visible,
+.field textarea:focus, .field textarea:focus-visible,
+.dropdown-trigger:focus, .dropdown-trigger:focus-visible,
+.search-input:focus, .search-input:focus-visible { outline: none; box-shadow: none; border-color: var(--field-focus); }
