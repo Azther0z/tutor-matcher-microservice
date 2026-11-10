@@ -328,12 +328,6 @@ export function Discover() {
                     ? `${bangkokTime(item.nextAvailableAt)} (Bangkok)`
                     : "No future free slots"}
                 </p>
-                <Link
-                  className="button"
-                  href={`/tutors/${item.subject.tutorId}/subjects/${item.subject.id}`}
-                >
-                  View subject and availability
-                </Link>
               </article>
             ))}
           </div>
