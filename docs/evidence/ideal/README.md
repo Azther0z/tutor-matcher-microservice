@@ -2,7 +2,13 @@
 
 Implemented locally on 10 November 2026, on `feat/ideal-marketplace` based on Saint's published identity/Traefik revision `8dff5c3`. This branch contains Tutor, Review, their marketplace UI, tests, runtime integration and new search measurement tools. Deployment and course submission remain pending.
 
-## Verified locally
+## Discovery measurements on 11 November 2026
+
+The [Load and Stress experiment](../../../loadtest/results/discovery-2026-11-11/analysis.md) uses real Auth, Tutor, Booking, Review, databases and Traefik with fixed per-replica limits and one synthetic catalogue. One Tutor sustained 80 requests/second in three five-minute confirmations. Both configurations passed at 64 and 80 RPS; three Tutors passed all three five-minute runs at 120 RPS, while one Tutor reached the memory-pressure guard in every repeat. All six recovery checks passed.
+
+At 50 concurrent users for 30 seconds, three Tutors raised successful throughput by 1.74–1.79 times and reduced failures to zero. Its overall p95 remained 585–600 ms, above 500 ms, so Q-03 remains unmet. The report separates full measurements from guarded partial observations.
+
+## Verified locally on 10 November 2026
 
 | Check | Result |
 | --- | --- |
@@ -28,7 +34,7 @@ Run `npm run test:marketplace:integrated`. Set `MARKETPLACE_BROWSER=1` to includ
 
 Set `MARKETPLACE_K6=1` to run the separate steady and increasing-demand stress diagnostics. Read the [measurement guide](../../../loadtest/README.md) before interpreting them.
 
-## Remaining integration gates
+## Integration gates recorded on 10 November 2026
 
 - Santa's target Booking availability, eligibility and UI are absent from the published branches inspected on 10 November. The selection link is `/bookings/new?tutorId=...&subjectId=...&slotIds=...`; the availability editor link is `/teach/availability`. Their end-to-end journeys require Santa's implementation.
 - Docker Desktop cannot reach its VM on this Mac. Actual container image startup, broker/Notification receipts, Swarm replica tests and hosted rollout did not run. The existing multi-replica gateway fixture suite also fails to bind `127.0.0.2` on this Mac; the single-backend real Traefik integration passed. The socket-proxy test needs a working container engine. These checks remain enabled in the Linux CI workflow.

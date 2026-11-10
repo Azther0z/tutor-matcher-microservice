@@ -13,8 +13,9 @@ npm run test:loadtest
 npm run loadtest:discovery
 ```
 
-Docker Compose with `!override` support, eight Docker CPUs and at least 7 GiB of
-Docker memory are required. The runner uses a fresh project, disposable volumes,
+Docker Compose 2.24.4 or newer and eight Docker CPUs are required. The peak
+memory ceilings sum to 7040 MiB; the 10% headroom check requires about 7.64 GiB
+of Docker-visible memory. The runner uses a fresh project, disposable volumes,
 generated process-only credentials and loopback gateway port 18080. It removes
 only that project's containers, networks and volumes when it exits. Existing
 demo projects and their credentials are not used. The four service images are
@@ -25,6 +26,12 @@ Results default to a new `.runtime/discovery/<run-id>/` directory. To preserve a
 public evidence bundle directly, set `DISCOVERY_OUTPUT` to a new directory under
 `loadtest/results/`. The directory must not exist. `DISCOVERY_PORT` can select a
 different unprivileged gateway port.
+
+The [11 November measurements](results/discovery-2026-11-11/analysis.md) record
+an 80 RPS baseline, the six configuration/rate combinations and recovery checks.
+Three Tutor replicas sustain 120 offered RPS, but the separate 50-user Q-03
+workload still misses its 500 ms p95 target. Raw evidence is retained with the
+report.
 
 For a short implementation diagnostic, set `DISCOVERY_DURATION_SECONDS` and
 `DISCOVERY_REPEATS`. Any override differing from 300 seconds and three repeats

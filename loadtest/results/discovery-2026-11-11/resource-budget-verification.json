@@ -1,0 +1,41 @@
+{
+  "samples": 1089,
+  "limitsMatch": true,
+  "scope": "All ten persistent application/infrastructure services, plus the load generator whenever present. One-shot initialization containers excluded.",
+  "observedLimits": {
+    "auth-service": [
+      "0.5 CPU / 402653184 bytes"
+    ],
+    "booking-service": [
+      "0.5 CPU / 402653184 bytes"
+    ],
+    "tutor-service": [
+      "0.5 CPU / 402653184 bytes"
+    ],
+    "review-service": [
+      "0.5 CPU / 402653184 bytes"
+    ],
+    "api-gateway": [
+      "0.5 CPU / 536870912 bytes"
+    ],
+    "internal-traefik": [
+      "0.5 CPU / 268435456 bytes"
+    ],
+    "postgres": [
+      "1 CPU / 805306368 bytes"
+    ],
+    "docker-api": [
+      "0.1 CPU / 134217728 bytes"
+    ],
+    "rabbitmq": [
+      "0.5 CPU / 536870912 bytes"
+    ],
+    "mongo": [
+      "1 CPU / 1073741824 bytes"
+    ],
+    "load-generator": [
+      "1 CPU / 1610612736 bytes"
+    ]
+  },
+  "issues": []
+}

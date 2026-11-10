@@ -116,8 +116,10 @@ export async function runDiscovery({
         : assessment.pass
           ? "pass"
           : "acceptance failed";
+    const workload =
+      mode === "concurrency" ? `${vus} VUs` : `${ratePerSecond} RPS`;
     logger.log(
-      `Measurement complete: ${params.name} (${ratePerSecond} RPS, ${durationSeconds}s): ${runStatus}.`,
+      `Measurement complete: ${params.name} (${workload}, ${durationSeconds}s): ${runStatus}.`,
     );
     if (!assessment.hostValid) {
       if (assessment.censoredByGenerator) {
