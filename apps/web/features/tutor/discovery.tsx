@@ -420,8 +420,10 @@ export function SubjectDetails({
   const selectedSlots =
     data?.slots.filter((slot) => selected.includes(slot.id)) ?? [];
   const error = selectionError(selectedSlots);
+  // Keep the page up while another day loads, and never show the previous day's times under the new date.
+  const stale = !data || data.selectedDate !== date;
   const slotByTime = new Map(
-    (data?.slots ?? []).map((slot) => [
+    (stale ? [] : data.slots).map((slot) => [
       new Intl.DateTimeFormat("en-GB", {
         timeZone: "Asia/Bangkok",
         hour: "2-digit",
@@ -447,7 +449,7 @@ export function SubjectDetails({
     <>
       {!data && <h1 className="page-title">Subject details</h1>}
       <ResourceState
-        loading={resource.loading}
+        loading={resource.loading && !data}
         error={resource.error}
         failure={resource.failure}
         retry={() => void resource.reload()}
@@ -488,7 +490,7 @@ export function SubjectDetails({
                 <p className="tutor-card-meta">
                   Choose 1 to 8 back-to-back half-hour slots. Times are Asia/Bangkok.
                 </p>
-                <div className="slot-grid" role="group" aria-label="Available half-hour slots">
+                <div className={`slot-grid${stale ? " is-loading" : ""}`} role="group" aria-label="Available half-hour slots">
                   {Array.from({ length: 48 }, (_, i) => {
                     const label = `${String(Math.floor(i / 2)).padStart(2, "0")}:${i % 2 ? "30" : "00"}`;
                     const slot = slotByTime.get(label);

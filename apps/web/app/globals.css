@@ -547,3 +547,5 @@ fieldset.field legend { font-size: 14px; font-weight: 500; padding: 0; margin-bo
 .slot-chip { padding: 8px 4px; }
 .slot-chip:disabled { border-color: transparent; background: rgba(255, 255, 255, 0.03); opacity: 0.35; }
 @media (max-width: 800px) { .slot-layout { grid-template-columns: 1fr; gap: 24px; } }
+.slot-chip { transition: background 0.15s, border-color 0.15s, opacity 0.15s; }
+.slot-grid.is-loading { opacity: 0.6; }
