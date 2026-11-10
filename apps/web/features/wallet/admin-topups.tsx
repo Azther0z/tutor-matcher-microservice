@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Notice } from "@/components/field";
+import { Dropdown } from "@/components/dropdown";
+import { LegalModal } from "@/components/legal-modal";
 import { ActionMessages, ResourceState, useAction, useResource } from "@/features/tutor/common";
 import { sessionToken } from "@/lib/api";
 import { RequireAuth } from "@/lib/auth-context";
@@ -30,40 +31,54 @@ function SlipImage({ topupId }: { topupId: string }) {
 }
 
 function RequestCard({ topup, onDone }: { topup: Topup; onDone: () => void }) {
-  const action = useAction(onDone);
+  const action = useAction(async () => {
+    setRejecting(false);
+    setReason("");
+    onDone();
+  });
   const [rejecting, setRejecting] = useState(false);
   const [reason, setReason] = useState("");
   const waiting = topup.status === "PENDING";
   const decide = (decision: "APPROVE" | "REJECT") => void action.run(`/admin/topups/${topup.id}/decision`, { decision, ...(decision === "REJECT" ? { reason: reason.trim() } : {}) }, "POST");
   return (
-    <article className="panel">
-      <div className="stat-line">
-        <StatusBadge value={topup.status === "SUCCEEDED" ? "APPROVED" : topup.status === "FAILED" ? "REJECTED" : "PENDING"} />
-        <span>{formatTime(topup.createdAt)}</span>
+    <article className="panel booking-new submission-card">
+      <StatusBadge value={topup.status === "SUCCEEDED" ? "APPROVED" : topup.status === "FAILED" ? "REJECTED" : "PENDING"} corner />
+      <div className="booking-title">
+        <h2>{formatMoney(topup.amount)}</h2>
+        <p className="tutor-card-meta">{topup.userDisplayName ?? "Unknown user"}, {formatTime(topup.createdAt)}</p>
       </div>
-      <h2>{formatMoney(topup.amount)}</h2>
-      <p>From <strong>{topup.userDisplayName ?? "Unknown user"}</strong></p>
       {topup.slip && <SlipImage topupId={topup.id} />}
-      {topup.decisionReason && <p className="muted">Reason: {topup.decisionReason}</p>}
-      {topup.decidedAt && <p className="small-muted">Decided {formatTime(topup.decidedAt)}</p>}
-      <ActionMessages action={action} />
-      {waiting && !rejecting && (
-        <div className="button-row">
-          <button className="button" disabled={action.pending} onClick={() => decide("APPROVE")}>{action.pending ? "Working…" : "Approve"}</button>
-          <button className="button button-danger" disabled={action.pending} onClick={() => setRejecting(true)}>Reject</button>
+      {(topup.decisionReason || topup.decidedAt) && (
+        <div className="summary-rows">
+          {topup.decidedAt && <div><span>Decided</span><strong>{formatTime(topup.decidedAt)}</strong></div>}
+          {topup.decisionReason && <div><span>Reason</span><strong>{topup.decisionReason}</strong></div>}
+        </div>
+      )}
+      {!rejecting && <ActionMessages action={action} />}
+      {waiting && (
+        <div className="slot-footer flush">
+          <button className="button button-quiet" disabled={action.pending} onClick={() => setRejecting(true)}>Reject</button>
+          <button className="button" disabled={action.pending} onClick={() => decide("APPROVE")}>{action.pending && !rejecting ? "Working…" : "Approve"}</button>
         </div>
       )}
       {waiting && rejecting && (
-        <div className="form">
+        <LegalModal
+          open
+          title="Reject top-up"
+          onClose={() => { setRejecting(false); setReason(""); }}
+          actions={
+            <div className="button-row" style={{ justifyContent: "flex-end" }}>
+              <button className="button button-quiet" disabled={action.pending} onClick={() => { setRejecting(false); setReason(""); }}>Cancel</button>
+              <button className="button" disabled={action.pending || !reason.trim()} onClick={() => decide("REJECT")}>{action.pending ? "Working…" : "Reject"}</button>
+            </div>
+          }
+        >
+          <ActionMessages action={action} />
           <div className="field">
-            <label htmlFor={`reason-${topup.id}`}>Reason for rejecting</label>
+            <label htmlFor={`reason-${topup.id}`}>Reason</label>
             <textarea id={`reason-${topup.id}`} rows={3} maxLength={500} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="For example: the amount on the slip does not match" />
           </div>
-          <div className="button-row">
-            <button className="button button-danger" disabled={action.pending || !reason.trim()} onClick={() => decide("REJECT")}>{action.pending ? "Working…" : "Confirm rejection"}</button>
-            <button className="button button-quiet" disabled={action.pending} onClick={() => { setRejecting(false); setReason(""); }}>Cancel</button>
-          </div>
-        </div>
+        </LegalModal>
       )}
     </article>
   );
@@ -77,17 +92,14 @@ function Requests() {
   );
   return (
     <>
-      <header className="section-heading">
+      <header className="page-heading page-heading-row">
         <h1>Top-up requests</h1>
-        <p>Check each transfer slip against the amount, then approve to credit the student's wallet or reject with a reason.</p>
+        <div className="tx-filter">
+          <Dropdown id="topup-status" value={status} onValueChange={(value) => { setStatus(value); setPage(1); }} options={TABS.map(([value, label]) => ({ value, label }))} />
+        </div>
       </header>
-      <div className="view-switch" role="group" aria-label="Request status">
-        {TABS.map(([value, label]) => (
-          <button key={label} className={`button ${status === value ? "" : "button-quiet"}`} aria-pressed={status === value} onClick={() => { setStatus(value); setPage(1); }}>{label}</button>
-        ))}
-      </div>
       <ResourceState loading={resource.loading} error={resource.error} failure={resource.failure} retry={resource.reload} />
-      {resource.data?.items.length === 0 && <Notice kind="info">No requests here.</Notice>}
+      {resource.data?.items.length === 0 && <p className="tutor-card-meta">No requests here.</p>}
       <div className="account-grid">
         {resource.data?.items.map((topup) => <RequestCard key={topup.id} topup={topup} onDone={resource.reload} />)}
       </div>

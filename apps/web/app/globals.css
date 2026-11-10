@@ -901,3 +901,4 @@ a.tutor-card:hover { background: #0b0b0b; }
 .booking-title h2 .verified, .booking-title h2 svg { vertical-align: middle; }
 .intro-video { aspect-ratio: 16 / 9; width: 100%; border-radius: 10px; overflow: hidden; background: #000; border: 1px solid var(--line); }
 .intro-video iframe, .intro-video video { width: 100%; height: 100%; border: 0; display: block; }
+.slip-image { display: block; max-height: 220px; width: auto; max-width: 100%; border-radius: 8px; border: 1px solid var(--line); margin: 0 auto; }
