@@ -433,9 +433,6 @@ export function SubjectDetails({
   const bookingPath = `/bookings/new?${selectionQuery}`;
   return (
     <>
-      <Link className="text-link" href={`/tutors/${tutorId}`}>
-        Back to tutor profile
-      </Link>
       {!data && <h1 className="page-title">Subject details</h1>}
       <ResourceState
         loading={resource.loading}
@@ -451,7 +448,7 @@ export function SubjectDetails({
             <h1>{data.subject.name}</h1>
             <p className="tutor-card-meta">
               With{" "}
-              <Link className="text-link" href={`/tutors/${data.tutor.id}`}>
+              <Link className="subject-tutor" href={`/tutors/${data.tutor.id}`}>
                 {data.tutor.displayName}
               </Link>
               {data.subject.learningAreas.length > 0 &&

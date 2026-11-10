@@ -519,3 +519,6 @@ fieldset.field legend { font-size: 14px; font-weight: 500; padding: 0; margin-bo
 .rating-bar-row span:last-child { text-align: right; }
 .rating-bar { height: 6px; border-radius: 3px; background: var(--surface-2); overflow: hidden; }
 .rating-bar span { display: block; height: 100%; background: #f5c518; }
+.subject-head h1 { font-size: 30px; line-height: 1.2; }
+.subject-head .tutor-card-meta { font-size: 15px; }
+.subject-tutor { color: var(--ink); font-weight: 600; font-size: 16px; text-decoration: none; }
