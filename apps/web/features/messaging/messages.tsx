@@ -284,8 +284,15 @@ function Thread({ userId }: { userId: string }) {
             )}
             {thread.items.map((message, index) => {
               const previous = thread.items[index - 1];
+              const next = thread.items[index + 1];
               const own = message.senderUserId === account?.id;
               const newDay = !previous || dayKey(previous.createdAt) !== dayKey(message.createdAt);
+              // A run of messages from one person in the same minute shows its time once, after the last one.
+              const lastOfRun =
+                !next ||
+                next.senderUserId !== message.senderUserId ||
+                clock(next.createdAt) !== clock(message.createdAt) ||
+                dayKey(next.createdAt) !== dayKey(message.createdAt);
               const joinsPrevious =
                 !newDay && previous?.senderUserId === message.senderUserId;
               return (
@@ -295,7 +302,7 @@ function Thread({ userId }: { userId: string }) {
                     <article className={`message-bubble ${own ? "own" : ""}`}>
                       <p>{message.content}</p>
                     </article>
-                    <time dateTime={message.createdAt}>{clock(message.createdAt)}</time>
+                    {lastOfRun && <time dateTime={message.createdAt}>{clock(message.createdAt)}</time>}
                   </div>
                 </Fragment>
               );
