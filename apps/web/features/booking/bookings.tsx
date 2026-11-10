@@ -50,6 +50,8 @@ function BookingProgress({ booking }: { booking: Booking }) {
       : status === "CONFIRMED"
         ? 2
         : 3;
+  // The next step is in progress: it gets a pulsing ring and a moving line leading to it.
+  const live = !cancelled && reached < STEPS.length - 1;
   const fill = ((cancelled ? reached + 1 : reached) / (STEPS.length - 1)) * 100;
   return (
     <div
@@ -59,13 +61,19 @@ function BookingProgress({ booking }: { booking: Booking }) {
     >
       <div className="booking-progress-track" aria-hidden="true">
         <span style={{ width: `${fill}%` }} />
+        {live && (
+          <span
+            className="booking-progress-live"
+            style={{ left: `${(reached / (STEPS.length - 1)) * 100}%`, width: `${100 / (STEPS.length - 1)}%` }}
+          />
+        )}
       </div>
       <ol aria-hidden="true">
         {STEPS.map((label, index) => {
           const done = index <= reached;
           const crossed = cancelled && index === reached + 1;
           return (
-            <li key={label} className={crossed ? "is-crossed" : done ? "is-done" : ""}>
+            <li key={label} className={crossed ? "is-crossed" : done ? "is-done" : live && index === reached + 1 ? "is-live" : ""}>
               <i>
                 {crossed ? (
                   <svg viewBox="0 0 12 12" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="butt">
