@@ -42,7 +42,6 @@ function DraftEditor({
     await reload();
     onClose();
   });
-  const [consent, setConsent] = useState(false);
   const formId = `draft-form-${draft?.id ?? "new"}`;
   const save = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -84,23 +83,6 @@ function DraftEditor({
             <span />
           )}
           <div className="button-row">
-            {draft && (
-              <button
-                type="button"
-                className="button button-quiet"
-                disabled={!consent || busy}
-                onClick={() =>
-                  void action.run(
-                    `/profiles/me/tutor/drafts/${draft.id}/submit`,
-                    { consentAccepted: true },
-                    "POST",
-                    draft.revision,
-                  )
-                }
-              >
-                Submit draft
-              </button>
-            )}
             <button className="button" form={formId} disabled={busy}>
               {action.pending ? "Saving..." : "Save draft"}
             </button>
@@ -152,23 +134,80 @@ function DraftEditor({
       </form>
       <p className="tutor-card-meta">
         Use HTTPS links. Only you and authorized admins can see your document.
-        Drafts can be incomplete; to submit you need a bio, both links and your
-        consent. Save before submitting.
+        Drafts can be incomplete. To submit you need a bio and both links.
       </p>
-      {draft && (
-        <label className="check-row">
-          <input
-            type="checkbox"
-            checked={consent}
-            onChange={(event) => setConsent(event.target.checked)}
-          />
-          <span>
-            I consent to the application review and use of my submitted
-            documents.
-          </span>
-        </label>
-      )}
     </LegalModal>
+  );
+}
+function DraftRow({
+  draft,
+  reload,
+  onEdit,
+}: {
+  draft: Submission;
+  reload: () => Promise<void>;
+  onEdit: () => void;
+}) {
+  const [confirming, setConfirming] = useState(false);
+  const [consent, setConsent] = useState(false);
+  const action = useAction(async () => {
+    await reload();
+    setConfirming(false);
+  });
+  const busy = action.pending || action.uncertain;
+  return (
+    <div className="panel tutor-card">
+      <strong>{draft.headline || "Untitled draft"}</strong>
+      <div className="button-row draft-actions">
+        <button type="button" className="button button-quiet" onClick={onEdit}>
+          Edit
+        </button>
+        <button type="button" className="button" onClick={() => setConfirming(true)}>
+          Submit
+        </button>
+      </div>
+      {confirming && (
+        <LegalModal
+          open
+          title="Submit for review"
+          onClose={() => setConfirming(false)}
+          actions={
+            <button
+              type="button"
+              className="button"
+              disabled={!consent || busy}
+              onClick={() =>
+                void action.run(
+                  `/profiles/me/tutor/drafts/${draft.id}/submit`,
+                  { consentAccepted: true },
+                  "POST",
+                  draft.revision,
+                )
+              }
+            >
+              {action.pending ? "Submitting..." : "Submit"}
+            </button>
+          }
+        >
+          <ActionMessages action={action} />
+          <p>
+            You need a bio, an identification document link and an intro video
+            link. Submitted versions cannot be edited.
+          </p>
+          <label className="check-row">
+            <input
+              type="checkbox"
+              checked={consent}
+              onChange={(event) => setConsent(event.target.checked)}
+            />
+            <span>
+              I consent to the application review and use of my submitted
+              documents.
+            </span>
+          </label>
+        </LegalModal>
+      )}
+    </div>
   );
 }
 function SubmissionHistory({
@@ -358,15 +397,12 @@ function ApplicationContent({ profile = false }: { profile?: boolean }) {
           <h2 className="list-title">Drafts</h2>
           <div className="tx-list">
             {workspace.drafts.map((draft) => (
-              <button
+              <DraftRow
                 key={`${draft.id}:${draft.revision}`}
-                type="button"
-                className="panel tutor-card draft-card"
-                onClick={() => setEditing(draft.id)}
-              >
-                <strong>{draft.headline || "Untitled draft"}</strong>
-                <span className="tutor-card-meta">Edit draft</span>
-              </button>
+                draft={draft}
+                reload={resource.reload}
+                onEdit={() => setEditing(draft.id)}
+              />
             ))}
             <button
               type="button"

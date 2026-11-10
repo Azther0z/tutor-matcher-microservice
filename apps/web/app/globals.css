@@ -864,3 +864,5 @@ fieldset.field legend { font-size: 14px; font-weight: 500; padding: 0; margin-bo
 .booking-new > .tutor-card-meta, .booking-new .summary-rows { font-size: 14px; }
 .booking-new .button { min-height: 34px; padding: 6px 14px; font-size: 13px; }
 .panel.booking-new > h3 { margin: 0; font-size: 16px; font-weight: 500; }
+.tutor-card > .draft-actions { justify-content: flex-end; margin-top: 4px; }
+.tutor-card .draft-actions .button { min-height: 34px; padding: 6px 14px; font-size: 13px; }
