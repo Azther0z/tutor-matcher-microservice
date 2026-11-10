@@ -1,0 +1,76 @@
+sequenceDiagram
+    autonumber
+    actor S as Student (web UI)
+    actor TU as Tutor (web UI)
+    actor AD as Admin (web UI)
+    participant G as API Gateway (Traefik)
+    participant A as Auth
+    participant B as Booking
+    participant R as Review
+    participant T as Tutor
+    participant Q as RabbitMQ
+    participant N as Notification
+
+    Note over S,N: REST = solid arrow, gRPC = labelled "gRPC", event = labelled "AMQP", local DB step = note box
+
+    rect rgb(255, 244, 230)
+    Note over S,R: Phase 1 · Student reviews a completed lesson
+    S->>G: REST POST /api/bookings/{id}/review (rating, text, Idempotency-Key)
+    G->>A: REST forward-auth: verify session and STUDENT capability
+    A-->>G: signed actor assertion
+    G->>R: REST request + actor assertion + gateway credential
+    R->>B: gRPC getReviewEligibility (booking id)
+    B-->>R: owner, tutor, subject, completedAt, eligible
+    R->>A: gRPC lookupAccounts (student display name)
+    A-->>R: display name
+    Note over R: Local DB transaction (MongoDB review_db):<br/>one review per booking, insert review PUBLIC,<br/>save idempotent operation result
+    R-->>S: 201 review (PUBLIC at once, no admin approval)
+    end
+
+    rect rgb(235, 245, 255)
+    Note over TU,R: Phase 2 · Tutor replies once
+    TU->>G: REST POST /api/reviews/{id}/reply (If-Match, Idempotency-Key)
+    G->>A: REST forward-auth (TUTOR capability)
+    G->>R: REST request + actor assertion
+    Note over R: Local DB transaction: review belongs to this tutor,<br/>is PUBLIC, has no reply, revision matches,<br/>save reply and bump revision
+    alt Reply saved
+        R-->>TU: 200 review with reply
+    else Already replied or revision changed
+        R-->>TU: 409 REPLY_EXISTS or 412 REVISION_MISMATCH
+    end
+    end
+
+    rect rgb(255, 236, 236)
+    Note over S,R: Phase 3 · Flag a review
+    S->>G: REST POST /api/reviews/{id}/flags (reason, Idempotency-Key)
+    G->>R: REST request + actor assertion (after forward-auth)
+    Note over R: Local DB transaction: review is PUBLIC,<br/>one flag per reporter, insert flag OPEN,<br/>bump revision, outbox row review.flagged
+    alt First flag by this user
+        R-->>S: 201 flag
+    else Same user flags again
+        R-->>S: 409 FLAG_EXISTS
+    end
+    end
+
+    rect rgb(243, 235, 255)
+    Note over AD,N: Phase 4 · Admin moderates (KEEP, HIDE or REMOVE)
+    R-)Q: AMQP publish review.flagged (outbox worker, target ADMINS)
+    Q-)N: AMQP deliver event
+    Note over N: Dedupe, create admin notification job (simulated delivery)
+    AD->>G: REST POST /api/admin/reviews/{id}/moderation (decision, reason, If-Match)
+    G->>R: REST request + actor assertion (after forward-auth, ADMIN capability)
+    Note over R: Local DB transaction: apply decision (HIDE or REMOVE<br/>makes the whole review and its reply non-public),<br/>resolve flags, write audit row, outbox row review.moderated
+    R-->>AD: 200 review with new visibility
+    R-)Q: AMQP publish review.moderated (to review author and every flag reporter)
+    Q-)N: AMQP deliver event
+    end
+
+    rect rgb(240, 250, 240)
+    Note over S,R: Phase 5 · Public rating summary (computed on read, nothing stored)
+    S->>G: REST GET /api/discovery/tutors (search)
+    G->>T: REST request
+    T->>R: gRPC getRatingSummaries (subject ids)
+    Note over R: Count only PUBLIC reviews, average and 1 to 5 distribution
+    R-->>T: average (null if none), reviewCount, distribution
+    T-->>S: 200 tutors with ratings
+    end

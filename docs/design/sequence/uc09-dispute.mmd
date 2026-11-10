@@ -1,0 +1,73 @@
+sequenceDiagram
+    autonumber
+    actor S as Student (web UI)
+    actor AD as Admin (web UI)
+    participant G as API Gateway (Traefik)
+    participant A as Auth
+    participant W as Wallet
+    participant B as Booking
+    participant Q as RabbitMQ
+    participant N as Notification
+
+    Note over S,N: REST = solid arrow, gRPC = labelled "gRPC", event = labelled "AMQP", local DB step = note box
+
+    rect rgb(255, 244, 230)
+    Note over S,B: Phase 1 · Student opens a dispute (freezes the tutor earning)
+    S->>G: REST POST /api/disputes (bookingId, reason, Idempotency-Key)
+    G->>A: REST forward-auth: verify session and STUDENT capability
+    A-->>G: signed actor assertion
+    G->>W: REST request + actor assertion + gateway credential
+    W->>B: gRPC getBookingEvidence (booking id)
+    B-->>W: owner, status, start and end time
+    Note over W: Claim window check: not PAYMENT_DUE, lesson already started,<br/>cancelled booking within 24 h after its end
+    Note over W: Local DB transaction (PostgreSQL wallet_db): lock the booking's<br/>financial record, insert dispute OPEN and audit row,<br/>set dispute_held, outbox rows dispute-opened and dispute-held
+    alt Hold committed
+        W-->>S: 201 dispute (earning held)
+    else Earning already cleared, nothing left to refund, or dispute exists
+        W-->>S: 409 DISPUTE_WINDOW_CLOSED, NO_REFUNDABLE_AMOUNT or DISPUTE_EXISTS
+    end
+    end
+
+    rect rgb(240, 250, 240)
+    Note over W,W: Race with the clearing worker (same row lock, either order is safe)
+    W->>W: clearing sweep: lock financial record, 24 h after tutor confirmation
+    alt Dispute committed first
+        Note over W: dispute_held is true, so clearing is SKIPPED
+    else Clearing committed first
+        Note over W: status SETTLED, tutor paid once, later dispute opens fail with 409
+    end
+    end
+
+    rect rgb(235, 245, 255)
+    Note over AD,B: Phase 2 · Admin reviews the case
+    AD->>G: REST GET /api/admin/disputes/{id}
+    G->>W: REST request + actor assertion (after forward-auth, ADMIN capability)
+    W->>B: gRPC getBookingEvidence (current booking state)
+    W->>A: gRPC lookupAccounts (student and tutor names)
+    B-->>W: booking evidence
+    A-->>W: display names
+    W-->>AD: 200 dispute, booking, financial record, ledger entries, ETag
+    end
+
+    rect rgb(255, 236, 236)
+    Note over AD,W: Phase 3 · Admin decides
+    AD->>G: REST POST /api/admin/disputes/{id}/decision (decision, reason, If-Match, Idempotency-Key)
+    G->>W: REST request + actor assertion (after forward-auth)
+    Note over W: Local DB transaction: lock financial record, then the dispute,<br/>must still be OPEN and revision must match
+    alt APPROVE_FULL_REMAINDER
+        Note over W: Same transaction: refund paid minus already refunded to the student wallet,<br/>once per dispute id, remove pending earning and fee,<br/>audit row, outbox rows refund-applied and dispute-decided
+        W-->>AD: 200 dispute APPROVED, refundedAmount
+    else REJECT
+        Note over W: Same transaction: release the hold only, no money moves,<br/>clearing deadline unchanged, audit row, outbox row dispute-decided
+        W-->>AD: 200 dispute REJECTED
+    else Already decided or revision changed
+        W-->>AD: 409 DISPUTE_ALREADY_DECIDED or 412 REVISION_MISMATCH
+    end
+    end
+
+    rect rgb(243, 235, 255)
+    Note over W,N: Phase 4 · Notify the people involved (asynchronous, after commit)
+    W-)Q: AMQP publish dispute-opened (admins), dispute-held, dispute-decided, refund-applied
+    Q-)N: AMQP deliver events
+    Note over N: Dedupe, create jobs for student, tutor and admins (simulated delivery)
+    end

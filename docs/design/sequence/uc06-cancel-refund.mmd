@@ -1,0 +1,62 @@
+sequenceDiagram
+    autonumber
+    actor S as Student (web UI)
+    actor TU as Tutor (web UI)
+    participant G as API Gateway (Traefik)
+    participant A as Auth
+    participant B as Booking
+    participant W as Wallet
+    participant Q as RabbitMQ
+    participant N as Notification
+
+    Note over S,N: REST = solid arrow, gRPC = labelled "gRPC", event = labelled "AMQP", local DB step = note box
+
+    rect rgb(255, 236, 236)
+    Note over S,B: Phase 1 · See the consequence first (cancellation quote)
+    S->>G: REST GET /api/bookings/{id}/cancellation-quote
+    G->>A: REST forward-auth: verify session, account state, capability
+    A-->>G: signed actor assertion (60 s, RS256)
+    G->>B: REST request + actor assertion + gateway credential
+    Note over B: Server calculates the terms and stores the quote (PostgreSQL booking_db):<br/>student: 100% refund if the lesson starts more than 24 h away, else 70%<br/>tutor (own route /tutor-cancellation-quote): always 100%<br/>unpaid booking: refund 0. Quote expires in 5 min, at lesson start, or at the 24 h boundary
+    B-->>S: 200 quote (refund, fee, requiresWarning, expiresAt)
+    end
+
+    rect rgb(255, 244, 230)
+    Note over S,W: Phase 2 · Confirm the cancellation
+    S->>G: REST POST /api/bookings/{id}/cancel (quoteId, If-Match, Idempotency-Key)
+    G->>B: REST after forward-auth (same as steps 2 to 4)
+    alt Quote expired, changed, or booking revision differs
+        B-->>S: 409 QUOTE_EXPIRED or QUOTE_CHANGED, 412 REVISION_MISMATCH (request a new quote)
+    else Booking is paid (CONFIRMED)
+        Note over B: Local DB transaction: quote consumed, cancel operation PENDING,<br/>refund_operations row with the saved refund command, then commit
+        B->>W: gRPC ApplyCancellationRefund (outside any DB transaction)
+        Note over W: Local DB transaction (PostgreSQL wallet_db): row lock,<br/>ledger REFUND credit to the student wallet, record CANCELLED,<br/>pending tutor earning removed, outbox row wallet.refund-applied
+        alt Wallet answers
+            W-->>B: APPLIED (transaction id)
+            Note over B: One local DB transaction: booking CANCELLED, slots reopened<br/>(student or expiry) or CLOSED (tutor), outbox row booking.cancelled
+            B-->>S: 200 booking CANCELLED
+        else Response lost or Wallet down
+            B-->>S: 202 pending operation (refund is never shown as failed)
+            Note over B,W: Refund recovery worker repeats gRPC ApplyCancellationRefund with the same<br/>operation id until Wallet answers, then finalizes once. No second credit.
+        end
+    else Booking is unpaid (PAYMENT_DUE)
+        opt A payment attempt is still unresolved
+            B->>W: gRPC ResolveOrCloseLessonCharge (CANCEL_REQUESTED)
+            W-->>B: CLOSED, a late charge can no longer be applied
+        end
+        Note over B: One local DB transaction: booking CANCELLED, slots reopened,<br/>outbox row booking.cancelled. No money moves.
+        B-->>S: 200 booking CANCELLED
+    end
+    opt Tutor cancels instead
+        TU->>G: REST POST /api/bookings/{id}/tutor-cancel (quoteId, reason, If-Match, Idempotency-Key)
+        G->>B: REST after forward-auth. Same flow, full refund, freed slots stay CLOSED
+    end
+    end
+
+    rect rgb(243, 235, 255)
+    Note over W,N: Phase 3 · Notify (asynchronous, after commit)
+    B-)Q: AMQP publish booking.cancelled (student and tutor)
+    W-)Q: AMQP publish wallet.refund-applied (student)
+    Q-)N: AMQP deliver events
+    Note over N: Dedupe each event, create email and push jobs (simulated delivery)
+    end

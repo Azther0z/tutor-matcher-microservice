@@ -1,0 +1,73 @@
+sequenceDiagram
+    autonumber
+    actor T0 as Tutor (web UI)
+    actor D as Admin (web UI)
+    actor S as Student (web UI)
+    participant G as API Gateway (Traefik)
+    participant T as Tutor
+    participant B as Booking
+    participant R as Review
+    participant Q as RabbitMQ
+    participant N as Notification
+
+    Note over T0,N: REST = solid arrow, gRPC = labelled "gRPC", event = labelled "AMQP", local DB step = note box
+    Note over T0,N: Every protected REST call passes gateway forward-auth to Auth and reaches the owner with an actor assertion (UC-03 steps 5 to 7)
+
+    rect rgb(255, 236, 236)
+    Note over T0,T: Phase 1 · Listing or document change goes to admin review
+    T0->>G: REST POST /api/profiles/me/tutor/drafts, PUT drafts/{id}, then POST drafts/{id}/submit (TUTOR capability, If-Match)
+    G->>T: REST request + actor assertion
+    Note over T: Local DB transaction (MongoDB tutor_db): draft kind REVISION becomes PENDING,<br/>outbox row tutor.submission-submitted. The approved public version stays visible
+    T-->>T0: 200 submission PENDING
+    D->>G: REST POST /api/admin/tutor-requests/{id}/review (ADMIN, APPROVE, If-Match)
+    G->>T: REST request + actor assertion
+    Note over T: One local transaction: revision APPROVED and becomes the public content.<br/>No Auth grant needed, the tutor is already ACTIVE
+    T-->>D: 200 approved
+    end
+
+    rect rgb(255, 244, 230)
+    Note over T0,T: Phase 2 · Tutor publishes the listing and adds subjects
+    T0->>G: REST PATCH /api/profiles/me/tutor/publication (published true, If-Match, Idempotency-Key)
+    G->>T: REST request + actor assertion
+    T-->>T0: 200 workspace, published
+    T0->>G: REST POST /api/profiles/me/tutor/subjects (name, description, hourlyRate, format, learningAreas)
+    G->>T: REST request + actor assertion
+    alt Active tutor and valid input
+        Note over T: Local DB transaction: subject saved under the tutor (max 100)
+        T-->>T0: 201 subject
+    else Not activated, unknown learning area or blank text
+        T-->>T0: 403 TUTOR_NOT_ACTIVE or 422 VALIDATION_FAILED
+    end
+    end
+
+    rect rgb(235, 245, 255)
+    Note over T0,B: Phase 3 · Tutor opens dated 30-minute slots (owned by Booking)
+    T0->>G: REST PUT /api/profiles/me/tutor/availability/{date}/{time} (state OPEN, subjectIds, If-None-Match: * to create or If-Match to edit)
+    G->>B: REST request + actor assertion
+    B->>T: gRPC GetTutorEligibility (approved, activated?)
+    T-->>B: tutorId, approved, activated
+    B->>T: gRPC GetBookableSubject for each subjectId (must be the caller's own)
+    T-->>B: subject snapshot
+    alt Slot free or open
+        Note over B: Local DB transaction (PostgreSQL booking_db):<br/>lock row, insert or update slot OPEN, replace slot_subjects
+        B-->>T0: 200 slot, ETag = revision
+    else Slot already HELD or BOOKED
+        B-->>T0: 409 SLOT_LOCKED (a paid booking keeps its slot)
+    else Stale revision, or subject not owned
+        B-->>T0: 412 REVISION_MISMATCH or 422 SUBJECT_NOT_OWNED
+    end
+    end
+
+    rect rgb(243, 235, 255)
+    Note over S,N: Phase 4 · Students can now discover the listing, and the tutor is notified
+    S->>G: REST GET /api/discovery/tutors (public route, no token)
+    G->>T: REST request
+    T->>R: gRPC GetRatingSummaries (batch)
+    R-->>T: rating summaries
+    T->>B: gRPC BatchGetAvailability (next open slot, free count)
+    B-->>T: availability summaries
+    T-->>S: 200 ranked list of published subjects with ratings and availability
+    T-)Q: AMQP publish tutor.submission-decided (outbox worker, after commit)
+    Q-)N: AMQP deliver event
+    Note over N: Dedupe event, create jobs for the tutor (simulated delivery)
+    end

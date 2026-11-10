@@ -1,0 +1,59 @@
+sequenceDiagram
+    autonumber
+    actor S as Student (web UI)
+    actor AD as Admin (web UI)
+    participant G as API Gateway (Traefik)
+    participant A as Auth
+    participant W as Wallet
+    participant Q as RabbitMQ
+    participant N as Notification
+
+    Note over S,N: REST = solid arrow, gRPC = labelled "gRPC", event = labelled "AMQP", local DB step = note box. Every REST call passes gateway forward-auth first (Auth checks session and capability, signs a 60 s actor assertion), shown once in step 2
+
+    rect rgb(255, 236, 236)
+    Note over S,W: Phase 1 · Student sends a top-up request with the PromptPay slip
+    S->>G: REST POST /api/wallet/topups (Bearer token, Idempotency-Key, amount + slip image)
+    G->>A: REST forward-auth: verify session, capability STUDENT
+    A-->>G: signed actor assertion
+    G->>W: REST request + actor assertion + gateway credential
+    Note over W: Validate amount 0.01 to 100,000.00 and slip (PNG, JPEG or WebP, 2 MB max,<br/>file header must match). Reject if student already has a PENDING request
+    Note over W: Write slip file to the Wallet uploads folder, then local DB transaction<br/>(PostgreSQL wallet_db): operation + topup row PENDING, slip URL only
+    W-->>S: 201 top-up PENDING (not credited yet)
+    end
+
+    rect rgb(255, 244, 230)
+    Note over AD,W: Phase 2 · Admin reviews the slip and decides
+    AD->>G: REST GET /api/admin/topups?status=PENDING (forward-auth, capability ADMIN)
+    G->>W: REST request + actor assertion
+    W->>A: gRPC LookupAccounts (student display names)
+    A-->>W: names
+    W-->>AD: 200 review queue
+    AD->>G: REST GET /api/admin/topups/{id}/slip
+    G->>W: REST request + actor assertion
+    W-->>AD: 200 slip image (read from file)
+    AD->>G: REST POST /api/admin/topups/{id}/decision (APPROVE or REJECT, Idempotency-Key)
+    G->>W: REST request + actor assertion
+    alt Approve
+        Note over W: One local DB transaction: lock topup row and wallet row,<br/>ledger TOP_UP credit once per operation id, topup SUCCEEDED,<br/>operation SUCCEEDED, outbox row wallet.topup-resolved
+        W-->>AD: 200 SUCCEEDED
+    else Reject (reason required)
+        Note over W: One local DB transaction: topup FAILED with reason,<br/>operation REJECTED, no ledger entry, outbox row
+        W-->>AD: 200 FAILED
+    else Already decided
+        W-->>AD: 409 TOPUP_ALREADY_DECIDED (a decision is final, no second credit)
+    end
+    end
+
+    rect rgb(235, 245, 255)
+    Note over S,W: Phase 3 · Student sees the result
+    S->>G: REST GET /api/wallet/topups/{id} and GET /api/wallet
+    G->>W: REST request + actor assertion
+    W-->>S: 200 status and updated available balance
+    end
+
+    rect rgb(243, 235, 255)
+    Note over W,N: Phase 4 · Notify the student (asynchronous, after commit)
+    W-)Q: AMQP publish wallet.topup-resolved (outbox worker, stable event id)
+    Q-)N: AMQP deliver event
+    Note over N: Dedupe event, create email and push jobs for the student<br/>(group WALLET_PAYMENTS, simulated delivery)
+    end

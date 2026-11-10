@@ -1,0 +1,71 @@
+sequenceDiagram
+    autonumber
+    actor S as Student (web UI)
+    actor TU as Tutor (web UI)
+    participant G as API Gateway (Traefik)
+    participant A as Auth
+    participant B as Booking
+    participant W as Wallet
+    participant Q as RabbitMQ
+    participant N as Notification
+
+    Note over S,N: REST = solid arrow, gRPC = labelled "gRPC", event = labelled "AMQP", local DB step = note box
+
+    rect rgb(255, 236, 236)
+    Note over B,N: Phase 1 · Meeting link is provisioned (after the booking was confirmed, UC-03)
+    Note over B: Background worker (every 2 s) finds CONFIRMED bookings<br/>with meeting PROVISIONING. The meeting provider is simulated inside Booking.
+    Note over B: Local DB transaction (PostgreSQL booking_db):<br/>meeting READY, generated link saved,<br/>outbox row booking.meeting-updated (state only, never the URL)
+    B-)Q: AMQP publish booking.meeting-updated
+    Q-)N: AMQP deliver event
+    Note over N: Notify the student (simulated email and push)
+    end
+
+    rect rgb(255, 244, 230)
+    Note over S,B: Phase 2 · Join the lesson
+    S->>G: REST GET /api/bookings/{id}
+    G->>A: REST forward-auth: verify session, account state, capability
+    A-->>G: signed actor assertion (60 s, RS256)
+    G->>B: REST request + actor assertion + gateway credential
+    B-->>S: 200 booking with meeting.effectiveUrl, canJoin = true
+    Note over S: Student opens the room at the meeting provider (outside the system)
+    opt Tutor prefers their own room (until the scheduled end)
+        TU->>G: REST PATCH /api/bookings/{id}/meeting-link (If-Match, Idempotency-Key)
+        G->>B: REST after forward-auth (same as steps 4 to 6)
+        B-->>TU: 200 custom link saved, booking.meeting-updated queued
+    end
+    Note over B: After the lesson ends the meeting view becomes CLOSED:<br/>no link, canJoin = false
+    end
+
+    rect rgb(235, 245, 255)
+    Note over TU,B: Phase 3 · Tutor confirms completion (at or after the scheduled end)
+    TU->>G: REST POST /api/bookings/{id}/confirm-completion (If-Match, Idempotency-Key)
+    G->>B: REST after forward-auth (same as steps 4 to 6)
+    alt Lesson ended and booking CONFIRMED with no pending action
+        Note over B: One local DB transaction: status COMPLETED, tutor_confirmed_at = now,<br/>completion_handoffs row (saved Wallet command), outbox row booking.completed
+        B-->>TU: 200 booking COMPLETED
+    else Too early, not the assigned tutor, or cancelled
+        B-->>TU: 409 LESSON_NOT_ENDED or BOOKING_NOT_CONFIRMED, 403 TUTOR_ONLY
+    end
+    B-)Q: AMQP publish booking.completed (student and tutor)
+    Q-)N: AMQP deliver event, notify both people
+    Note over B: Review is now allowed: gRPC ReviewEligibility returns eligible when status is COMPLETED (UC-08)
+    end
+
+    rect rgb(243, 235, 255)
+    Note over B,W: Phase 4 · Financial handoff to Wallet (asynchronous, retried)
+    B->>W: gRPC RecordLessonCompletion (saved command, original tutorConfirmedAt)
+    alt Wallet answers
+        Note over W: Local DB transaction (PostgreSQL wallet_db):<br/>row lock on the booking record, platform fee,<br/>pending tutor earning, clearing_due_at = confirmed time + 24 h
+        W-->>B: 200 record COMPLETED, completion_handoffs row DONE
+    else Wallet down or timeout
+        Note over B,W: Worker repeats the same command with backoff.<br/>The original confirmation time is never replaced by the retry time.
+    end
+    end
+
+    rect rgb(235, 255, 240)
+    Note over W,N: Phase 5 · Earnings clearing (Wallet worker, every 30 s)
+    Note over W: After clearing_due_at, one local DB transaction under the same row lock:<br/>skip if a dispute is held or a refund removed the earning,<br/>otherwise ledger LESSON_EARNING credit to the tutor wallet, record SETTLED,<br/>outbox row wallet.earning-cleared
+    W-)Q: AMQP publish wallet.earning-cleared
+    Q-)N: AMQP deliver event
+    Note over N: Notify the tutor that earnings are available (payout is UC-07)
+    end

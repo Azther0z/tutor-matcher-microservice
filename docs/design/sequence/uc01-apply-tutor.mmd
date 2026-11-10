@@ -1,0 +1,68 @@
+sequenceDiagram
+    autonumber
+    actor S as Student (web UI)
+    actor D as Admin (web UI)
+    participant G as API Gateway (Traefik)
+    participant A as Auth
+    participant T as Tutor
+    participant Q as RabbitMQ
+    participant N as Notification
+
+    Note over S,N: REST = solid arrow, gRPC = labelled "gRPC", event = labelled "AMQP", local DB step = note box
+
+    rect rgb(255, 236, 236)
+    Note over S,T: Phase 1 · Student drafts and submits the application
+    S->>G: REST POST /api/profiles/me/tutor/drafts (Bearer token, Idempotency-Key)
+    G->>A: REST forward-auth: verify session, STUDENT capability
+    A-->>G: signed actor assertion (60 s, RS256)
+    G->>T: REST request + actor assertion + gateway credential
+    Note over T: Local DB transaction (MongoDB tutor_db):<br/>save draft kind APPLICATION, state DRAFT
+    T-->>S: 201 draft, ETag = revision
+    S->>G: REST PUT /api/profiles/me/tutor/drafts/{id} (If-Match: bio, ID document URL, intro video URL)
+    G->>T: REST (same forward-auth and actor assertion as steps 2 to 4)
+    T-->>S: 200 updated draft
+    S->>G: REST POST /api/profiles/me/tutor/drafts/{id}/submit (If-Match, consentAccepted)
+    G->>T: REST (forward-auth and actor assertion)
+    alt Complete application
+        Note over T: One local transaction: draft becomes PENDING (immutable),<br/>outbox row tutor.submission-submitted for all admins
+        T-->>S: 200 submission PENDING
+    else Missing bio, ID document or video, or one already pending
+        T-->>S: 422 VALIDATION_FAILED or 409 PENDING_SUBMISSION_EXISTS
+    end
+    end
+
+    rect rgb(255, 244, 230)
+    Note over D,T: Phase 2 · Admin reviews
+    D->>G: REST POST /api/admin/tutor-requests/{id}/review (ADMIN capability, If-Match, Idempotency-Key)
+    G->>T: REST (forward-auth and actor assertion)
+    alt APPROVE for a first application
+        Note over T: One local transaction: submission APPROVED, activation PENDING,<br/>grant work row saved, outbox row tutor.submission-decided
+        T-->>D: 202 operation pending, statusUrl /api/operations/tutor/{id}
+    else REJECT with a reason
+        Note over T: One local transaction: submission REJECTED with reason,<br/>outbox row tutor.submission-decided
+        T-->>D: 200 rejected, no tutor capability granted
+    end
+    end
+
+    rect rgb(235, 245, 255)
+    Note over T,A: Phase 3 · Activation: Tutor asks Auth to grant the capability
+    Note over T: Grant worker claims the pending grant, then calls Auth outside any DB transaction
+    T->>A: gRPC GrantTutorCapability (stable operationId, user, submission, approval revision)
+    Note over A: Local DB transaction (PostgreSQL auth_db):<br/>add TUTOR to the account once, save tutor_grants row for this operationId
+    alt Auth answers
+        A-->>T: APPLIED (capability TUTOR)
+        Note over T: One local transaction: activation ACTIVE, operation SUCCEEDED,<br/>outbox row tutor.activated
+    else Auth unavailable or response lost
+        Note over T: Grant stays PENDING, worker retries the same operationId with backoff.<br/>Auth returns the saved result, never a second grant
+    end
+    S->>G: REST GET /api/operations/tutor/{id}
+    G->>T: REST (forward-auth and actor assertion)
+    T-->>S: 200 SUCCEEDED (or PENDING until activation finishes)
+    end
+
+    rect rgb(243, 235, 255)
+    Note over T,N: Phase 4 · Notify (asynchronous, after each commit)
+    T-)Q: AMQP publish tutor.submission-submitted / submission-decided / activated (outbox worker)
+    Q-)N: AMQP deliver event
+    Note over N: Dedupe event, create jobs: admins on submit,<br/>the applicant on decision and activation (simulated delivery)
+    end

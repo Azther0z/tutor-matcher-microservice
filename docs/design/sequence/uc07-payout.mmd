@@ -1,0 +1,56 @@
+sequenceDiagram
+    autonumber
+    actor T as Tutor (web UI)
+    actor AD as Admin (web UI)
+    participant G as API Gateway (Traefik)
+    participant A as Auth
+    participant W as Wallet
+    participant Q as RabbitMQ
+    participant N as Notification
+
+    Note over T,N: REST = solid arrow, gRPC = labelled "gRPC", event = labelled "AMQP", local DB step = note box. Every REST call passes gateway forward-auth first (Auth checks session and capability, signs a 60 s actor assertion), shown once in step 2
+
+    rect rgb(255, 236, 236)
+    Note over T,W: Phase 1 · Save a payout account
+    T->>G: REST POST /api/payout-accounts (Bearer token, Idempotency-Key, bank, holder, account number)
+    G->>A: REST forward-auth: verify session, capability TUTOR
+    A-->>G: signed actor assertion
+    G->>W: REST request + actor assertion + gateway credential
+    Note over W: Local DB transaction (PostgreSQL wallet_db): lock wallet row, check bank code,<br/>10 to 15 digits, max 5 accounts, no duplicate. Store only a keyed hash<br/>and the masked number (****3210), never the full number
+    W-->>T: 201 account (masked number, ETag)
+    end
+
+    rect rgb(255, 244, 230)
+    Note over T,W: Phase 2 · Request a payout, funds are reserved
+    T->>G: REST POST /api/payouts (amount, payoutAccountId, Idempotency-Key)
+    G->>W: REST request + actor assertion (forward-auth as in step 2)
+    alt Available balance covers the amount
+        Note over W: One local DB transaction: lock wallet row, snapshot bank details,<br/>operation + payout PENDING, reserve the amount<br/>(available drops, posted balance unchanged)
+        W-->>T: 201 payout PENDING
+    else Not enough available funds
+        W-->>T: 402 INSUFFICIENT_BALANCE (nothing reserved)
+    end
+    end
+
+    rect rgb(235, 245, 255)
+    Note over AD,W: Phase 3 · Simulated provider outcome (demo control, no outbound bank call)
+    AD->>G: REST POST /api/demo/payouts/{id}/outcome (SUCCEEDED, FAILED or UNKNOWN, provider reference)
+    G->>W: REST request + actor assertion (capability ADMIN, DEMO_MODE on)
+    alt SUCCEEDED
+        Note over W: One local DB transaction: ledger PAYOUT debit once,<br/>reservation released, payout SUCCEEDED, outbox row wallet.payout-resolved
+        W-->>AD: 200 SUCCEEDED
+    else FAILED
+        Note over W: One local DB transaction: reservation released, no money moved,<br/>payout FAILED, outbox row wallet.payout-resolved
+        W-->>AD: 200 FAILED
+    else UNKNOWN
+        Note over W: Payout marked UNKNOWN, funds stay reserved, no event.<br/>It can still resolve later. A SUCCEEDED or FAILED result is final
+        W-->>AD: 200 UNKNOWN
+    end
+    end
+
+    rect rgb(243, 235, 255)
+    Note over W,N: Phase 4 · Notify the tutor (SUCCEEDED or FAILED only, asynchronous after commit)
+    W-)Q: AMQP publish wallet.payout-resolved (outbox worker, no bank details in the event)
+    Q-)N: AMQP deliver event
+    Note over N: Dedupe event, create email and push jobs for the tutor<br/>(group WALLET_PAYMENTS, simulated delivery)
+    end
