@@ -1496,8 +1496,19 @@
           ]
         },
         "classesTaught": {
-          "type": "integer",
-          "minimum": 0
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Null when Booking has no authoritative taught-class aggregate. Never substitute a fabricated zero."
+        },
+        "classesTaughtAvailable": {
+          "type": "boolean"
         }
       },
       "required": [

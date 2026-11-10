@@ -12,6 +12,30 @@ if (workspace === "auth-service") {
   console.log(
     "Auth production dependencies, HTTP factory and gRPC descriptors load.",
   );
+} else if (workspace === "tutor-service") {
+  const { createTutorApp } = await import("../tutor-service/dist/http.js");
+  const { createTutorGrpcServer } =
+    await import("../tutor-service/dist/grpc.js");
+  if (typeof createTutorApp({}) !== "function")
+    throw new Error("Tutor HTTP factory unavailable");
+  createTutorGrpcServer({}).forceShutdown();
+  console.log(
+    "Tutor production dependencies, HTTP factory and gRPC descriptors load.",
+  );
+} else if (workspace === "review-service") {
+  const { createReviewApp } = await import("../review-service/dist/routes.js");
+  const { createRatingServer } = await import("../review-service/dist/grpc.js");
+  if (
+    typeof createReviewApp(
+      {},
+      { gatewayCredential: "factory-check", actorPublicKey: "factory-check" },
+    ) !== "function"
+  )
+    throw new Error("Review HTTP factory unavailable");
+  createRatingServer({}, "factory-check").forceShutdown();
+  console.log(
+    "Review production dependencies, HTTP factory and gRPC descriptors load.",
+  );
 } else if (workspace === "web") {
   const reserve = createServer().listen(0, "127.0.0.1");
   await new Promise((resolve) => reserve.once("listening", resolve));
@@ -64,4 +88,5 @@ if (workspace === "auth-service") {
       await new Promise((resolve) => child.once("exit", resolve));
     }
   }
-} else throw new Error("Choose auth-service or web");
+} else
+  throw new Error("Choose auth-service, tutor-service, review-service or web");

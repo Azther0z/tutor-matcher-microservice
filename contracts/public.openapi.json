@@ -8630,6 +8630,16 @@
                 "TOP_RATED"
               ]
             }
+          },
+          {
+            "name": "preferredLearningAreas",
+            "in": "query",
+            "required": false,
+            "description": "Optional comma-separated learning-area codes from the signed-in Student profile. Personalization hint only, never an ownership or capability claim. Omit for anonymous fallback recommendations.",
+            "schema": {
+              "type": "string",
+              "maxLength": 1000
+            }
           }
         ],
         "responses": {

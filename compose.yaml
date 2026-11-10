@@ -54,6 +54,8 @@ services:
       RABBITMQ_AUTH_PASSWORD: ${RABBITMQ_AUTH_PASSWORD:?supply broker producer credential}
       RABBITMQ_WALLET_PASSWORD: ${RABBITMQ_WALLET_PASSWORD:?supply broker producer credential}
       RABBITMQ_NOTIFICATION_PASSWORD: ${RABBITMQ_NOTIFICATION_PASSWORD:?supply broker producer credential}
+      RABBITMQ_TUTOR_PASSWORD: ${RABBITMQ_TUTOR_PASSWORD:?supply tutor publisher password}
+      RABBITMQ_REVIEW_PASSWORD: ${RABBITMQ_REVIEW_PASSWORD:?supply review publisher password}
     volumes:
     - ./docker/rabbitmq-provision.mjs:/provision/rabbitmq-provision.mjs:ro
     - ./notification-service/deploy/rabbitmq-definitions.json:/provision/rabbitmq-definitions.json:ro
@@ -229,7 +231,13 @@ services:
     - backend
     profiles:
     - target
-    image: ${TUTOR_IMAGE:-tutor-matcher-tutor:pending}
+    image: ${TUTOR_IMAGE:-tutor-matcher-tutor:local}
+    cpus: 0.5
+    build:
+      context: .
+      dockerfile: docker/workspace.Dockerfile
+      args:
+        WORKSPACE: tutor-service
     environment:
       ACTOR_ASSERTION_PUBLIC_KEY: ${ACTOR_ASSERTION_PUBLIC_KEY:?supply actor verification key}
       DEMO_MODE: 'true'
@@ -238,6 +246,8 @@ services:
       MONGO_URI: mongodb://tutor_owner:${TUTOR_DB_PASSWORD}@mongo:27017/tutor_db?authSource=tutor_db&replicaSet=rs0
       BOOKING_GRPC_URL: booking-service:50052
       AUTH_GRPC_URL: auth-service:50051
+      REVIEW_HTTP_URL: http://review-service:4005
+      RABBITMQ_URL: amqp://tutor:${RABBITMQ_TUTOR_PASSWORD:?supply tutor publisher password}@rabbitmq:5672
       REVIEW_GRPC_URL: review-service:50055
       TUTOR_WORKLOAD_CREDENTIAL: ${TUTOR_WORKLOAD_CREDENTIAL:?supply distinct workload credential}
       AUTH_WORKLOAD_CREDENTIAL: ${AUTH_WORKLOAD_CREDENTIAL:?supply distinct workload credential}
@@ -247,6 +257,8 @@ services:
       GATEWAY_WORKLOAD_CREDENTIAL: ${GATEWAY_WORKLOAD_CREDENTIAL:?supply distinct workload credential}
     depends_on:
       mongo-init:
+        condition: service_completed_successfully
+      rabbitmq-provision:
         condition: service_completed_successfully
     healthcheck:
       test:
@@ -360,7 +372,12 @@ services:
     - backend
     profiles:
     - target
-    image: ${REVIEW_IMAGE:-tutor-matcher-review:pending}
+    image: ${REVIEW_IMAGE:-tutor-matcher-review:local}
+    build:
+      context: .
+      dockerfile: docker/workspace.Dockerfile
+      args:
+        WORKSPACE: review-service
     environment:
       ACTOR_ASSERTION_PUBLIC_KEY: ${ACTOR_ASSERTION_PUBLIC_KEY:?supply actor verification key}
       DEMO_MODE: 'true'
@@ -368,12 +385,15 @@ services:
       GRPC_PORT: '50055'
       MONGO_URI: mongodb://review_owner:${REVIEW_DB_PASSWORD}@mongo:27017/review_db?authSource=review_db&replicaSet=rs0
       AUTH_GRPC_URL: auth-service:50051
+      RABBITMQ_URL: amqp://review:${RABBITMQ_REVIEW_PASSWORD:?supply review publisher password}@rabbitmq:5672
       BOOKING_GRPC_URL: booking-service:50052
       REVIEW_WORKLOAD_CREDENTIAL: ${REVIEW_WORKLOAD_CREDENTIAL:?supply distinct workload credential}
       TUTOR_WORKLOAD_CREDENTIAL: ${TUTOR_WORKLOAD_CREDENTIAL:?supply distinct workload credential}
       GATEWAY_WORKLOAD_CREDENTIAL: ${GATEWAY_WORKLOAD_CREDENTIAL:?supply distinct workload credential}
     depends_on:
       mongo-init:
+        condition: service_completed_successfully
+      rabbitmq-provision:
         condition: service_completed_successfully
     healthcheck:
       test:

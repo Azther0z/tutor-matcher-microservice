@@ -1,7 +1,10 @@
 import { defineConfig, devices } from "@playwright/test";
 import { existsSync } from "node:fs";
 
-const systemChrome = process.platform === "linux" && existsSync("/usr/bin/google-chrome") ? "/usr/bin/google-chrome" : undefined;
+const systemChrome =
+  process.platform === "linux" && existsSync("/usr/bin/google-chrome")
+    ? "/usr/bin/google-chrome"
+    : undefined;
 const executablePath = process.env.CHROME_BIN || systemChrome;
 const testPort = 3127;
 const localBaseURL = `http://localhost:${testPort}`;

@@ -1,17 +1,24 @@
 {
-  "name": "tutor-service",
-  "version": "1.0.0",
+  "name": "@tutor-matcher/tutor-service",
+  "version": "2.0.0",
   "private": true,
+  "type": "commonjs",
   "scripts": {
-    "dev": "node --watch src/index.js",
-    "start": "node src/index.js"
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "start": "node dist/index.js",
+    "dev": "tsx watch src/index.ts",
+    "test": "node --import tsx --test src/*.test.ts",
+    "migrate": "node dist/migrate.js",
+    "seed": "node dist/seed.js"
   },
   "dependencies": {
     "@grpc/grpc-js": "^1.13.4",
     "@grpc/proto-loader": "^0.7.15",
+    "@tutor-matcher/shared": "*",
+    "amqplib": "^0.10.8",
     "dotenv": "^16.5.0",
     "express": "^5.1.0",
-    "mongoose": "^8.15.1"
+    "mongodb": "^6.16.0"
   }
 }
-
