@@ -689,3 +689,5 @@ fieldset.field legend { font-size: 14px; font-weight: 500; padding: 0; margin-bo
 .topup-card .slot-footer .button { min-height: 30px; padding: 4px 10px; font-size: 13px; }
 .topup-card .slot-footer .button-quiet { margin-right: -10px; }
 .topup-card .status-corner { top: 14px; }
+.tooltip-wrap.tip-right::after { left: auto; right: 0; transform: none; }
+.tooltip-wrap .button:disabled { background: transparent; box-shadow: inset 0 0 0 1px var(--line-strong); color: var(--muted); opacity: 0.8; }

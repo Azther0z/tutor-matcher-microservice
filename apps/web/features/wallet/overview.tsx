@@ -75,7 +75,7 @@ export function WalletOverviewPage() {
               <span>Available balance</span>
               <strong>{formatMoney(wallet.availableBalance)}</strong>
             </div>
-            <span className={waiting ? "tooltip-wrap" : undefined} data-tip="A top-up request is waiting for review">
+            <span className={waiting ? "tooltip-wrap tip-right" : undefined} data-tip={waiting ? "A top-up request is waiting for review" : undefined}>
               <button type="button" className="button" onClick={() => setTopupOpen(true)} disabled={waiting || (Boolean(error) && !wallet)}>Top up</button>
             </span>
           </div>
