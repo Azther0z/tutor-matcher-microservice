@@ -349,7 +349,9 @@ fieldset.field legend { font-size: 14px; font-weight: 500; padding: 0; margin-bo
 .search-side > .form { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 .search-side .plain-fieldset { display: contents; }
 .search-fields { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; display: grid; align-content: start; gap: 14px; padding-right: 6px; margin-right: -6px; }
-.search-actions { display: grid; gap: 10px; padding-top: 14px; margin-top: 14px; border-top: 1px solid var(--line); }
+.search-actions { display: grid; grid-template-columns: 1fr auto; gap: 8px; padding-top: 12px; margin-top: 12px; border-top: 1px solid var(--line); }
+.search-actions .button { min-height: 38px; padding: 8px 14px; font-size: 14px; }
+.search-actions .clear-filters { padding: 8px 12px; }
 .search-side .field { gap: 5px; }
 .search-side .field label, .search-side .field-label { font-size: 13px; }
 .search-side .field input, .search-side .field select { padding: 9px 12px; border-radius: 8px; font-size: 14px; }
