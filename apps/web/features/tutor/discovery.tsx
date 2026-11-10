@@ -1,6 +1,8 @@
 "use client";
 
 import { VerifiedBadge } from "@/components/verified-badge";
+import { StarRatingFilter } from "@/components/star-rating-filter";
+import { PriceRangeFilter } from "@/components/price-range-filter";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -205,46 +207,19 @@ export function Discover() {
               </div>
               <div className="field">
                 <span className="field-label" id="rating-label">Minimum rating</span>
-                <div className="star-picker" role="group" aria-labelledby="rating-label">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <button
-                      key={star}
-                      type="button"
-                      className={`star ${star <= rating ? "on" : ""}`}
-                      aria-label={`${star} ${star === 1 ? "star" : "stars"} and up`}
-                      aria-pressed={rating === star}
-                      onClick={() => apply({ minRating: rating === star ? null : String(star) })}
-                    >
-                      ★
-                    </button>
-                  ))}
-                </div>
-                <span className="field-hint">{rating ? `${rating} ${rating === 1 ? "star" : "stars"} & up` : "Any rating"}</span>
+                <StarRatingFilter
+                  value={rating}
+                  labelId="rating-label"
+                  onChange={(next) => apply({ minRating: next === null ? null : String(next) })}
+                />
                 <input type="hidden" name="minRating" value={query.get("minRating") ?? ""} />
               </div>
-              <div className="field-set">
-                <Field
-                  id="minimum-rate"
-                  name="minRate"
-                  label="Min price (THB/hr)"
-                  inputMode="decimal"
-                  defaultValue={query.get("minRate") ?? ""}
-                  error={priceErrors.min}
-                />
-                <Field
-                  id="maximum-rate"
-                  name="maxRate"
-                  label="Max price (THB/hr)"
-                  inputMode="decimal"
-                  defaultValue={query.get("maxRate") ?? ""}
-                  error={priceErrors.max}
-                />
-              </div>
-              {range.data && (
-                <p className="field-hint">
-                  Published rates: THB {range.data.minimum.amount} to {range.data.maximum.amount} per hour.
-                </p>
-              )}
+              <PriceRangeFilter
+                defaultMin={query.get("minRate") ?? ""}
+                defaultMax={query.get("maxRate") ?? ""}
+                minError={priceErrors.min}
+                maxError={priceErrors.max}
+              />
               <div className="field">
                 <span className="field-label" id="format-label">Format</span>
                 <div className="pill-toggle" role="group" aria-labelledby="format-label">
