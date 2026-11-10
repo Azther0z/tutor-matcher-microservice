@@ -66,7 +66,17 @@ function BookingProgress({ booking }: { booking: Booking }) {
           const crossed = cancelled && index === reached + 1;
           return (
             <li key={label} className={crossed ? "is-crossed" : done ? "is-done" : ""}>
-              <i>{crossed ? "✕" : done ? "✓" : ""}</i>
+              <i>
+                {crossed ? (
+                  <svg viewBox="0 0 12 12" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="butt">
+                    <path d="M2.5 2.5l7 7M9.5 2.5l-7 7" />
+                  </svg>
+                ) : done ? (
+                  <svg viewBox="0 0 12 12" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="butt" strokeLinejoin="miter">
+                    <path d="M2 6.5l2.8 2.8L10 3.5" />
+                  </svg>
+                ) : null}
+              </i>
               {label}
             </li>
           );
