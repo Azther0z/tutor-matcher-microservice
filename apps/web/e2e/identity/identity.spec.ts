@@ -93,7 +93,18 @@ test("login rejects an external return destination", async ({ page }) => {
   await page.getByLabel("Email address").fill("jamie@example.test");
   await page.getByLabel("Password").fill("correct horse 123");
   await page.getByRole("button", { name: "Log in" }).click();
-  await expect(page).toHaveURL(/\/account$/);
+  await expect(page).toHaveURL(/\/discover$/);
+});
+
+test("login with no return destination sends an admin to the tutor request queue", async ({ page }) => {
+  const adminSession = { ...session, user: { ...account, capabilities: ["STUDENT", "ADMIN"] } };
+  await page.route("**/api/auth/login", async (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(adminSession) }));
+  await page.route("**/api/profiles/me/account", async (route) => route.fulfill({ status: 200, headers: { ETag: '"0"' }, contentType: "application/json", body: JSON.stringify(adminSession.user) }));
+  await page.goto("/login");
+  await page.getByLabel("Email address").fill("jamie@example.test");
+  await page.getByLabel("Password").fill("correct horse 123");
+  await page.getByRole("button", { name: "Log in" }).click();
+  await expect(page).toHaveURL(/\/admin\/tutor-requests$/);
 });
 
 test("signed-out navigation does not show a sign-out action", async ({ page }) => {

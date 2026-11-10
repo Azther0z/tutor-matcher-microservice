@@ -97,14 +97,14 @@ export async function api<T>(path: string, options: ApiOptions = {}): Promise<T>
   return (await apiResponse<T>(path, options)).data;
 }
 
-export function safeReturnPath(candidate: string | null): string {
-  if (!candidate || !candidate.startsWith("/") || candidate.startsWith("//") || candidate.includes("\\")) return "/account";
+export function safeReturnPath(candidate: string | null, fallback = "/account"): string {
+  if (!candidate || !candidate.startsWith("/") || candidate.startsWith("//") || candidate.includes("\\")) return fallback;
   try {
     const parsed = new URL(candidate, window.location.origin);
-    if (parsed.origin !== window.location.origin) return "/account";
+    if (parsed.origin !== window.location.origin) return fallback;
     return `${parsed.pathname}${parsed.search}${parsed.hash}`;
   } catch {
-    return "/account";
+    return fallback;
   }
 }
 

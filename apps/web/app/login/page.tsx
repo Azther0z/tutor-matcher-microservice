@@ -13,6 +13,11 @@ const NOTICES: Record<string, string> = {
   deactivated: "Your account was deactivated and you were signed out. An administrator can restore access.",
 };
 
+/** Where a fresh login lands when no page asked for it: admins go to their review queue, everyone else to tutor search. */
+function homeFor(capabilities: string[]): string {
+  return capabilities.includes("ADMIN") ? "/admin/tutor-requests" : "/discover";
+}
+
 function LoginForm() {
   const params = useSearchParams();
   const router = useRouter();
@@ -23,7 +28,7 @@ function LoginForm() {
   const [emailError, setEmailError] = useState("");
   const [passwordError, setPasswordError] = useState("");
   // Someone who is already signed in has no use for the form.
-  useEffect(() => { if (ready && account) router.replace(safeReturnPath(params.get("returnTo"))); }, [ready, account, router, params]);
+  useEffect(() => { if (ready && account) router.replace(safeReturnPath(params.get("returnTo"), homeFor(account.capabilities))); }, [ready, account, router, params]);
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault(); setPending(true); setError(null); setEmailError(""); setPasswordError("");
     const formElement = event.currentTarget;
@@ -37,7 +42,7 @@ function LoginForm() {
     try {
       const session = await api<AuthSession>("/auth/login", { method: "POST", auth: false, body: { email, password } });
       accept(session);
-      router.replace(safeReturnPath(params.get("returnTo")));
+      router.replace(safeReturnPath(params.get("returnTo"), homeFor(session.user.capabilities)));
     } catch (e) {
       const failure = failureOf(e, "We couldn’t sign you in. Try again in a moment.");
       const code = e instanceof ApiError ? e.body?.code : undefined;
