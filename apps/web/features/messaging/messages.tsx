@@ -179,6 +179,7 @@ function Thread({ userId }: { userId: string }) {
   const [key, setKey] = useState(newIdempotencyKey());
   const scroller = useRef<HTMLDivElement>(null);
   const [lookedUp, setLookedUp] = useState("");
+  const [draft, setDraft] = useState("");
   const load = useCallback(async () => {
     setError("");
     try {
@@ -225,13 +226,8 @@ function Thread({ userId }: { userId: string }) {
   }, [thread?.items.length]);
   async function send(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const form = event.currentTarget;
-    const content = String(new FormData(form).get("content") ?? "").trim();
-    if (!content) {
-      setError("Write a message before sending.");
-      form.querySelector("textarea")?.focus();
-      return;
-    }
+    const content = draft.trim();
+    if (!content || pending) return;
     setPending(true);
     setError("");
     setNotice("");
@@ -241,7 +237,7 @@ function Thread({ userId }: { userId: string }) {
         body: { recipientId: userId, view, content },
         idempotencyKey: key,
       });
-      form.reset();
+      setDraft("");
       setKey(newIdempotencyKey());
       await load();
     } catch (caught) {
@@ -302,7 +298,8 @@ function Thread({ userId }: { userId: string }) {
               placeholder="Write a message"
               rows={1}
               maxLength={2000}
-              required
+              value={draft}
+              onChange={(event) => setDraft(event.target.value)}
               onKeyDown={(event) => {
                 if (event.key === "Enter" && !event.shiftKey) {
                   event.preventDefault();
@@ -310,8 +307,10 @@ function Thread({ userId }: { userId: string }) {
                 }
               }}
             />
-            <button className="button" disabled={pending}>
-              {pending ? "Sending…" : "Send"}
+            <button className="chat-send" disabled={pending || !draft.trim()} aria-label="Send message" title="Send">
+              <svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M17.5 2.5 8.75 11.25M17.5 2.5l-5.5 15-3.25-6.25L2.5 8 17.5 2.5Z" />
+              </svg>
             </button>
           </form>
         </section>
