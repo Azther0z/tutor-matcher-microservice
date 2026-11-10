@@ -1,0 +1,464 @@
+# Generated from contracts/operation-map.json by scripts/generate-internal-traefik-routes.mjs (swarm).
+# Internal owner routes are separate from public gateway routes and omit health/admin paths.
+http:
+  routers:
+    cancelBooking:
+      entryPoints: [internal]
+      rule: Host(`booking.internal`) && PathRegexp(`^/bookings/[^/]+/cancel$`) && Method(`POST`)
+      priority: 10300
+      service: internal-booking-http@swarm
+    completeBooking:
+      entryPoints: [internal]
+      rule: Host(`booking.internal`) && PathRegexp(`^/bookings/[^/]+/confirm-completion$`) && Method(`POST`)
+      priority: 10300
+      service: internal-booking-http@swarm
+    confirmPasswordReset:
+      entryPoints: [internal]
+      rule: Host(`auth.internal`) && Path(`/auth/password-reset/confirm`) && Method(`POST`)
+      priority: 10300
+      service: internal-auth-http@swarm
+    copyTutorSubmission:
+      entryPoints: [internal]
+      rule: Host(`tutor.internal`) && PathRegexp(`^/profiles/me/tutor/submissions/[^/]+/copy$`) && Method(`POST`)
+      priority: 10600
+      service: internal-tutor-http@swarm
+    createBooking:
+      entryPoints: [internal]
+      rule: Host(`booking.internal`) && Path(`/bookings`) && Method(`POST`)
+      priority: 10100
+      service: internal-booking-http@swarm
+    createPayout:
+      entryPoints: [internal]
+      rule: Host(`wallet.internal`) && Path(`/payouts`) && Method(`POST`)
+      priority: 10100
+      service: internal-wallet-http@swarm
+    createPayoutAccount:
+      entryPoints: [internal]
+      rule: Host(`wallet.internal`) && Path(`/payout-accounts`) && Method(`POST`)
+      priority: 10100
+      service: internal-wallet-http@swarm
+    createReview:
+      entryPoints: [internal]
+      rule: Host(`review.internal`) && PathRegexp(`^/bookings/[^/]+/review$`) && Method(`POST`)
+      priority: 10300
+      service: internal-review-http@swarm
+    createSubject:
+      entryPoints: [internal]
+      rule: Host(`tutor.internal`) && Path(`/profiles/me/tutor/subjects`) && Method(`POST`)
+      priority: 10400
+      service: internal-tutor-http@swarm
+    createTopup:
+      entryPoints: [internal]
+      rule: Host(`wallet.internal`) && Path(`/wallet/topups`) && Method(`POST`)
+      priority: 10200
+      service: internal-wallet-http@swarm
+    createTutorDraft:
+      entryPoints: [internal]
+      rule: Host(`tutor.internal`) && Path(`/profiles/me/tutor/drafts`) && Method(`POST`)
+      priority: 10400
+      service: internal-tutor-http@swarm
+    decideDispute:
+      entryPoints: [internal]
+      rule: Host(`wallet.internal`) && PathRegexp(`^/admin/disputes/[^/]+/decision$`) && Method(`POST`)
+      priority: 10400
+      service: internal-wallet-http@swarm
+    decideTopup:
+      entryPoints: [internal]
+      rule: Host(`wallet.internal`) && PathRegexp(`^/admin/topups/[^/]+/decision$`) && Method(`POST`)
+      priority: 10400
+      service: internal-wallet-http@swarm
+    deletePayoutAccount:
+      entryPoints: [internal]
+      rule: Host(`wallet.internal`) && PathRegexp(`^/payout-accounts/[^/]+$`) && Method(`DELETE`)
+      priority: 10200
+      service: internal-wallet-http@swarm
+    deleteTutorDraft:
+      entryPoints: [internal]
+      rule: Host(`tutor.internal`) && PathRegexp(`^/profiles/me/tutor/drafts/[^/]+$`) && Method(`DELETE`)
+      priority: 10500
+      service: internal-tutor-http@swarm
+    flagReview:
+      entryPoints: [internal]
+      rule: Host(`review.internal`) && PathRegexp(`^/reviews/[^/]+/flags$`) && Method(`POST`)
+      priority: 10300
+      service: internal-review-http@swarm
+    getAccountSettings:
+      entryPoints: [internal]
+      rule: Host(`auth.internal`) && Path(`/profiles/me/account`) && Method(`GET`)
+      priority: 10300
+      service: internal-auth-http@swarm
+    getAdminAccount:
+      entryPoints: [internal]
+      rule: Host(`auth.internal`) && PathRegexp(`^/admin/users/[^/]+$`) && Method(`GET`)
+      priority: 10300
+      service: internal-auth-http@swarm
+    getAdminDispute:
+      entryPoints: [internal]
+      rule: Host(`wallet.internal`) && PathRegexp(`^/admin/disputes/[^/]+$`) && Method(`GET`)
+      priority: 10300
+      service: internal-wallet-http@swarm
+    getBooking:
+      entryPoints: [internal]
+      rule: Host(`booking.internal`) && PathRegexp(`^/bookings/[^/]+$`) && Method(`GET`)
+      priority: 10200
+      service: internal-booking-http@swarm
+    getCurrentAccount:
+      entryPoints: [internal]
+      rule: Host(`auth.internal`) && Path(`/auth/me`) && Method(`GET`)
+      priority: 10200
+      service: internal-auth-http@swarm
+    getDemoResetContent:
+      entryPoints: [internal]
+      rule: Host(`auth.internal`) && PathRegexp(`^/demo/password-resets/[^/]+$`) && Method(`GET`)
+      priority: 10300
+      service: internal-auth-http@swarm
+    getInbox:
+      entryPoints: [internal]
+      rule: Host(`messaging.internal`) && Path(`/messages/inbox`) && Method(`GET`)
+      priority: 10200
+      service: internal-messaging-http@swarm
+    getLearningAreas:
+      entryPoints: [internal]
+      rule: Host(`tutor.internal`) && Path(`/discovery/learning-areas`) && Method(`GET`)
+      priority: 10200
+      service: internal-tutor-http@swarm
+    getNeedsConfirmation:
+      entryPoints: [internal]
+      rule: Host(`booking.internal`) && Path(`/bookings/tutor/needs-confirmation`) && Method(`GET`)
+      priority: 10300
+      service: internal-booking-http@swarm
+    getNotificationPreferences:
+      entryPoints: [internal]
+      rule: Host(`notification.internal`) && Path(`/notifications/preferences`) && Method(`GET`)
+      priority: 10200
+      service: internal-notification-http@swarm
+    getOwnAvailabilityCalendar:
+      entryPoints: [internal]
+      rule: Host(`booking.internal`) && Path(`/profiles/me/tutor/availability/calendar`) && Method(`GET`)
+      priority: 10500
+      service: internal-booking-http@swarm
+    getOwnAvailabilityDay:
+      entryPoints: [internal]
+      rule: Host(`booking.internal`) && PathRegexp(`^/profiles/me/tutor/availability/[^/]+$`) && Method(`GET`)
+      priority: 10500
+      service: internal-booking-http@swarm
+    getOwnDispute:
+      entryPoints: [internal]
+      rule: Host(`wallet.internal`) && PathRegexp(`^/disputes/[^/]+$`) && Method(`GET`)
+      priority: 10200
+      service: internal-wallet-http@swarm
+    getPayout:
+      entryPoints: [internal]
+      rule: Host(`wallet.internal`) && PathRegexp(`^/payouts/[^/]+$`) && Method(`GET`)
+      priority: 10200
+      service: internal-wallet-http@swarm
+    getPayoutBanks:
+      entryPoints: [internal]
+      rule: Host(`wallet.internal`) && Path(`/payout-accounts/banks`) && Method(`GET`)
+      priority: 10200
+      service: internal-wallet-http@swarm
+    getPublicSubject:
+      entryPoints: [internal]
+      rule: Host(`tutor.internal`) && PathRegexp(`^/discovery/tutors/[^/]+/subjects/[^/]+$`) && Method(`GET`)
+      priority: 10500
+      service: internal-tutor-http@swarm
+    getPublicTutor:
+      entryPoints: [internal]
+      rule: Host(`tutor.internal`) && PathRegexp(`^/discovery/tutors/[^/]+/profile$`) && Method(`GET`)
+      priority: 10400
+      service: internal-tutor-http@swarm
+    getSearchPriceRange:
+      entryPoints: [internal]
+      rule: Host(`tutor.internal`) && Path(`/discovery/price-range`) && Method(`GET`)
+      priority: 10200
+      service: internal-tutor-http@swarm
+    getStudentCancellationQuote:
+      entryPoints: [internal]
+      rule: Host(`booking.internal`) && PathRegexp(`^/bookings/[^/]+/cancellation-quote$`) && Method(`GET`)
+      priority: 10300
+      service: internal-booking-http@swarm
+    getStudentProfile:
+      entryPoints: [internal]
+      rule: Host(`auth.internal`) && Path(`/profiles/me/student`) && Method(`GET`)
+      priority: 10300
+      service: internal-auth-http@swarm
+    getThread:
+      entryPoints: [internal]
+      rule: Host(`messaging.internal`) && PathRegexp(`^/messages/thread/[^/]+$`) && Method(`GET`)
+      priority: 10300
+      service: internal-messaging-http@swarm
+    getTopup:
+      entryPoints: [internal]
+      rule: Host(`wallet.internal`) && PathRegexp(`^/wallet/topups/[^/]+$`) && Method(`GET`)
+      priority: 10300
+      service: internal-wallet-http@swarm
+    getTopupSlip:
+      entryPoints: [internal]
+      rule: Host(`wallet.internal`) && PathRegexp(`^/admin/topups/[^/]+/slip$`) && Method(`GET`)
+      priority: 10400
+      service: internal-wallet-http@swarm
+    getTutorCancellationQuote:
+      entryPoints: [internal]
+      rule: Host(`booking.internal`) && PathRegexp(`^/bookings/[^/]+/tutor-cancellation-quote$`) && Method(`GET`)
+      priority: 10300
+      service: internal-booking-http@swarm
+    getTutorRequest:
+      entryPoints: [internal]
+      rule: Host(`tutor.internal`) && PathRegexp(`^/admin/tutor-requests/[^/]+$`) && Method(`GET`)
+      priority: 10300
+      service: internal-tutor-http@swarm
+    getTutorUpcoming:
+      entryPoints: [internal]
+      rule: Host(`booking.internal`) && Path(`/bookings/tutor/upcoming`) && Method(`GET`)
+      priority: 10300
+      service: internal-booking-http@swarm
+    getTutorWorkspace:
+      entryPoints: [internal]
+      rule: Host(`tutor.internal`) && Path(`/profiles/me/tutor`) && Method(`GET`)
+      priority: 10300
+      service: internal-tutor-http@swarm
+    getWallet:
+      entryPoints: [internal]
+      rule: Host(`wallet.internal`) && Path(`/wallet`) && Method(`GET`)
+      priority: 10100
+      service: internal-wallet-http@swarm
+    getWalletTransaction:
+      entryPoints: [internal]
+      rule: Host(`wallet.internal`) && PathRegexp(`^/wallet/transactions/[^/]+$`) && Method(`GET`)
+      priority: 10300
+      service: internal-wallet-http@swarm
+    listAdminDisputes:
+      entryPoints: [internal]
+      rule: Host(`wallet.internal`) && Path(`/admin/disputes`) && Method(`GET`)
+      priority: 10200
+      service: internal-wallet-http@swarm
+    listAdminTopups:
+      entryPoints: [internal]
+      rule: Host(`wallet.internal`) && Path(`/admin/topups`) && Method(`GET`)
+      priority: 10200
+      service: internal-wallet-http@swarm
+    listBookings:
+      entryPoints: [internal]
+      rule: Host(`booking.internal`) && Path(`/bookings`) && Method(`GET`)
+      priority: 10100
+      service: internal-booking-http@swarm
+    listOwnDisputes:
+      entryPoints: [internal]
+      rule: Host(`wallet.internal`) && Path(`/disputes`) && Method(`GET`)
+      priority: 10100
+      service: internal-wallet-http@swarm
+    listOwnNotifications:
+      entryPoints: [internal]
+      rule: Host(`notification.internal`) && Path(`/notifications`) && Method(`GET`)
+      priority: 10100
+      service: internal-notification-http@swarm
+    listOwnSubjects:
+      entryPoints: [internal]
+      rule: Host(`tutor.internal`) && Path(`/profiles/me/tutor/subjects`) && Method(`GET`)
+      priority: 10400
+      service: internal-tutor-http@swarm
+    listPayoutAccounts:
+      entryPoints: [internal]
+      rule: Host(`wallet.internal`) && Path(`/payout-accounts`) && Method(`GET`)
+      priority: 10100
+      service: internal-wallet-http@swarm
+    listPayouts:
+      entryPoints: [internal]
+      rule: Host(`wallet.internal`) && Path(`/payouts`) && Method(`GET`)
+      priority: 10100
+      service: internal-wallet-http@swarm
+    listPublicReviews:
+      entryPoints: [internal]
+      rule: Host(`review.internal`) && Path(`/reviews`) && Method(`GET`)
+      priority: 10100
+      service: internal-review-http@swarm
+    listReviewFlags:
+      entryPoints: [internal]
+      rule: Host(`review.internal`) && Path(`/admin/review-flags`) && Method(`GET`)
+      priority: 10200
+      service: internal-review-http@swarm
+    listTopups:
+      entryPoints: [internal]
+      rule: Host(`wallet.internal`) && Path(`/wallet/topups`) && Method(`GET`)
+      priority: 10200
+      service: internal-wallet-http@swarm
+    listTutorRequests:
+      entryPoints: [internal]
+      rule: Host(`tutor.internal`) && Path(`/admin/tutor-requests`) && Method(`GET`)
+      priority: 10200
+      service: internal-tutor-http@swarm
+    listWalletTransactions:
+      entryPoints: [internal]
+      rule: Host(`wallet.internal`) && Path(`/wallet/transactions`) && Method(`GET`)
+      priority: 10200
+      service: internal-wallet-http@swarm
+    login:
+      entryPoints: [internal]
+      rule: Host(`auth.internal`) && Path(`/auth/login`) && Method(`POST`)
+      priority: 10200
+      service: internal-auth-http@swarm
+    logout:
+      entryPoints: [internal]
+      rule: Host(`auth.internal`) && Path(`/auth/logout`) && Method(`POST`)
+      priority: 10200
+      service: internal-auth-http@swarm
+    markThreadRead:
+      entryPoints: [internal]
+      rule: Host(`messaging.internal`) && PathRegexp(`^/messages/thread/[^/]+/read$`) && Method(`PUT`)
+      priority: 10400
+      service: internal-messaging-http@swarm
+    moderateReview:
+      entryPoints: [internal]
+      rule: Host(`review.internal`) && PathRegexp(`^/admin/reviews/[^/]+/moderation$`) && Method(`POST`)
+      priority: 10400
+      service: internal-review-http@swarm
+    openDispute:
+      entryPoints: [internal]
+      rule: Host(`wallet.internal`) && Path(`/disputes`) && Method(`POST`)
+      priority: 10100
+      service: internal-wallet-http@swarm
+    payBooking:
+      entryPoints: [internal]
+      rule: Host(`booking.internal`) && PathRegexp(`^/bookings/[^/]+/confirm-payment$`) && Method(`POST`)
+      priority: 10300
+      service: internal-booking-http@swarm
+    putAvailabilitySlot:
+      entryPoints: [internal]
+      rule: Host(`booking.internal`) && PathRegexp(`^/profiles/me/tutor/availability/[^/]+/[^/]+$`) && Method(`PUT`)
+      priority: 10600
+      service: internal-booking-http@swarm
+    putMeetingOverride:
+      entryPoints: [internal]
+      rule: Host(`booking.internal`) && PathRegexp(`^/bookings/[^/]+/meeting-link$`) && Method(`PATCH`)
+      priority: 10300
+      service: internal-booking-http@swarm
+    putNotificationPreferences:
+      entryPoints: [internal]
+      rule: Host(`notification.internal`) && Path(`/notifications/preferences`) && Method(`PUT`)
+      priority: 10200
+      service: internal-notification-http@swarm
+    putStudentProfile:
+      entryPoints: [internal]
+      rule: Host(`auth.internal`) && Path(`/profiles/me/student`) && Method(`PUT`)
+      priority: 10300
+      service: internal-auth-http@swarm
+    replyToReview:
+      entryPoints: [internal]
+      rule: Host(`review.internal`) && PathRegexp(`^/reviews/[^/]+/reply$`) && Method(`POST`)
+      priority: 10300
+      service: internal-review-http@swarm
+    requestPasswordReset:
+      entryPoints: [internal]
+      rule: Host(`auth.internal`) && Path(`/auth/password-reset/request`) && Method(`POST`)
+      priority: 10300
+      service: internal-auth-http@swarm
+    restrictAccount:
+      entryPoints: [internal]
+      rule: Host(`auth.internal`) && PathRegexp(`^/admin/users/[^/]+/restrictions$`) && Method(`POST`)
+      priority: 10400
+      service: internal-auth-http@swarm
+    reviewTutorSubmission:
+      entryPoints: [internal]
+      rule: Host(`tutor.internal`) && PathRegexp(`^/admin/tutor-requests/[^/]+/review$`) && Method(`POST`)
+      priority: 10400
+      service: internal-tutor-http@swarm
+    searchAccounts:
+      entryPoints: [internal]
+      rule: Host(`auth.internal`) && Path(`/admin/users`) && Method(`GET`)
+      priority: 10200
+      service: internal-auth-http@swarm
+    searchTutorSubjects:
+      entryPoints: [internal]
+      rule: Host(`tutor.internal`) && Path(`/discovery/tutors`) && Method(`GET`)
+      priority: 10200
+      service: internal-tutor-http@swarm
+    sendMessage:
+      entryPoints: [internal]
+      rule: Host(`messaging.internal`) && Path(`/messages`) && Method(`POST`)
+      priority: 10100
+      service: internal-messaging-http@swarm
+    setDefaultPayoutAccount:
+      entryPoints: [internal]
+      rule: Host(`wallet.internal`) && PathRegexp(`^/payout-accounts/[^/]+/default$`) && Method(`PATCH`)
+      priority: 10300
+      service: internal-wallet-http@swarm
+    setDemoMeetingsOutcome:
+      entryPoints: [internal]
+      rule: Host(`booking.internal`) && PathRegexp(`^/demo/meetings/[^/]+/outcome$`) && Method(`POST`)
+      priority: 10400
+      service: internal-booking-http@swarm
+    setDemoPayoutsOutcome:
+      entryPoints: [internal]
+      rule: Host(`wallet.internal`) && PathRegexp(`^/demo/payouts/[^/]+/outcome$`) && Method(`POST`)
+      priority: 10400
+      service: internal-wallet-http@swarm
+    setDemoTopupsOutcome:
+      entryPoints: [internal]
+      rule: Host(`wallet.internal`) && PathRegexp(`^/demo/topups/[^/]+/outcome$`) && Method(`POST`)
+      priority: 10400
+      service: internal-wallet-http@swarm
+    setTutorPublication:
+      entryPoints: [internal]
+      rule: Host(`tutor.internal`) && Path(`/profiles/me/tutor/publication`) && Method(`PATCH`)
+      priority: 10400
+      service: internal-tutor-http@swarm
+    signup:
+      entryPoints: [internal]
+      rule: Host(`auth.internal`) && Path(`/auth/signup`) && Method(`POST`)
+      priority: 10200
+      service: internal-auth-http@swarm
+    submitTutorDraft:
+      entryPoints: [internal]
+      rule: Host(`tutor.internal`) && PathRegexp(`^/profiles/me/tutor/drafts/[^/]+/submit$`) && Method(`POST`)
+      priority: 10600
+      service: internal-tutor-http@swarm
+    tutorCancelBooking:
+      entryPoints: [internal]
+      rule: Host(`booking.internal`) && PathRegexp(`^/bookings/[^/]+/tutor-cancel$`) && Method(`POST`)
+      priority: 10300
+      service: internal-booking-http@swarm
+    updateAccountSettings:
+      entryPoints: [internal]
+      rule: Host(`auth.internal`) && Path(`/profiles/me/account`) && Method(`PUT`)
+      priority: 10300
+      service: internal-auth-http@swarm
+    updateSubject:
+      entryPoints: [internal]
+      rule: Host(`tutor.internal`) && PathRegexp(`^/profiles/me/tutor/subjects/[^/]+$`) && Method(`PUT`)
+      priority: 10500
+      service: internal-tutor-http@swarm
+    updateTutorDraft:
+      entryPoints: [internal]
+      rule: Host(`tutor.internal`) && PathRegexp(`^/profiles/me/tutor/drafts/[^/]+$`) && Method(`PUT`)
+      priority: 10500
+      service: internal-tutor-http@swarm
+    validatePasswordReset:
+      entryPoints: [internal]
+      rule: Host(`auth.internal`) && Path(`/auth/password-reset/validate`) && Method(`POST`)
+      priority: 10300
+      service: internal-auth-http@swarm
+    withdrawTutorSubmission:
+      entryPoints: [internal]
+      rule: Host(`tutor.internal`) && Path(`/profiles/me/tutor/withdraw`) && Method(`POST`)
+      priority: 10400
+      service: internal-tutor-http@swarm
+    auth-grpc:
+      entryPoints: [internal]
+      rule: Host(`auth.internal`) && (Path(`/tutor_matcher.auth.v1.AuthCollaborationService/GetResetNotificationContent`) || Path(`/tutor_matcher.auth.v1.AuthCollaborationService/GetTutorGrant`) || Path(`/tutor_matcher.auth.v1.AuthCollaborationService/GrantTutorCapability`) || Path(`/tutor_matcher.auth.v1.AuthCollaborationService/ListActiveAdmins`) || Path(`/tutor_matcher.auth.v1.AuthCollaborationService/LookupAccounts`))
+      service: internal-auth-grpc@swarm
+    booking-grpc:
+      entryPoints: [internal]
+      rule: Host(`booking.internal`) && (Path(`/tutor_matcher.booking.v1.AvailabilityService/BatchGetAvailability`) || Path(`/tutor_matcher.booking.v1.AvailabilityService/GetAvailability`) || Path(`/tutor_matcher.booking.v1.BookingEvidenceService/GetBookingEvidence`) || Path(`/tutor_matcher.booking.v1.BookingEvidenceService/GetReminderEligibility`) || Path(`/tutor_matcher.booking.v1.BookingEvidenceService/GetReviewEligibility`))
+      service: internal-booking-grpc@swarm
+    review-grpc:
+      entryPoints: [internal]
+      rule: Host(`review.internal`) && (Path(`/tutor_matcher.review.v1.ReviewRatingService/GetRatingSummaries`))
+      service: internal-review-grpc@swarm
+    tutor-grpc:
+      entryPoints: [internal]
+      rule: Host(`tutor.internal`) && (Path(`/tutor_matcher.tutor.v1.TutorCatalogueService/GetBookableSubject`) || Path(`/tutor_matcher.tutor.v1.TutorCatalogueService/GetTutorEligibility`))
+      service: internal-tutor-grpc@swarm
+    wallet-grpc:
+      entryPoints: [internal]
+      rule: Host(`wallet.internal`) && (Path(`/tutor_matcher.wallet.v1.WalletFinanceService/ApplyCancellationRefund`) || Path(`/tutor_matcher.wallet.v1.WalletFinanceService/ApplyLessonCharge`) || Path(`/tutor_matcher.wallet.v1.WalletFinanceService/GetBookingFinancialRecord`) || Path(`/tutor_matcher.wallet.v1.WalletFinanceService/GetLessonCharge`) || Path(`/tutor_matcher.wallet.v1.WalletFinanceService/GetRefundOutcome`) || Path(`/tutor_matcher.wallet.v1.WalletFinanceService/RecordLessonCompletion`) || Path(`/tutor_matcher.wallet.v1.WalletFinanceService/ResolveOrCloseLessonCharge`))
+      service: internal-wallet-grpc@swarm

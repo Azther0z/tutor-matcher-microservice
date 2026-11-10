@@ -161,6 +161,8 @@ export function createApp(deps: AppDeps): express.Express {
     query(req, []);
     if (req.body === undefined || req.body === null || typeof req.body !== 'object') throw malformed('INVALID_BODY', 'A JSON object body is required');
     const input = req.body as TopupRequest;
+    const unknownFields = Object.keys(req.body).filter((field) => !['amount', 'returnToBookingId', 'slipImage', 'slipContentType'].includes(field));
+    if (unknownFields.length) throw validation(unknownFields.map((field) => ({ path: `/body/${field}`, code: 'UNKNOWN_FIELD', message: 'Unknown field' })));
     // The (large) slip is hashed by the idempotency store, so a retry with the same key and the same slip replays safely.
     return idempotent(req, 'POST /api/wallet/topups', input, (tx) => createTopup(tx, req.actor, input, deps.clock.now()));
   }));

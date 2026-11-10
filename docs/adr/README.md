@@ -2,7 +2,7 @@
 
 These records preserve the numbering of ADR-001 through ADR-022 in the [Tutor Matcher PDF](../sources/tutor-matcher.pdf). The filenames use four digits.
 They were first recorded as Markdown in this checkout on 6 November 2026. That date does not claim to be the original decision date.
-The original PDF remains unchanged as historical evidence. ADR-0023–ADR-0028 record reconciliation, system-design and interface decisions. ADR-0029 records the 8 November gateway/discovery replacement.
+The original PDF remains unchanged as historical evidence. ADR-0023–ADR-0028 record reconciliation, system-design and interface decisions. ADR-0029 records the 8 November gateway/discovery replacement; ADR-0030 records private internal routing.
 
 Use the [requirements](../requirements.md) for delivery scope, policies, and acceptance criteria. Use the [glossary](../../GLOSSARY.md) for domain terms.
 Accepted means that a decision governs the target. It does not mean that its implementation or operational evidence is complete.
@@ -41,6 +41,7 @@ Accepted means that a decision governs the target. It does not mean that its imp
 
 | [ADR-0028 Use gRPC for private domain collaborations](0028-private-domain-grpc.md) | Accepted | User-confirmed step-3 protocol expansion |
 | [ADR-0029 Traefik gateway and Swarm discovery](0029-traefik-swarm-discovery.md) | Accepted | Explicit user decision, 8 November 2026 |
+| [ADR-0030 Route private owner calls through internal Traefik](0030-private-internal-traefik.md) | Accepted; real Swarm qualification outstanding | User-confirmed design, 11 November 2026 |
 
 ## Reading historical decisions
 

@@ -4,6 +4,8 @@
 
 The identity implementation is local work. This guide is a deployment review template, not evidence of a hosted rollout. The existing homelab sources are recorded in [homelab references](../../docs/evidence/saint/homelab-references.md): architecture revision [`e1f8c88`](https://github.com/azther0z-homelab/homelab-architecture/tree/e1f8c88a09793d1474d03d41d56647946004e1bf) and GitOps revision [`841efb4`](https://github.com/azther0z-homelab/homelab-gitops/tree/841efb4a3c312326ceb2856dc4532433982b4879). Those references document the existing Swarm, Doco-CD, private registry, host-level Cloudflare Tunnel and Access setup. No server, registry, GitOps or Cloudflare write was made for this stack.
 
+The stack includes a separate two-replica internal Traefik service with no published ports. Its private REST and gRPC aliases resolve to the internal proxy; Swarm discovery routes directly to owner task addresses, with separate h2c gRPC services and standard gRPC Health probes. The public gateway keeps its own route inventory and direct owner-task discovery. The real Compose fixture passed HTTP and persistent-channel gRPC distribution, authentication, task addition/removal, unhealthy endpoint checks, Docker API outage with task replacement, zero-backend failure and recovery. Qualification against a real Swarm remains a release prerequisite; no Swarm was active for this implementation.
+
 ## Inputs and prerequisites
 
 - A supported Swarm manager and reviewed immutable images for Auth, the web UI and each of the six other business owners. Traefik and the restricted socket proxy use pinned images. Build application images from repository-root context. Image publication and promotion are separate release actions.

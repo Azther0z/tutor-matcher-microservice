@@ -35,7 +35,8 @@ async function main(): Promise<void> {
     ready: async () => { await pool.query('SELECT 1'); return true; },
   });
   const http = app.listen(config.port, () => console.log(`[Wallet] REST listening on :${config.port}`));
-  const grpcServer = await startGrpcServer({ contractsDir: config.contractsDir, contracts, workload, finance }, config.grpcPort);
+  const grpcServer = await startGrpcServer({ contractsDir: config.contractsDir, contracts, workload, finance }, config.grpcPort, '0.0.0.0', async () => { await pool.query('SELECT 1'); return true; });
+  grpcServer.health.setServing(true);
   console.log(`[Wallet] gRPC WalletFinanceService listening on :${grpcServer.port}`);
 
   const broker = new AmqpBroker(config.rabbitmqUrl, config.rabbitmqUser);
@@ -58,6 +59,7 @@ async function main(): Promise<void> {
 
   const shutdown = async () => {
     console.log('[Wallet] shutting down');
+    grpcServer.health.shutdown();
     publisher.stop();
     clearInterval(clearing);
     clearInterval(topology);

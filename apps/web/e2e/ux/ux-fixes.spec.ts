@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { IDS, json, record, signIn, topup, wallet } from "../finance/support";
+import { IDS, json, page1, record, signIn, topup, wallet } from "../finance/support";
 
 const me = {
   id: IDS.user,
@@ -69,42 +69,62 @@ test.describe("account forms keep the session on a wrong current password (UX-05
 });
 
 test.describe("header navigation follows auth state (UX-08, UX-04, UX-06)", () => {
-  test("logged out sees Find tutors, Log in and Create account only", async ({ page }) => {
+  test("logged out sees the inline links and direct Login and Sign-up links", async ({ page }) => {
     await page.goto("/login");
     const nav = page.getByRole("navigation", { name: "Main navigation" });
-    await expect(nav.getByRole("link", { name: "Find tutors" })).toHaveAttribute("href", "/discover");
-    await expect(nav.getByRole("link", { name: "Log in" })).toBeVisible();
-    await expect(nav.getByRole("link", { name: "Create account" })).toBeVisible();
-    for (const hidden of ["Account", "Wallet", "Notifications", "Admin"]) await expect(nav.getByRole("link", { name: hidden, exact: true })).toHaveCount(0);
-    await expect(nav.getByRole("button", { name: "Sign out" })).toHaveCount(0);
+    for (const [label, href] of [["Home", "/"], ["Find tutors", "/discover"], ["Bookings", "/bookings"], ["Messages", "/messages"]]) {
+      await expect(nav.getByRole("link", { name: label, exact: true })).toHaveAttribute("href", href);
+    }
+    await expect(nav.getByRole("link", { name: "Login", exact: true })).toHaveAttribute("href", "/login");
+    await expect(nav.getByRole("link", { name: "Sign-up", exact: true })).toHaveAttribute("href", "/signup");
+    await expect(nav.getByRole("button", { name: "Open account menu" })).toHaveCount(0);
+    await expect(nav.getByRole("link", { name: "Wallet balance" })).toHaveCount(0);
   });
 
-  test("a student sees Account, Wallet, Notifications and Sign out, but not Admin or Log in", async ({ page }) => {
+  test("a student sees inline links and account controls, but no admin destinations", async ({ page }) => {
     await signIn(page);
     await page.route(/\/api\/wallet$/, (route) => json(route, 200, wallet()));
+    await page.route(/\/api\/messages\/inbox\?/, (route) => json(route, 200, page1([])));
     await page.goto("/wallet");
     const nav = page.getByRole("navigation", { name: "Main navigation" });
-    for (const shown of ["Find tutors", "Account", "Wallet", "Notifications"]) await expect(nav.getByRole("link", { name: shown, exact: true })).toBeVisible();
-    await expect(nav.getByRole("button", { name: "Sign out" })).toBeVisible();
-    for (const hidden of ["Admin", "Log in", "Create account"]) await expect(nav.getByRole("link", { name: hidden, exact: true })).toHaveCount(0);
+    for (const shown of ["Home", "Find tutors", "Bookings", "Messages"]) await expect(nav.getByRole("link", { name: shown, exact: true })).toBeVisible();
+    await expect(nav.getByRole("link", { name: "Wallet balance" })).toBeVisible();
+    await nav.getByRole("button", { name: "Open account menu" }).click();
+    await expect(nav.getByRole("link", { name: "Settings", exact: true })).toHaveAttribute("href", "/account");
+    await expect(nav.getByRole("link", { name: "Notifications", exact: true })).toHaveAttribute("href", "/notifications");
+    await expect(nav.getByRole("button", { name: "Logout", exact: true })).toBeVisible();
+    for (const hidden of ["Admin", "Tutor requests", "Top-up requests"]) await expect(nav.getByRole("link", { name: hidden, exact: true })).toHaveCount(0);
   });
 
-  test("an admin also sees Admin", async ({ page }) => {
+  test("admin account controls include admin destinations", async ({ page }) => {
     await signIn(page, ["STUDENT", "ADMIN"]);
-    await page.goto("/discover");
-    await expect(page.getByRole("navigation", { name: "Main navigation" }).getByRole("link", { name: "Admin" })).toBeVisible();
+    await page.route(/\/api\/wallet$/, (route) => json(route, 200, wallet()));
+    await page.route(/\/api\/messages\/inbox\?/, (route) => json(route, 200, page1([])));
+    await page.goto("/wallet");
+    const nav = page.getByRole("navigation", { name: "Main navigation" });
+    await nav.getByRole("button", { name: "Open account menu" }).click();
+    for (const [label, href] of [["Tutor requests", "/admin/tutor-requests"], ["Top-up requests", "/admin/topups"], ["Admin", "/admin/users"]]) {
+      await expect(nav.getByRole("link", { name: label, exact: true })).toHaveAttribute("href", href);
+    }
   });
 
-  test("Log in and Sign out stay reachable at 375px", async ({ page }) => {
+  test("the inline navigation and account menu stay reachable at 375px", async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 812 });
     await page.goto("/");
-    await expect(page.getByRole("navigation", { name: "Main navigation" }).getByRole("link", { name: "Log in" })).toBeVisible();
+    const nav = page.getByRole("navigation", { name: "Main navigation" });
+    await expect(nav.getByRole("link", { name: "Login", exact: true })).toBeVisible();
+    await expect(nav.getByRole("link", { name: "Sign-up", exact: true })).toBeVisible();
     await signIn(page);
     await page.route(/\/api\/wallet$/, (route) => json(route, 200, wallet()));
+    await page.route(/\/api\/messages\/inbox\?/, (route) => json(route, 200, page1([])));
     await page.reload();
-    const out = page.getByRole("navigation", { name: "Main navigation" }).getByRole("button", { name: "Sign out" });
-    await expect(out).toBeVisible();
-    expect((await out.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(40);
+    const mobileNav = page.getByRole("navigation", { name: "Main navigation" });
+    for (const link of ["Home", "Find tutors", "Bookings", "Messages"]) await expect(mobileNav.getByRole("link", { name: link, exact: true })).toBeVisible();
+    const menu = mobileNav.getByRole("button", { name: "Open account menu" });
+    await expect(menu).toBeVisible();
+    expect((await menu.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(40);
+    await menu.click();
+    await expect(mobileNav.getByRole("button", { name: "Logout", exact: true })).toBeVisible();
   });
 
   test("the landing page and Account point to discovery", async ({ page }) => {
@@ -154,15 +174,18 @@ test.describe("login and signup around the session (UX-14, UX-33, UX-34)", () =>
     await expect(page).toHaveURL(/\/wallet$/);
   });
 
-  test("signing out lands on /login without a returnTo", async ({ page }) => {
+  test("header logout lands on / without retaining the session", async ({ page }) => {
     await signIn(page);
     await mockAccountPage(page, (route) => json(route, 200, me));
+    await page.route(/\/api\/wallet$/, (route) => json(route, 200, wallet()));
+    await page.route(/\/api\/messages\/inbox\?/, (route) => json(route, 200, page1([])));
     await page.route(/\/api\/auth\/logout$/, (route) => route.fulfill({ status: 204, body: "" }));
     await page.goto("/account");
-    await page.getByRole("navigation", { name: "Main navigation" }).getByRole("button", { name: "Sign out" }).click();
-    await expect(page).toHaveURL(/\/login$/);
-    await page.waitForTimeout(300);
-    expect(new URL(page.url()).search).toBe("");
+    const nav = page.getByRole("navigation", { name: "Main navigation" });
+    await nav.getByRole("button", { name: "Open account menu" }).click();
+    await nav.getByRole("button", { name: "Logout", exact: true }).click();
+    await expect(page).toHaveURL(/\/$/);
+    await expect.poll(() => page.evaluate(() => sessionStorage.getItem("tm.session.token"))).toBeNull();
   });
 
   test("the Account sign-out button also leaves no returnTo", async ({ page }) => {
@@ -198,6 +221,7 @@ test.describe("email checks and friendly validation (UX-11, UX-29, UX-31, UX-32)
     await page.goto("/signup");
     await expect(page.getByText("Use 8 to 100 characters.")).toBeVisible();
     await expect(page.locator("#password")).toHaveAttribute("maxlength", "100");
+    await expect(page.getByLabel("Referral code (optional)")).toBeVisible();
   });
 
   test("backend validation wording becomes a friendly message, and a duplicate email shows once", async ({ page }) => {
@@ -259,27 +283,32 @@ test.describe("wallet top-up (UX-17, UX-45)", () => {
   test("the form is off when the wallet failed to load", async ({ page }) => {
     await signIn(page);
     await page.route(/\/api\/wallet$/, (route) => route.fulfill({ status: 503, contentType: "text/plain", body: "no available server\n" }));
+    await page.route(/\/api\/wallet\/topups\?/, (route) => json(route, 200, page1([])));
+    await page.route(/\/api\/messages\/inbox\?/, (route) => json(route, 200, page1([])));
     await page.goto("/wallet");
     await expect(page.getByText("This area is temporarily unavailable")).toBeVisible();
-    await expect(page.getByRole("button", { name: "Start top-up" })).toBeDisabled();
+    await expect(page.getByRole("button", { name: "Send top-up request" })).toBeDisabled();
     await expect(page.getByLabel("Amount (THB)")).toBeDisabled();
+    await expect(page.getByLabel("Transfer slip")).toBeDisabled();
     await expect(page.getByText("Adding funds is unavailable until your wallet loads.")).toBeVisible();
   });
 
   test("a double click sends one top-up request", async ({ page }) => {
     await signIn(page);
     await page.route(/\/api\/wallet$/, (route) => json(route, 200, wallet()));
-    await page.route(new RegExp(`/api/wallet/topups/${IDS.topup}$`), (route) => json(route, 200, topup("PENDING")));
-    await page.route(/\/api\/operations\/wallet\//, (route) => json(route, 200, { id: IDS.operation, owner: "wallet", status: "PENDING", statusUrl: "", resource: null }));
+    await page.route(/\/api\/wallet\/topups\?/, (route) => json(route, 200, page1([])));
+    await page.route(/\/api\/messages\/inbox\?/, (route) => json(route, 200, page1([])));
+    await page.route(/https:\/\/promptpay\.io\/.*/, (route) => route.fulfill({ status: 200, contentType: "image/png", body: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/pWQAAAAASUVORK5CYII=", "base64") }));
     const calls = await record(page, /\/api\/wallet\/topups$/, async (route) => {
       await new Promise((resolve) => setTimeout(resolve, 400));
-      await json(route, 201, topup("PENDING"));
+      await json(route, 201, { ...topup("PENDING"), manual: true });
     });
     await page.goto("/wallet");
     await page.getByLabel("Amount (THB)").fill("100");
-    await page.getByRole("button", { name: "Start top-up" }).dblclick();
-    await expect(page.getByRole("button", { name: "Starting…" })).toBeDisabled();
-    await expect(page).toHaveURL(new RegExp(`/wallet/topups/${IDS.topup}`));
+    await page.getByLabel("Transfer slip").setInputFiles({ name: "slip.png", mimeType: "image/png", buffer: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/pWQAAAAASUVORK5CYII=", "base64") });
+    await page.getByRole("button", { name: "Send top-up request" }).dblclick();
+    await expect(page.getByRole("button", { name: "Sending…" })).toBeDisabled();
+    await expect(page.getByRole("status").filter({ hasText: "Your request is waiting for an admin." })).toBeVisible();
     expect(calls).toHaveLength(1);
   });
 });
@@ -357,18 +386,22 @@ test.describe("dead ends and outage states", () => {
     await page.route(/\/api\/discovery\/price-range/, (route) => json(route, 200, { minimum: { amount: "100.00" }, maximum: { amount: "900.00" } }));
     const searches = await record(page, /\/api\/discovery\/tutors\?/, (route) => json(route, 200, { items: [], pagination: { page: 1, pageSize: 20, totalItems: 0, totalPages: 1 } }));
     await page.goto("/discover");
-    await expect(page.getByRole("option", { name: "4 stars & up" })).toHaveCount(1);
-    await expect(page.getByRole("option", { name: "1 star & up" })).toHaveCount(1);
+    const rating = page.getByRole("group", { name: "Minimum rating" });
+    await expect(rating.getByRole("button")).toHaveCount(5);
+    await expect(rating.getByRole("button", { name: "4 stars and up" })).toBeVisible();
+    await expect(rating.getByRole("button", { name: "1 star and up" })).toBeVisible();
+    await expect(page.getByRole("combobox", { name: "Learning area" })).toBeVisible();
+    await expect(page.getByRole("combobox", { name: "Sort" })).toBeVisible();
     await expect(page.locator("select#format")).toHaveCount(0);
     await expect(page.getByText(/Lessons are online/)).toBeVisible();
     await expect(page.getByRole("button", { name: "Search" })).toBeEnabled();
     const before = searches.length;
-    await page.getByLabel("Minimum hourly rate (THB)").fill("900");
-    await page.getByLabel("Maximum hourly rate (THB)").fill("100");
+    await page.getByLabel("Min price (THB/hr)").fill("900");
+    await page.getByLabel("Max price (THB/hr)").fill("100");
     await page.getByRole("button", { name: "Search" }).click();
     await expect(page.getByText("The maximum rate must be at least the minimum rate.")).toBeVisible();
-    await page.getByLabel("Minimum hourly rate (THB)").fill("-5");
-    await page.getByLabel("Maximum hourly rate (THB)").fill("");
+    await page.getByLabel("Min price (THB/hr)").fill("-5");
+    await page.getByLabel("Max price (THB/hr)").fill("");
     await page.getByRole("button", { name: "Search" }).click();
     await expect(page.getByText("Enter a rate of 0 or more.")).toBeVisible();
     expect(searches.length).toBe(before);

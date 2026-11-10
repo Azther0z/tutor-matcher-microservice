@@ -2,6 +2,7 @@ import * as grpc from "@grpc/grpc-js";
 import { randomUUID } from "node:crypto";
 import {
   AppError,
+  createGrpcHealth,
   encodeErrorDetail,
   normalizeProtoMessage,
   validateGrpcRequest,
@@ -13,7 +14,8 @@ import type { ReviewService } from "./service";
 export function createRatingServer(
   service: ReviewService,
   tutorCredential: string,
-) {
+  isReady: () => Promise<boolean> | boolean = () => false,
+) : grpc.Server & { health: import('@tutor-matcher/shared').GrpcHealthController } {
   const definition = loadProto("review/v1/ratings.proto");
   const server = new grpc.Server(grpcOptions);
   server.addService(
@@ -91,7 +93,8 @@ export function createRatingServer(
       },
     },
   );
-  return server;
+  const health = createGrpcHealth(server, ['tutor_matcher.review.v1.ReviewRatingService'], isReady);
+  return Object.assign(server, { health });
 }
 function validateRequestId(value: unknown) {
   if (

@@ -72,6 +72,7 @@ try {
   gateway = await startTestGateway({
     authUrl: process.env.AUTH_URL,
     workloadCredential: process.env.GATEWAY_WORKLOAD_CREDENTIAL,
+    healthCheckTimeout: "2s",
   });
   const base = `${gateway.url}/api`;
   const call = async (

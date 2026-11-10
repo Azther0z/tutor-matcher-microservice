@@ -26,44 +26,47 @@ test.beforeEach(async ({ page }) => {
   );
 });
 
-test("custom dropdowns preserve defaults and submit selected filter values", async ({
+test("discovery controls preserve defaults and apply selected filter values", async ({
   page,
 }) => {
   await page.goto("/discover?sort=PRICE_DESC");
   await expect(page.locator("select")).toHaveCount(0);
-  await expect(page.getByRole("combobox")).toHaveCount(3);
-  await expect(page.getByLabel("Sort subjects")).toHaveText(
-    "Price: high to low",
-  );
+  await expect(page.getByRole("combobox")).toHaveCount(2);
+  await expect(page.getByLabel("Sort")).toHaveText("Price: high to low");
 
   await page.getByLabel("Learning area").click();
   await page.getByRole("option", { name: "Mathematics", exact: true }).click();
   await expect(page.getByRole("listbox")).toHaveCount(0);
-  await expect(page.getByLabel("Learning area")).toBeFocused();
+  await expect(page).toHaveURL(/learningArea=mathematics/);
 
-  await page.getByLabel("Minimum rating").click();
-  await page
-    .getByRole("option", { name: "4.5 stars & up", exact: true })
-    .click();
-  await page.getByLabel("Sort subjects").click();
+  const fourStars = page.getByLabel("Minimum rating").getByRole("button", {
+    name: "4 stars and up",
+  });
+  await fourStars.click();
+  await expect(page).toHaveURL(/minRating=4/);
+  await page.getByLabel("Sort").click();
   await expect(
     page.getByRole("option", { name: "Price: high to low", exact: true }),
   ).toHaveAttribute("aria-selected", "true");
   await page.getByRole("option", { name: "Top rated", exact: true }).click();
-  await page.getByRole("button", { name: "Search", exact: true }).click();
+  await expect(page).toHaveURL(/sort=TOP_RATED/);
 
   await expect(page).toHaveURL(/learningArea=mathematics/);
   const parameters = new URL(page.url()).searchParams;
-  expect(parameters.get("minRating")).toBe("4.5");
+  expect(parameters.get("minRating")).toBe("4");
   expect(parameters.get("sort")).toBe("TOP_RATED");
-  await expect(page.getByLabel("Minimum rating")).toHaveText("4.5 stars & up");
+  await expect(
+    page.getByLabel("Minimum rating").getByRole("button", {
+      name: "4 stars and up",
+    }),
+  ).toHaveAttribute("aria-pressed", "true");
 });
 
 test("keyboard navigation, typeahead, Escape and Tab work without submitting the form", async ({
   page,
 }) => {
   await page.goto("/discover");
-  const sort = page.getByLabel("Sort subjects");
+  const sort = page.getByLabel("Sort");
   await expect(sort).toBeEnabled();
   await sort.press("ArrowDown");
   await expect(sort).toHaveAttribute("aria-expanded", "true");
@@ -82,14 +85,22 @@ test("keyboard navigation, typeahead, Escape and Tab work without submitting the
   await sort.press("p");
   await sort.press("Enter");
   await expect(sort).toHaveText("Price: high to low");
-  await sort.press("ArrowDown");
+  await expect(page).toHaveURL(/sort=PRICE_DESC/);
   await sort.press("Home");
-  await sort.press("Tab");
+  await sort.press("Enter");
   await expect(sort).toHaveText("Recommended");
-  await expect(sort).toHaveAttribute("aria-expanded", "false");
+  await expect(page).toHaveURL(/\/discover$/);
+
+  const learningArea = page.getByRole("combobox", { name: "Learning area" });
+  await learningArea.press("ArrowDown");
+  await expect(learningArea).toHaveAttribute("aria-expanded", "true");
+  await learningArea.press("Tab");
+  await expect(learningArea).toHaveText("All learning areas");
+  await expect(learningArea).toHaveAttribute("aria-expanded", "false");
   await expect(
-    page.getByRole("button", { name: "Search", exact: true }),
+    page.getByRole("button", { name: "1 star and up" }),
   ).toBeFocused();
+  await expect(page).toHaveURL(/\/discover$/);
 });
 
 test("outside clicks and switching dropdowns dismiss the previous menu", async ({
@@ -98,17 +109,17 @@ test("outside clicks and switching dropdowns dismiss the previous menu", async (
   await page.goto("/discover");
   await page.getByLabel("Learning area").click();
   await expect(page.getByRole("listbox")).toHaveCount(1);
-  await page.getByLabel("Minimum rating").click();
+  await page.getByLabel("Sort").click();
   await expect(page.getByLabel("Learning area")).toHaveAttribute(
     "aria-expanded",
     "false",
   );
   await expect(page.getByRole("listbox")).toHaveCount(1);
-  await page.getByRole("heading", { name: "Find your tutor" }).click();
+  await page.getByRole("heading", { name: "Find a tutor" }).click();
   await expect(page.getByRole("listbox")).toHaveCount(0);
 });
 
-test("a catalogue outage disables custom dropdowns through their fieldset", async ({
+test("a catalogue outage disables discovery filters and sorting", async ({
   page,
 }) => {
   await page.route("**/api/discovery/learning-areas", (route) =>
@@ -126,8 +137,14 @@ test("a catalogue outage disables custom dropdowns through their fieldset", asyn
       .getByRole("alert")
       .filter({ hasText: "Search is unavailable right now." }),
   ).toBeVisible();
-  for (const label of ["Learning area", "Minimum rating", "Sort subjects"]) {
-    await expect(page.getByLabel(label)).toBeDisabled();
+  await expect(page.getByLabel("Learning area")).toBeDisabled();
+  await expect(page.getByLabel("Sort")).toBeDisabled();
+  const ratingButtons = page
+    .getByLabel("Minimum rating")
+    .getByRole("button");
+  await expect(ratingButtons).toHaveCount(5);
+  for (let index = 0; index < 5; index += 1) {
+    await expect(ratingButtons.nth(index)).toBeDisabled();
   }
   await expect(page.getByRole("listbox")).toHaveCount(0);
 });
@@ -136,8 +153,18 @@ test("dropdown menus fit a mobile viewport and scroll through long option lists"
   page,
 }) => {
   await page.setViewportSize({ width: 375, height: 667 });
+  await page.route("**/api/discovery/learning-areas", (route) =>
+    route.fulfill({
+      json: {
+        items: Array.from({ length: 24 }, (_, index) => ({
+          id: `area-${index + 1}`,
+          label: `Learning area ${index + 1}`,
+        })),
+      },
+    }),
+  );
   await page.goto("/discover");
-  await page.getByLabel("Minimum rating").click();
+  await page.getByLabel("Learning area").click();
   const menu = page.getByRole("listbox");
   await expect(menu).toBeVisible();
   const box = await menu.boundingBox();
@@ -146,6 +173,11 @@ test("dropdown menus fit a mobile viewport and scroll through long option lists"
   expect(box!.x + box!.width).toBeLessThanOrEqual(375);
   expect(box!.y).toBeGreaterThanOrEqual(0);
   expect(box!.y + box!.height).toBeLessThanOrEqual(667);
-  await page.getByRole("option", { name: "5 stars & up", exact: true }).click();
-  await expect(page.getByLabel("Minimum rating")).toHaveText("5 stars & up");
+  await expect
+    .poll(() => menu.evaluate((element) => element.scrollHeight > element.clientHeight))
+    .toBe(true);
+  await page
+    .getByRole("option", { name: "Learning area 24", exact: true })
+    .click();
+  await expect(page).toHaveURL(/learningArea=area-24/);
 });

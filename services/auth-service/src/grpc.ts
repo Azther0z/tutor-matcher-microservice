@@ -3,7 +3,7 @@ import * as grpc from '@grpc/grpc-js';
 import { Server, ServerCredentials, status, type ServerUnaryCall, type sendUnaryData, Metadata } from '@grpc/grpc-js';
 import * as protoLoader from '@grpc/proto-loader';
 import { randomUUID } from 'node:crypto';
-import { AppError, encodeErrorDetail, normalizeProtoMessage, validateGrpcRequest, validateGrpcResponse, verifyActorAssertion, verifyWorkload } from '@tutor-matcher/shared';
+import { AppError, createGrpcHealth, encodeErrorDetail, normalizeProtoMessage, validateGrpcRequest, validateGrpcResponse, verifyActorAssertion, verifyWorkload, type GrpcHealthController } from '@tutor-matcher/shared';
 import { inTransaction, pool } from './db';
 import { now, decryptResetMaterial } from './security';
 
@@ -102,7 +102,7 @@ function actorAdmission(call: Call, admission: any) {
   return {id,actorUserId,sessionId,admittedAt,requestId:request,publicOperation};
 }
 
-export function createAuthGrpcServer(): Server {
+export function createAuthGrpcServer(): Server & { health: GrpcHealthController } {
   const root = process.env.CONTRACTS_GRPC_DIR ?? path.resolve(__dirname,'../../../contracts/grpc');
   const proto = path.join(root,'auth/v1/collaboration.proto');
   const definition=protoLoader.loadSync(proto,{includeDirs:[root],keepCase:false,longs:String,enums:String,defaults:false,oneofs:true});
@@ -160,7 +160,11 @@ export function createAuthGrpcServer(): Server {
       return {contentRef,recipientUserId:rows[0].recipient_user_id,subject:'Tutor Matcher password reset',text,sensitive:true,expiresAt:rows[0].expires_at.toISOString()};
     }),
   });
-  return server;
+  const health = createGrpcHealth(server, ['tutor_matcher.auth.v1.AuthCollaborationService'], async () => {
+    await pool.query('SELECT 1');
+    return true;
+  });
+  return Object.assign(server, { health });
 }
 
 export async function listenAuthGrpc(server: Server, port=Number(process.env.GRPC_PORT??50051)):Promise<void>{

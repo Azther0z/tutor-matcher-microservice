@@ -91,9 +91,9 @@ test("promised booking, messaging, availability, legal, support, and not-found p
   const response = await page.goto("/does-not-exist");
   expect(response?.status()).toBe(404);
   await expect(
-    page.getByRole("heading", { name: "Page not found" }),
+    page.getByRole("heading", { name: "We couldn’t find that page" }),
   ).toBeVisible();
-  await expect(page.getByRole("link", { name: "Find a tutor" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Find tutors" }).last()).toBeVisible();
 });
 
 test("navigation follows session state and role, including at mobile width", async ({
@@ -102,27 +102,30 @@ test("navigation follows session state and role, including at mobile width", asy
   await page.setViewportSize({ width: 375, height: 812 });
   await page.goto("/");
   const header = page.getByRole("banner");
-  await header.getByText("Menu", { exact: true }).click();
-  await expect(header.getByRole("link", { name: "Find tutors" })).toBeVisible();
-  await expect(header.getByRole("link", { name: "Log in" })).toBeVisible();
+  const nav = header.getByRole("navigation", { name: "Main navigation" });
+  await expect(nav.getByRole("link", { name: "Home" })).toBeVisible();
+  await expect(nav.getByRole("link", { name: "Find tutors" })).toBeVisible();
+  await expect(nav.getByRole("link", { name: "Bookings" })).toBeVisible();
+  await expect(nav.getByRole("link", { name: "Messages" })).toBeVisible();
+  await expect(nav.getByRole("link", { name: "Login" })).toBeVisible();
+  await expect(nav.getByRole("link", { name: "Sign-up" })).toBeVisible();
   await expect(
-    header.getByRole("link", { name: "Account", exact: true }),
+    nav.getByRole("button", { name: "Open account menu" }),
   ).toHaveCount(0);
   await expect(
-    page.getByRole("link", { name: "Skip to content" }),
+    page.getByRole("link", { name: "Skip to main content" }),
   ).toBeAttached();
 
   await signIn(page);
   await page.reload();
-  await header.getByText("Menu", { exact: true }).click();
-  await expect(header.getByRole("link", { name: "Log in" })).toHaveCount(0);
-  await expect(header.getByRole("link", { name: "Create account" })).toHaveCount(
-    0,
-  );
-  await expect(header.getByRole("link", { name: "Bookings" })).toBeVisible();
-  await expect(header.getByRole("link", { name: "Messages" })).toBeVisible();
-  await expect(header.getByRole("link", { name: "Admin" })).toHaveCount(0);
-  await expect(header.getByRole("button", { name: "Sign out" })).toBeVisible();
+  await expect(nav.getByRole("link", { name: "Login" })).toHaveCount(0);
+  await expect(nav.getByRole("link", { name: "Sign-up" })).toHaveCount(0);
+  await expect(nav.getByRole("link", { name: "Bookings" })).toBeVisible();
+  await expect(nav.getByRole("link", { name: "Messages" })).toBeVisible();
+  await expect(nav.getByRole("link", { name: "Find tutors" })).toBeVisible();
+  await nav.getByRole("button", { name: "Open account menu" }).click();
+  await expect(nav.getByRole("link", { name: "Admin", exact: true })).toHaveCount(0);
+  await expect(nav.getByRole("button", { name: "Logout" })).toBeVisible();
 });
 
 test("an incorrect current password stays on account and scopes the field error", async ({
@@ -189,13 +192,17 @@ test("auth forms validate accessibly and show notices and retry timing", async (
   page,
 }) => {
   await page.goto("/signup");
-  await expect(page.getByLabel("Admin signup key (optional)")).toHaveCount(0);
+  const referralCode = page.getByLabel("Referral code (optional)");
+  await expect(referralCode).toBeVisible();
+  await expect(referralCode).toHaveJSProperty("required", false);
+  await expect(page.getByRole("link", { name: "Terms of Service" })).toHaveAttribute("href", "/terms");
+  await expect(page.getByRole("link", { name: "Privacy notice" })).toHaveAttribute("href", "/privacy");
   await expect(
-    page.getByRole("link", { name: "Terms of Service" }),
-  ).toHaveAttribute("href", "/terms");
+    page.getByRole("checkbox", { name: /Terms of Service/ }),
+  ).toBeVisible();
   await expect(
-    page.getByRole("link", { name: "Privacy notice" }),
-  ).toHaveAttribute("href", "/privacy");
+    page.getByRole("checkbox", { name: /Privacy notice/ }),
+  ).toBeVisible();
   await page.getByRole("button", { name: "Create account" }).click();
   await expect(page.locator("#firstName")).toBeFocused();
   await expect(page.getByLabel("Password", { exact: true })).toHaveAttribute(
@@ -208,7 +215,9 @@ test("auth forms validate accessibly and show notices and retry timing", async (
 
   await page.goto("/login?notice=password-changed");
   await expect(
-    page.getByText("Your password was changed. Log in again."),
+    page.getByText(
+      "Your password was changed and every session was signed out. Log in with your new password.",
+    ),
   ).toBeVisible();
   await page.route("**/api/auth/login", (route) => {
     void route.fulfill({
@@ -255,7 +264,7 @@ test("titles, notification copy, and malformed ids are user-facing", async ({
   page,
 }) => {
   await page.goto("/discover");
-  await expect(page).toHaveTitle("Find tutors | Tutor Matcher");
+  await expect(page).toHaveTitle("Find tutors · Tutor Matcher");
 
   await signIn(page);
   await page.route("**/api/notifications/preferences", (route) =>
@@ -275,7 +284,11 @@ test("titles, notification copy, and malformed ids are user-facing", async ({
     ),
   );
   await page.goto("/notifications");
-  await expect(page.getByText(/simulated delivery channels/i)).toBeVisible();
+  await expect(
+    page.getByText(
+      "Demonstration only. Notifications here are simulated and nothing is sent outside this app.",
+    ),
+  ).toBeVisible();
   await expect(page.getByText(/No real money moves/)).toHaveCount(0);
 
   let transactionCalls = 0;
@@ -290,10 +303,10 @@ test("titles, notification copy, and malformed ids are user-facing", async ({
   });
   await page.goto("/wallet/transactions/abc");
   await expect(
-    page.getByText("We couldn’t find that transaction."),
+    page.getByText("We couldn’t find that record."),
   ).toBeVisible();
   await expect(
-    page.getByRole("link", { name: "Back to transaction history" }),
+    page.locator("section.panel").getByRole("link", { name: "Back to history" }),
   ).toBeVisible();
   expect(transactionCalls).toBe(0);
 });
@@ -301,20 +314,25 @@ test("titles, notification copy, and malformed ids are user-facing", async ({
 test("opening a reset fragment in the current page validates it", async ({
   page,
 }) => {
-  await page.route("**/api/auth/password-reset/validate", (route) =>
-    route.fulfill({
+  let validationBody: unknown;
+  await page.route("**/api/auth/password-reset/validate", (route) => {
+    validationBody = route.request().postDataJSON();
+    return route.fulfill({
       status: 200,
       contentType: "application/json",
       body: JSON.stringify({
         valid: true,
         expiresAt: "2030-01-01T00:30:00.000Z",
       }),
-    }),
-  );
+    });
+  });
   await page.goto("/password-reset");
+  await page.getByRole("button", { name: "Send reset link" }).click();
+  await expect(page.getByText("Enter your email address.")).toBeVisible();
   await page.evaluate(() => {
     window.location.hash = "token=synthetic-reset-token";
   });
+  await expect.poll(() => validationBody).toEqual({ token: "synthetic-reset-token" });
   await expect(
     page.getByRole("heading", { name: "Choose a new password" }),
   ).toBeVisible();
