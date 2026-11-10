@@ -877,3 +877,10 @@ fieldset.field legend { font-size: 14px; font-weight: 500; padding: 0; margin-bo
 .draft-row .button-quiet:hover { color: var(--ink); background: rgba(255, 255, 255, 0.05); }
 .draft-row:last-child { border-bottom: 0; padding-top: 8px; }
 .draft-row:last-child .button-quiet { margin-left: -14px; }
+.submission-card { gap: 14px; }
+.submission-card .booking-title { padding-right: 90px; gap: 2px; }
+.submission-card .booking-title h2 { font-size: 18px; }
+.submission-bio { margin: 0; color: var(--ink); font-size: 14px; line-height: 1.55; white-space: pre-wrap; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+.submission-card .summary-rows > div:last-child strong { font-size: 14px; }
+.submission-card .summary-rows a { font-size: 14px; color: var(--ink); text-decoration: none; }
+.submission-card .summary-rows a:hover { text-decoration: underline; }

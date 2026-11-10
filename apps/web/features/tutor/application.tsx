@@ -219,65 +219,80 @@ function SubmissionHistory({
 }) {
   const action = useAction(reload);
   return (
-    <article className="panel tutor-card">
+    <article className="panel booking-new submission-card">
       <StatusBadge value={submission.state} corner />
-      <h3>{submission.headline || "Tutor profile"}</h3>
-      <p className="tutor-card-meta">
-        {submission.kind === "APPLICATION" ? "Application" : "Profile revision"}
-      </p>
-      <p style={{ whiteSpace: "pre-wrap" }}>{submission.bio}</p>
-      {submission.submittedAt && (
-        <p className="tutor-card-meta">Submitted {bangkokTime(submission.submittedAt)} (Bangkok)</p>
-      )}
-      {submission.reviewedAt && (
-        <p className="tutor-card-meta">Reviewed {bangkokTime(submission.reviewedAt)} (Bangkok)</p>
-      )}
-      {submission.rejectionReason && (
-        <Notice kind="error">
-          Review reason: {submission.rejectionReason}
-        </Notice>
-      )}
-      {submission.identificationDocumentUrl && (
-        <p>
-          <a
-            className="text-link"
-            href={submission.identificationDocumentUrl}
-            rel="noreferrer"
-            target="_blank"
-          >
-            View your private identification document
-          </a>
+      <div className="booking-title">
+        <h2>{submission.headline || "Tutor profile"}</h2>
+        <p className="tutor-card-meta">
+          {submission.kind === "APPLICATION" ? "Application" : "Profile revision"}
         </p>
+      </div>
+      {submission.bio && <p className="submission-bio">{submission.bio}</p>}
+      <div className="summary-rows">
+        {submission.submittedAt && (
+          <div>
+            <span>Submitted</span>
+            <strong>{bangkokTime(submission.submittedAt)}</strong>
+          </div>
+        )}
+        {submission.reviewedAt && (
+          <div>
+            <span>Reviewed</span>
+            <strong>{bangkokTime(submission.reviewedAt)}</strong>
+          </div>
+        )}
+        {submission.identificationDocumentUrl && (
+          <div>
+            <span>Identification document</span>
+            <a
+              className="text-link"
+              href={submission.identificationDocumentUrl}
+              rel="noreferrer"
+              target="_blank"
+            >
+              Open
+            </a>
+          </div>
+        )}
+      </div>
+      {submission.rejectionReason && (
+        <Notice kind="error">Review reason: {submission.rejectionReason}</Notice>
       )}
       <ActionMessages action={action} />
-      {submission.state === "PENDING" && (
-        <button
-          className="button button-quiet"
-          disabled={action.pending || action.uncertain}
-          onClick={() =>
-            void action.run(
-              "/profiles/me/tutor/withdraw",
-              { submissionId: submission.id },
-              "POST",
-              submission.revision,
-            )
-          }
-        >
-          Withdraw submission
-        </button>
-      )}
-      {["REJECTED", "CANCELLED"].includes(submission.state) && (
-        <button
-          className="button"
-          disabled={action.pending || action.uncertain}
-          onClick={() =>
-            void action.run(
-              `/profiles/me/tutor/submissions/${submission.id}/copy`,
-            )
-          }
-        >
-          Copy into a new draft
-        </button>
+      {(submission.state === "PENDING" ||
+        ["REJECTED", "CANCELLED"].includes(submission.state)) && (
+        <div className="slot-footer flush">
+          <span />
+          {submission.state === "PENDING" && (
+            <button
+              className="button button-quiet"
+              disabled={action.pending || action.uncertain}
+              onClick={() =>
+                void action.run(
+                  "/profiles/me/tutor/withdraw",
+                  { submissionId: submission.id },
+                  "POST",
+                  submission.revision,
+                )
+              }
+            >
+              Withdraw submission
+            </button>
+          )}
+          {["REJECTED", "CANCELLED"].includes(submission.state) && (
+            <button
+              className="button"
+              disabled={action.pending || action.uncertain}
+              onClick={() =>
+                void action.run(
+                  `/profiles/me/tutor/submissions/${submission.id}/copy`,
+                )
+              }
+            >
+              Copy into a new draft
+            </button>
+          )}
+        </div>
       )}
     </article>
   );
