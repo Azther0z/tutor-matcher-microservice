@@ -309,7 +309,10 @@ function BookingDetailContent({ bookingId }: { bookingId: string }) {
     setError("");
     setNotice("");
     const result = await action.run(path, body, method, quote && /\/(tutor-)?cancel$/.test(path) ? quote.bookingRevision : etag.replace(/^"|"$/g, ""));
-    if (result) setQuote(null);
+    if (result) {
+      setQuote(null);
+      window.dispatchEvent(new Event("wallet:changed"));
+    }
     // A rejected action may have advanced the booking (for example a declined payment), so show its current state and revision.
     else await load();
   }

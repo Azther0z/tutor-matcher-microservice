@@ -27,6 +27,14 @@ export function SiteNav() {
   const isAdmin = account?.capabilities.includes("ADMIN") ?? false;
   const isTutor = account?.capabilities.includes("TUTOR") ?? false;
 
+  const [walletTick, setWalletTick] = useState(0);
+  useEffect(() => {
+    const refresh = () => setWalletTick((tick) => tick + 1);
+    window.addEventListener("wallet:changed", refresh);
+    window.addEventListener("focus", refresh);
+    return () => { window.removeEventListener("wallet:changed", refresh); window.removeEventListener("focus", refresh); };
+  }, []);
+
   useEffect(() => {
     if (!account) return;
     let cancelled = false;
@@ -37,7 +45,7 @@ export function SiteNav() {
       .then((inbox) => { if (!cancelled) setUnread(inbox.items.some((item) => item.unreadCount > 0)); })
       .catch(() => { if (!cancelled) setUnread(false); });
     return () => { cancelled = true; };
-  }, [account, pathname]);
+  }, [account, pathname, walletTick]);
 
   useEffect(() => {
     if (!menuOpen) return;

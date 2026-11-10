@@ -29,14 +29,18 @@ function SubjectEditor({
     event.preventDefault();
     setValidation("");
     const form = new FormData(event.currentTarget);
-    const hourlyRate = String(form.get("hourlyRate") ?? "").trim();
+    const rawRate = String(form.get("hourlyRate") ?? "").trim();
+    // Accept "450" or "450.5" and normalise to two decimals.
+    const hourlyRate = /^\d{1,8}(?:\.\d{1,2})?$/.test(rawRate)
+      ? Number(rawRate).toFixed(2)
+      : rawRate;
     const learningAreas = form.getAll("learningAreas").map(String);
     if (
       !/^(?:0|[1-9]\d{0,7})\.\d{2}$/.test(hourlyRate) ||
       /^0\.00$/.test(hourlyRate)
     ) {
       setValidation(
-        "Enter a positive rate with exactly two decimal places, such as 400.00.",
+        "Enter a positive rate in baht, such as 400 or 400.50.",
       );
       return;
     }
@@ -93,7 +97,6 @@ function SubjectEditor({
           label="Hourly rate (THB)"
           required
           inputMode="decimal"
-          pattern="(?:0|[1-9][0-9]{0,7})\.[0-9]{2}"
           placeholder="400.00"
           defaultValue={subject?.hourlyRate ?? ""}
         />
