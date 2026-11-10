@@ -42,6 +42,12 @@ const { openStore } = require(
 const { systemClock } = require(
   path.join(root, "notification-service/dist/time.js"),
 );
+const { RabbitPublisher: TutorPublisher } = require(
+  path.join(root, "tutor-service/dist/outbox.js"),
+);
+const { RabbitPublisher: ReviewPublisher } = require(
+  path.join(root, "review-service/dist/events.js"),
+);
 
 const host = process.env.RABBITMQ_AMQP_HOST || "127.0.0.1";
 const port = process.env.RABBITMQ_AMQP_PORT || "5672";
@@ -52,7 +58,12 @@ const adminPassword = process.env.RABBITMQ_AUTH_PASSWORD;
 const mongoUri = process.env.SMOKE_MONGO_URI;
 if (!adminPassword || !mongoUri)
   throw new Error("RABBITMQ_AUTH_PASSWORD and SMOKE_MONGO_URI are required");
-const passwords = { wallet: randomUUID(), notification: randomUUID() };
+const passwords = {
+  wallet: randomUUID(),
+  notification: randomUUID(),
+  tutor: randomUUID(),
+  review: randomUUID(),
+};
 const url = (user, password = passwords[user]) =>
   `amqp://${user}:${password}@${host}:${port}`;
 const adminAuth = `Basic ${Buffer.from(`auth:${adminPassword}`).toString("base64")}`;
@@ -142,6 +153,8 @@ try {
         ),
         RABBITMQ_WALLET_PASSWORD: passwords.wallet,
         RABBITMQ_NOTIFICATION_PASSWORD: passwords.notification,
+        RABBITMQ_TUTOR_PASSWORD: passwords.tutor,
+        RABBITMQ_REVIEW_PASSWORD: passwords.review,
       },
       stdio: "pipe",
     },
@@ -158,15 +171,17 @@ try {
 }
 const users = (await api("GET", "users")).body ?? [];
 check(
-  "provisioning created the wallet and notification broker users",
-  ["wallet", "notification"].every((name) =>
+  "provisioning created the wallet, notification, tutor and review broker users",
+  ["wallet", "notification", "tutor", "review"].every((name) =>
     users.some((user) => user.name === name),
   ),
 );
 check(
   "producer users carry no management tag",
   users
-    .filter((u) => ["wallet", "notification"].includes(u.name))
+    .filter((u) =>
+      ["wallet", "notification", "tutor", "review"].includes(u.name),
+    )
     .every((u) => !u.tags?.length),
 );
 
@@ -174,10 +189,19 @@ check(
 const store = await openStore(mongoUri, "notification_smoke_broker");
 await store.client.db("notification_smoke_broker").dropDatabase();
 const contracts = new Contracts(path.join(root, "contracts"));
-const acceptor = new EventAcceptor(store, contracts, systemClock, {
-  wallet: "wallet",
-  booking: "booking",
-});
+// Notification's default: each producer connects to the broker as a user named after itself.
+const publisherIdentities = Object.fromEntries(
+  ["auth", "tutor", "booking", "wallet", "review", "messaging"].map((name) => [
+    name,
+    name,
+  ]),
+);
+const acceptor = new EventAcceptor(
+  store,
+  contracts,
+  systemClock,
+  publisherIdentities,
+);
 let failNext = 0;
 const flaky = {
   accept: async (inbound) => {
@@ -313,6 +337,130 @@ check(
     Boolean(await store.events.findOne({ _id: recovered.eventId })),
   ),
 );
+
+// 6b. The real Tutor and Review publishers send every Tutor/Review contract event through the broker.
+const adminTarget = { kind: "ADMINS" };
+const userTarget = () => ({ kind: "USERS", userIds: [randomUUID()] });
+const marketplaceEvents = [
+  [
+    "tutor",
+    "tutor.submission-submitted",
+    adminTarget,
+    () => ({
+      submissionId: randomUUID(),
+      applicantUserId: randomUUID(),
+      kind: "APPLICATION",
+    }),
+  ],
+  [
+    "tutor",
+    "tutor.submission-withdrawn",
+    adminTarget,
+    () => ({
+      submissionId: randomUUID(),
+      applicantUserId: randomUUID(),
+      kind: "REVISION",
+    }),
+  ],
+  [
+    "tutor",
+    "tutor.submission-decided",
+    userTarget(),
+    () => ({ submissionId: randomUUID(), decision: "APPROVE", reason: null }),
+  ],
+  [
+    "tutor",
+    "tutor.activated",
+    userTarget(),
+    () => ({ submissionId: randomUUID(), tutorId: randomUUID() }),
+  ],
+  [
+    "review",
+    "review.flagged",
+    adminTarget,
+    () => ({ reviewId: randomUUID(), flagId: randomUUID() }),
+  ],
+  [
+    "review",
+    "review.moderated",
+    userTarget(),
+    () => ({
+      reviewId: randomUUID(),
+      decision: "HIDE",
+      reason: "Synthetic moderation reason.",
+    }),
+  ],
+].map(([producer, type, targets, data]) =>
+  event({
+    type,
+    producer,
+    targets,
+    notificationGroup: "SYSTEM",
+    data: data(),
+    aggregate: { type: type.split(".")[0], id: randomUUID(), version: "1" },
+  }),
+);
+process.env.RABBITMQ_URL = url("tutor");
+const tutorPublisher = new TutorPublisher();
+const reviewPublisher = new ReviewPublisher(url("review"));
+check(
+  "Review's readiness check works under its publish-only permissions",
+  await reviewPublisher.ready(),
+);
+for (const envelope of marketplaceEvents) {
+  const publisher =
+    envelope.producer === "tutor" ? tutorPublisher : reviewPublisher;
+  const sent = await publisher.publish(envelope).then(
+    () => "ok",
+    (e) => String(e.message),
+  );
+  check(
+    `${envelope.type} published by the real ${envelope.producer} publisher`,
+    sent === "ok",
+    sent === "ok" ? "" : sent.slice(0, 120),
+  );
+  const accepted = await until(
+    async () =>
+      (await store.events.findOne({ _id: envelope.eventId }))?.publisher ===
+      envelope.producer,
+  );
+  check(
+    `${envelope.type} accepted by Notification as publisher '${envelope.producer}'`,
+    accepted,
+  );
+  if (envelope.targets.kind === "USERS") {
+    check(
+      `${envelope.type} created a mandatory simulated email for its recipient`,
+      await until(
+        async () =>
+          (await store.deliveries.countDocuments({
+            eventId: envelope.eventId,
+            channel: "EMAIL",
+          })) >= 1,
+      ),
+    );
+  } else {
+    const doc = await store.events.findOne({ _id: envelope.eventId });
+    check(
+      `${envelope.type} keeps its admin audience pending for resolution`,
+      doc?.audienceStatus === "PENDING",
+      String(doc?.audienceStatus),
+    );
+  }
+}
+const crossing = await refusal("tutor", (ch) =>
+  ch.publish(EXCHANGE, "v1.review.flagged", Buffer.from("{}"), {
+    userId: "tutor",
+    persistent: true,
+  }),
+);
+check(
+  "Tutor cannot publish under Review's routing prefix",
+  /ACCESS_REFUSED/i.test(crossing),
+  crossing.slice(0, 100),
+);
+await tutorPublisher.close?.();
+await reviewPublisher.close?.();
 
 // 7. Optional: broker outage and recovery of the publisher connection.
 if (process.env.P_SMOKE_STOP_CMD && process.env.P_SMOKE_START_CMD) {

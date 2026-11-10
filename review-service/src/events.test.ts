@@ -78,9 +78,21 @@ test("publisher requests durable routed confirms with the authenticated producer
   assert.equal(call.options.userId, "review_owner");
   assert.equal(call.options.messageId, event.eventId);
   assert.deepEqual(JSON.parse(call.content.toString()), event);
-  assert.ok(
-    fake.topology.includes("notification.events.v1:tutor-matcher.events:v1.#"),
+  assert.deepEqual(
+    fake.topology,
+    [],
+    "a publish-only producer must not declare or bind anything",
   );
+  await publisher.close();
+});
+test("publisher readiness only proves the broker accepts the connection and declares nothing", async () => {
+  const fake = transport("confirm");
+  const publisher = new RabbitPublisher(
+    "amqp://review:synthetic@localhost",
+    fake.connector,
+  );
+  assert.equal(await publisher.ready(), true);
+  assert.deepEqual(fake.topology, []);
   await publisher.close();
 });
 test("publisher treats both broker nacks and mandatory returns as failed work", async () => {

@@ -29,32 +29,9 @@ export class RabbitPublisher implements EventPublisher {
       const channel = await connection.createConfirmChannel();
       channel.on("error", reset);
       channel.on("close", reset);
-      await channel.assertExchange("tutor-matcher.events", "topic", {
-        durable: true,
-      });
-      await channel.assertExchange("tutor-matcher.dead", "direct", {
-        durable: true,
-      });
-      await channel.assertQueue("notification.events.v1.dead", {
-        durable: true,
-      });
-      await channel.bindQueue(
-        "notification.events.v1.dead",
-        "tutor-matcher.dead",
-        "notification.invalid",
-      );
-      await channel.assertQueue("notification.events.v1", {
-        durable: true,
-        arguments: {
-          "x-dead-letter-exchange": "tutor-matcher.dead",
-          "x-dead-letter-routing-key": "notification.invalid",
-        },
-      });
-      await channel.bindQueue(
-        "notification.events.v1",
-        "tutor-matcher.events",
-        "v1.#",
-      );
+      // Publish-only: this producer's broker user may write to the exchange but not declare or inspect anything
+      // (see notification-service/deploy/rabbitmq-definitions.json). Auth, Notification and docker/rabbitmq-provision.mjs
+      // install the topology, and the mandatory flag below rejects an event that no queue received.
       channel.on("return", (message) => {
         if (message.properties.messageId)
           this.returned.add(message.properties.messageId);
@@ -72,8 +49,7 @@ export class RabbitPublisher implements EventPublisher {
   }
   async ready(): Promise<boolean> {
     try {
-      const channel = await this.connect();
-      await channel.checkQueue("notification.events.v1");
+      await this.connect();
       return true;
     } catch {
       return false;
