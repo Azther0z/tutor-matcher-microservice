@@ -72,3 +72,11 @@ Docker Compose deployment with public and internal Traefik routing.
 ![Local deployment](assets/local-deployment.png)
 
 [Mermaid source](mermaid/local-deployment.mmd)
+
+## Service discovery
+
+Service discovery for public API routing, internal service calls, and asynchronous events.
+
+![Service discovery](assets/service-discovery.png)
+
+[Mermaid source](mermaid/service-discovery.mmd)

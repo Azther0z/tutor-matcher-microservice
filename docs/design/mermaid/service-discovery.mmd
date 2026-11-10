@@ -1,0 +1,37 @@
+%%{init: {"theme":"base","themeVariables":{"background":"#FFFFFF","primaryColor":"#F5F5F5","primaryTextColor":"#111111","primaryBorderColor":"#444444","lineColor":"#E90033","clusterBkg":"#FFFFFF","clusterBorder":"#10264D","fontFamily":"Arial","fontSize":"18px"}}}%%
+flowchart TB
+    subgraph discovery["1 · Discover Service Backends"]
+        direction LR
+        containers["Service Containers<br/>Labels + IP + Ports"] -.->|"Metadata / Events"| proxy["Read-only<br/>Docker API Proxy"]
+        proxy -.-> externalProvider["Public Traefik<br/>Docker Provider"]
+        proxy -.-> internalProvider["Internal Traefik<br/>Docker Provider"]
+        externalProvider & internalProvider -.-> health["Update Backend Pools<br/>HTTP / gRPC Health Checks"]
+    end
+    subgraph api["2 · Public API Request"]
+        direction LR
+        web["Web App"] -->|"api-gateway:8080"| public["Public Traefik<br/>Match API Route"]
+        public -->|"HTTP · Healthy Backend"| owner["Target Service"]
+    end
+    subgraph peer["3 · Internal Service-to-Service Call"]
+        direction LR
+        caller["Calling Service<br/>e.g. Booking"] -->|"Resolve wallet.internal"| dns["Docker DNS<br/>Alias → Internal Traefik"]
+        dns -->|"wallet.internal:8080"| internal["Internal Traefik<br/>Host + gRPC / HTTP Route"]
+        internal -->|"Healthy Backend · h2c gRPC"| wallet["Wallet Service<br/>:50054"]
+    end
+    subgraph async["4 · Asynchronous Service-to-Service Events"]
+        direction LR
+        producer["Producer Service"] -->|"AMQP · Docker DNS"| broker["RabbitMQ :5672"]
+        broker -->|"Queue / Event Delivery"| consumer["Consumer Service"]
+    end
+    discovery ~~~ api ~~~ peer ~~~ async
+    classDef neutral fill:#F5F5F5,stroke:#444444,color:#111111,stroke-width:1px
+    classDef core fill:#E90033,stroke:#10264D,color:#FFFFFF,stroke-width:2px
+    classDef storage fill:#FFFFFF,stroke:#777777,color:#111111,stroke-width:1px
+    classDef subtle fill:#FFFFFF,stroke:#BBBBBB,color:#555555,stroke-dasharray:4 3
+    class containers,proxy,web,caller,dns,producer,consumer neutral
+    class externalProvider,internalProvider,public,internal,owner,wallet,broker core
+    class health storage
+    style discovery fill:#FFFFFF,stroke:#10264D,stroke-width:2px,color:#10264D
+    style api fill:#FFFFFF,stroke:#10264D,stroke-width:2px,color:#10264D
+    style peer fill:#FFFFFF,stroke:#10264D,stroke-width:2px,color:#10264D
+    style async fill:#FFFFFF,stroke:#10264D,stroke-width:2px,color:#10264D
