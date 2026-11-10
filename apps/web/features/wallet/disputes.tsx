@@ -17,7 +17,7 @@ function AuditList({ dispute }: { dispute: Dispute }) {
   if (dispute.audit.length === 0) return <p className="muted">No audit entries yet.</p>;
   return (
     <ul className="audit-list">
-      {dispute.audit.map((entry) => (
+      {[...dispute.audit].sort((a, b) => b.occurredAt.localeCompare(a.occurredAt)).map((entry) => (
         <li key={entry.id}><strong>{titleCase(entry.action)}</strong>, {formatTime(entry.occurredAt)}{entry.reason && <><br /><span className="small-muted">{entry.reason}</span></>}</li>
       ))}
     </ul>
@@ -269,7 +269,7 @@ export function AdminDisputeDetailPage({ params }: { params: Promise<{ disputeId
           {detail.transactions.length > 0 && (
             <section className="panel wallet-recent">
               <h2>Related wallet movements</h2>
-              {detail.transactions.map((tx) => (
+              {[...detail.transactions].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).map((tx) => (
                 <div key={tx.id} className="audit-row">
                   <span><strong>{titleCase(tx.type)}</strong><small>{formatTime(tx.createdAt)}</small></span>
                   <strong>{formatMoney(tx.amount)}</strong>
@@ -280,7 +280,7 @@ export function AdminDisputeDetailPage({ params }: { params: Promise<{ disputeId
           <section className="panel wallet-recent">
             <h2>Audit trail</h2>
             {detail.dispute.audit.length === 0 && <p className="tutor-card-meta">No audit entries yet.</p>}
-            {detail.dispute.audit.map((entry) => (
+            {[...detail.dispute.audit].sort((a, b) => b.occurredAt.localeCompare(a.occurredAt)).map((entry) => (
               <div key={entry.id} className="audit-row">
                 <span><strong>{titleCase(entry.action)}</strong>{entry.reason && <small>{entry.reason}</small>}</span>
                 <time dateTime={entry.occurredAt}>{formatTime(entry.occurredAt)}</time>
