@@ -12,7 +12,7 @@ import { Avatar } from "@/components/avatar";
 import { IntroVideo } from "@/components/intro-video";
 import { LessonCalendar } from "@/components/lesson-calendar";
 import { useAuth } from "@/lib/auth-context";
-import type { Booking, BookingPage } from "@/features/booking/types";
+import type { BookingPage } from "@/features/booking/types";
 import { ReviewList } from "../review/reviews";
 import {
   bangkokDate,
