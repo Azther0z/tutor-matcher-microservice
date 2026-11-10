@@ -201,6 +201,13 @@ main:focus { outline: none; }
 .field .check-row, fieldset.field .check-row { font-weight: 400; text-align: left; justify-content: flex-start; }
 .form-footer { font-size: 14px; color: var(--muted); margin: 20px 0 0; }
 .form-footer a { color: var(--amber); font-weight: 600; }
+.form-layout-compact { gap: 36px; }
+.form-layout-compact .form-aside { padding: 20px 4px; }
+.form-card-compact { padding: 24px 26px; }
+.form-card-compact h2 { margin-bottom: 6px; }
+.form-card-compact > p { margin-bottom: 16px; }
+.form-card-compact .form { gap: 14px; }
+.form-card-compact .form-footer { margin-top: 22px; }
 fieldset.field, .plain-fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
 fieldset.field legend { font-size: 14px; font-weight: 500; padding: 0; margin-bottom: 8px; }
 .plain-fieldset { display: grid; gap: 16px; }
