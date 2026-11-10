@@ -4,7 +4,7 @@ import { useState } from "react";
 import { StatusBadge } from "@/features/wallet/common";
 import { RequireAuth } from "@/lib/auth-context";
 import { Field, Notice } from "@/components/field";
-import { Dropdown } from "@/components/dropdown";
+import { LegalModal } from "@/components/legal-modal";
 import {
   ActionMessages,
   bangkokTime,
@@ -23,14 +23,19 @@ function FlagCard({
   item: AdminFlag;
   reload: () => Promise<void>;
 }) {
-  const action = useAction(reload);
+  const action = useAction(async () => {
+    await reload();
+    setOpen(false);
+  });
+  const [open, setOpen] = useState(false);
+  const [decision, setDecision] = useState("KEEP");
   async function decide(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
     await action.run(
       `/admin/reviews/${item.review.id}/moderation`,
       {
-        decision: String(form.get("decision")),
+        decision,
         reason: String(form.get("reason") ?? "").trim(),
       },
       "POST",
@@ -38,67 +43,71 @@ function FlagCard({
     );
   }
   return (
-    <article className="panel">
-      <div className="stat-line">
-        <strong>Reported by {item.reporterDisplayName}</strong>
-        <StatusBadge value={item.flag.state} />
-        <time dateTime={item.flag.createdAt}>
-          {bangkokTime(item.flag.createdAt)} (Bangkok)
-        </time>
+    <article className="panel booking-new submission-card">
+      <StatusBadge value={item.flag.state} corner />
+      <div className="booking-title">
+        <h2>Reported by {item.reporterDisplayName}</h2>
+        <p className="tutor-card-meta">{bangkokTime(item.flag.createdAt)}</p>
       </div>
-      <p>Reporter account: {item.flag.reporterUserId}</p>
-      <h3>Report reason</h3>
-      <p style={{ whiteSpace: "pre-wrap" }}>{item.flag.reason}</p>
-      <hr className="divider" />
-      <h3>Flagged review</h3>
-      <p>
-        Author: {item.review.studentDisplayName}. Rating: {item.review.rating}
-        /5. Visibility: <strong>{item.review.visibility}</strong>.
-      </p>
-      {item.review.headline && <h3>{item.review.headline}</h3>}
-      <p style={{ whiteSpace: "pre-wrap" }}>{item.review.text}</p>
-      {item.review.reply && (
-        <blockquote>
-          <strong>Tutor reply</strong>
-          <p style={{ whiteSpace: "pre-wrap" }}>{item.review.reply.text}</p>
-        </blockquote>
+      <p className="submission-bio full">{item.flag.reason}</p>
+      <div className="summary-rows">
+        <div><span>Review author</span><strong>{item.review.studentDisplayName}</strong></div>
+        <div><span>Rating</span><strong>{item.review.rating} / 5</strong></div>
+        <div><span>Visibility</span><strong>{item.review.visibility.charAt(0) + item.review.visibility.slice(1).toLowerCase()}</strong></div>
+      </div>
+      <div className="flagged-review">
+        {item.review.headline && <strong>{item.review.headline}</strong>}
+        <p>{item.review.text}</p>
+        {item.review.reply && (
+          <p className="tutor-card-meta">Tutor reply: {item.review.reply.text}</p>
+        )}
+      </div>
+      {!open && action.error && (
+        <Notice kind="error" requestId={action.requestId}>{action.error}</Notice>
       )}
-      <p>
-        Review ID: {item.review.id}. Booking: {item.review.bookingId}.
-      </p>
-      <ActionMessages action={action} />
       {item.flag.state === "OPEN" && (
-        <form className="form" onSubmit={(event) => void decide(event)}>
-          <div className="field">
-            <label htmlFor={`decision-${item.flag.id}`}>
-              Moderation decision
-            </label>
-            <Dropdown id={`decision-${item.flag.id}`} name="decision" options={[
-              { value: "KEEP", label: "Keep review public" },
-              { value: "HIDE", label: "Hide whole review and reply" },
-              { value: "REMOVE", label: "Remove whole review and reply" },
-            ]} />
-          </div>
-          <Field
-            id={`reason-${item.flag.id}`}
-            name="reason"
-            label="Moderation reason"
-            required
-            maxLength={2000}
-          />
-          <Notice kind="info">
-            Hiding or removing excludes the whole review, its reply and its
-            rating from public results. All open reports for this review are
-            resolved together. The author and reporters are notified.
-          </Notice>
-          <button
-            className="button"
-            disabled={action.pending || action.uncertain}
-          >
-            Save moderation decision
-          </button>
-        </form>
+        <div className="slot-footer flush">
+          <span />
+          <button className="button" onClick={() => setOpen(true)}>Decide</button>
+        </div>
       )}
+      <LegalModal
+        open={open}
+        title="Moderation decision"
+        onClose={() => setOpen(false)}
+        actions={
+          <div className="button-row" style={{ justifyContent: "flex-end" }}>
+            <button type="button" className="button button-quiet" onClick={() => setOpen(false)}>Cancel</button>
+            <button type="submit" form={`decide-${item.flag.id}`} className="button" disabled={action.pending || action.uncertain}>
+              {action.pending ? "Saving..." : "Save decision"}
+            </button>
+          </div>
+        }
+      >
+        <form id={`decide-${item.flag.id}`} className="topup-step" onSubmit={(event) => void decide(event)}>
+          <ActionMessages action={action} />
+          <div className="field">
+            <span className="field-label">Decision</span>
+            <div className="topup-quick" role="group" aria-label="Decision">
+              {[
+                { value: "KEEP", label: "Keep public" },
+                { value: "HIDE", label: "Hide" },
+                { value: "REMOVE", label: "Remove" },
+              ].map((choice) => (
+                <button type="button" key={choice.value} className="topup-chip" aria-pressed={decision === choice.value} onClick={() => setDecision(choice.value)}>
+                  {choice.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <Field id={`reason-${item.flag.id}`} name="reason" label="Reason (required)" required maxLength={2000} />
+          <p className="tutor-card-meta">
+            Hiding or removing takes out the whole review, its reply and its
+            rating. All open reports for this review are resolved together and
+            the author and reporters are notified.
+          </p>
+        </form>
+      </LegalModal>
     </article>
   );
 }
@@ -109,12 +118,8 @@ function QueueContent() {
   );
   return (
     <>
-      <header className="section-heading">
-        <h1>Review moderation</h1>
-        <p>
-          Inspect the reported review and reporter details before recording a
-          decision.
-        </p>
+      <header className="page-heading">
+        <h1>Review reports</h1>
       </header>
       <ResourceState
         loading={resource.loading}
@@ -124,7 +129,7 @@ function QueueContent() {
       {resource.data && (
         <>
           {resource.data.items.length === 0 && (
-            <p className="empty-state">No review reports.</p>
+            <p className="tutor-card-meta">No review reports.</p>
           )}
           {resource.data.items.map((item) => (
             <FlagCard

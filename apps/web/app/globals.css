@@ -915,3 +915,6 @@ a.tutor-card:hover { background: #0b0b0b; }
 .topup-row .button { min-height: 34px; padding: 6px 14px; font-size: 13px; }
 .topup-row .button-quiet { color: var(--muted); }
 .topup-row .button-quiet:hover { color: var(--ink); background: rgba(255, 255, 255, 0.05); }
+.flagged-review { display: grid; gap: 4px; padding: 12px 14px; border-radius: 10px; background: rgba(255, 255, 255, 0.03); font-size: 14px; }
+.flagged-review p { margin: 0; line-height: 1.55; }
+.booking-new .form > .button { justify-self: start; }
