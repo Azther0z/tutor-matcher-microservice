@@ -131,13 +131,31 @@ export function TopupRequestPanel({ returnTo, unavailable, open, onClose }: { re
           </p>
         </div>
       )}
-      <LegalModal open={open && !waiting} title="Add funds with PromptPay" onClose={onClose} actions={false}>
+      <LegalModal
+        open={open && !waiting}
+        title={confirmed ? "Transfer and attach slip" : "Add funds"}
+        onClose={onClose}
+        actions={
+          <div className="button-row" style={{ justifyContent: "flex-end" }}>
+            {!confirmed ? (
+              <>
+                <button type="button" className="button button-quiet" onClick={onClose}>Cancel</button>
+                <button type="submit" form="topup-amount-form" className="button" disabled={unavailable || !loaded || !normalized}>Confirm amount</button>
+              </>
+            ) : (
+              <>
+                <button type="button" className="button button-quiet" onClick={changeAmount} disabled={pending}>Change amount</button>
+                <button type="submit" form="topup-send-form" className="button" disabled={pending || unavailable || !loaded || !slip}>{pending ? "Sending…" : "Send request"}</button>
+              </>
+            )}
+          </div>
+        }
+      >
         <div className="topup-body">
-          <p className="tutor-card-meta">Confirm an amount, scan the QR code to transfer it, then attach your slip. Your balance is credited when an admin approves it.</p>
           <ErrorNotice failure={error} />
           {!confirmed ? (
-            <form className="topup-step" onSubmit={confirmAmount} noValidate>
-              <Field id="amount" label="Amount (THB)" inputMode="decimal" autoComplete="off" placeholder="e.g. 500.00" value={amount}
+            <form id="topup-amount-form" className="topup-step" onSubmit={confirmAmount} noValidate>
+              <Field id="amount" label="How much do you want to add? (THB)" inputMode="decimal" autoComplete="off" placeholder="500.00" value={amount}
                 error={fields.amount ?? fields.amount_amount} disabled={unavailable}
                 onChange={(e) => { setAmount(e.target.value); setFields({}); }} />
               <div className="topup-quick" role="group" aria-label="Quick amounts">
@@ -147,41 +165,29 @@ export function TopupRequestPanel({ returnTo, unavailable, open, onClose }: { re
                   </button>
                 ))}
               </div>
-              <button className="button" disabled={unavailable || !loaded || !normalized}>Confirm amount</button>
+              <p className="tutor-card-meta">Your balance is credited when an admin approves the request.</p>
             </form>
           ) : (
-            <form className="topup-form" onSubmit={submit} noValidate aria-busy={pending}>
-              <div className="topup-fields">
-                <div className="summary-rows">
-                  <div>
-                    <span>Amount</span>
-                    <strong>
-                      THB {confirmed}{" "}
-                      <button type="button" className="topup-change" onClick={changeAmount} disabled={pending}>Change</button>
-                    </strong>
-                  </div>
-                </div>
-                <div className="field">
-                  <span className="field-label">Transfer slip</span>
-                  <input ref={fileRef} id="slip" name="slip" type="file" hidden accept="image/png,image/jpeg,image/webp" disabled={unavailable || pending}
-                    onChange={(e) => chooseSlip(e.target.files?.[0])} aria-label="Transfer slip" />
-                  <div className="slip-pick">
-                    <button type="button" className="button button-quiet" disabled={unavailable || pending} onClick={() => fileRef.current?.click()}>
-                      {slip ? "Change file" : "Choose file"}
-                    </button>
-                    <span className="small-muted">{slip ? slip.name : "PNG, JPEG or WebP, up to 2 MB"}</span>
-                  </div>
-                  {fields.slip && <span className="field-error">{fields.slip}</span>}
-                  {preview && (
-                    <img className="slip-preview" src={preview} alt="Selected transfer slip" />
-                  )}
-                </div>
-                <button className="button" disabled={pending || unavailable || !loaded || !slip}>{pending ? "Sending…" : "Send top-up request"}</button>
-              </div>
+            <form id="topup-send-form" className="topup-send" onSubmit={submit} noValidate aria-busy={pending}>
               <figure className="promptpay-qr">
-                <img src={`https://promptpay.io/${PROMPTPAY_ID}/${confirmed}.png`} alt={`PromptPay QR code for THB ${confirmed}`} width={240} height={240} />
+                <img src={`https://promptpay.io/${PROMPTPAY_ID}/${confirmed}.png`} alt={`PromptPay QR code for THB ${confirmed}`} width={200} height={200} />
                 <figcaption>Scan to transfer <strong>THB {confirmed}</strong></figcaption>
               </figure>
+              <div className="field">
+                <span className="field-label">Transfer slip</span>
+                <input ref={fileRef} id="slip" name="slip" type="file" hidden accept="image/png,image/jpeg,image/webp" disabled={unavailable || pending}
+                  onChange={(e) => chooseSlip(e.target.files?.[0])} aria-label="Transfer slip" />
+                <div className="slip-pick">
+                  <button type="button" className="button button-quiet" disabled={unavailable || pending} onClick={() => fileRef.current?.click()}>
+                    {slip ? "Change file" : "Choose file"}
+                  </button>
+                  <span className="small-muted">{slip ? slip.name : "PNG, JPEG or WebP, up to 2 MB"}</span>
+                </div>
+                {fields.slip && <span className="field-error">{fields.slip}</span>}
+                {preview && (
+                  <img className="slip-preview" src={preview} alt="Selected transfer slip" />
+                )}
+              </div>
             </form>
           )}
         </div>

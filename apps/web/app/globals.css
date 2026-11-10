@@ -185,10 +185,10 @@ main:focus { outline: none; }
 .field { display: grid; gap: 7px; }
 .field label, .field-label { font-size: 14px; font-weight: 500; }
 .field input, .dropdown-trigger, .field textarea, .search-input {
-  width: 100%; padding: 12px 16px; border: 1.5px solid var(--line-strong); border-radius: 8px;
+  width: 100%; padding: 10px 14px; border: 1px solid var(--line-strong); border-radius: 8px;
   background: var(--bg-raised); color: var(--ink);
 }
-.field input::placeholder, .field textarea::placeholder { color: #8a7f6b; }
+.field input::placeholder, .field textarea::placeholder { color: #6b6b73; }
 .field input:focus, .dropdown-trigger:focus, .field textarea:focus { border-color: var(--amber); }
 .field input[aria-invalid="true"], .dropdown-trigger[aria-invalid="true"], .field textarea[aria-invalid="true"] { border-color: #ff7a66; }
 .field input[type="checkbox"], .field input[type="radio"] { width: auto; padding: 0; }
@@ -668,3 +668,9 @@ fieldset.field legend { font-size: 14px; font-weight: 500; padding: 0; margin-bo
 .wallet-tx { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 0; border-top: 1px solid var(--line); color: var(--ink); text-decoration: none; font-size: 14px; }
 .wallet-tx:hover { background: #0b0b0b; }
 .wallet-tx small { display: block; margin-top: 2px; font-size: 12px; color: var(--muted); }
+.field input:focus-visible, .field textarea:focus-visible, .search-input:focus-visible { outline: none; border-color: var(--amber); box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.22); }
+.legal-modal:has(.topup-body) { width: min(440px, calc(100% - 32px)); }
+.topup-body .tutor-card-meta { margin: 0; }
+.topup-step, .topup-send { display: grid; gap: 14px; max-width: none; }
+.topup-send .promptpay-qr { justify-self: center; padding: 12px; }
+.topup-body .legal-copy, .legal-modal-body.legal-copy .topup-body p { color: var(--muted); }
