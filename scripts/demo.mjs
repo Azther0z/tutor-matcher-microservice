@@ -76,6 +76,88 @@ const SECRETS = [
   "NOTIFICATION_WORKLOAD_CREDENTIAL",
   "AUTH_DEMO_PASSWORD",
 ];
+// Five approved demo tutors. The first is the long-standing candidate account.
+const TUTORS = [
+  {
+    userId: "10000000-0000-4000-8000-000000000003",
+    email: "candidate.demo@example.test",
+    name: "Alice Johnson",
+    profile: {
+      headline: "Demonstration tutor",
+      bio: "Synthetic demonstration tutor. No real identification documents are used.",
+      subject: {
+        name: "Mathematics",
+        description: "Synthetic algebra and calculus offering.",
+        hourlyRate: "400.00",
+        learningAreas: ["mathematics"],
+      },
+    },
+  },
+  {
+    userId: "10000000-0000-4000-8000-000000000004",
+    email: "nara.demo@example.test",
+    name: "Nara Wongsa",
+    profile: {
+      headline: "IELTS and conversational English",
+      bio: "Synthetic demonstration tutor. Speaking practice and IELTS strategies.",
+      subject: {
+        name: "English Conversation and IELTS",
+        description:
+          "Speaking confidence, vocabulary and IELTS writing feedback.",
+        hourlyRate: "550.00",
+        learningAreas: ["english"],
+      },
+    },
+  },
+  {
+    userId: "10000000-0000-4000-8000-000000000005",
+    email: "kitti.demo@example.test",
+    name: "Kitti Suriyan",
+    profile: {
+      headline: "Physics made visual",
+      bio: "Synthetic demonstration tutor. Mechanics, electricity and olympiad problems.",
+      subject: {
+        name: "Physics",
+        description:
+          "Mechanics, waves and electricity, from basics to olympiad level.",
+        hourlyRate: "480.00",
+        learningAreas: ["physics", "science"],
+      },
+    },
+  },
+  {
+    userId: "10000000-0000-4000-8000-000000000006",
+    email: "mali.demo@example.test",
+    name: "Mali Chaiyo",
+    profile: {
+      headline: "Python for absolute beginners",
+      bio: "Synthetic demonstration tutor. Friendly, project-based programming lessons.",
+      subject: {
+        name: "Python Programming",
+        description:
+          "Variables to small projects, with code review after every session.",
+        hourlyRate: "650.00",
+        learningAreas: ["computer-programming"],
+      },
+    },
+  },
+  {
+    userId: "10000000-0000-4000-8000-000000000007",
+    email: "ben.demo@example.test",
+    name: "Ben Carter",
+    profile: {
+      headline: "Business and academic writing",
+      bio: "Synthetic demonstration tutor. Structure, clarity and persuasive writing.",
+      subject: {
+        name: "Academic Writing",
+        description:
+          "Essay structure, argument and editing for reports and applications.",
+        hourlyRate: "500.00",
+        learningAreas: ["academic-writing", "business"],
+      },
+    },
+  },
+];
 const ACCOUNTS = {
   admin: "10000000-0000-4000-8000-000000000001",
   student: "10000000-0000-4000-8000-000000000002",
@@ -233,7 +315,7 @@ function seed() {
       "exec",
       "-T",
       "-e",
-      `TUTOR_SEED_USERS=${JSON.stringify([{ userId: ACCOUNTS.candidate, adminUserId: ACCOUNTS.admin }])}`,
+      `TUTOR_SEED_USERS=${JSON.stringify(TUTORS.map((tutor) => ({ userId: tutor.userId, adminUserId: ACCOUNTS.admin, profile: tutor.profile })))}`,
       "tutor-service",
       "npm",
       "run",
@@ -266,6 +348,8 @@ function seed() {
       "-T",
       "-e",
       `BOOKING_SEED_TUTORS=${JSON.stringify(tutors)}`,
+      "-e",
+      `BOOKING_SEED_FIXTURE=${JSON.stringify({ studentUserId: ACCOUNTS.student, studentName: "Bob Smith", tutorName: TUTORS[0].name, tutor: tutors.find((t) => t.userId === TUTORS[0].userId), subject: { name: TUTORS[0].profile.subject.name, description: TUTORS[0].profile.subject.description, hourlyRate: TUTORS[0].profile.subject.hourlyRate } })}`,
       "booking-service",
       "npm",
       "run",
@@ -278,6 +362,37 @@ function seed() {
     say(
       "  ! Demo availability could not be seeded. Run `npm run demo` again to retry.",
     );
+  const messaging = run(
+    composeArgs(
+      "exec",
+      "-T",
+      "-e",
+      `MESSAGING_SEED=${JSON.stringify({
+        studentUserId: ACCOUNTS.student,
+        studentName: "Bob Smith",
+        tutorUserId: TUTORS[0].userId,
+        tutorName: TUTORS[0].name,
+        messages: [
+          {
+            from: "STUDENT",
+            text: "Hi Alice, could we go through limits and derivatives before my exam?",
+          },
+          {
+            from: "TUTOR",
+            text: "Of course! Book a half-hour slot and send me the topics you find hardest.",
+          },
+        ],
+      })}`,
+      "messaging-service",
+      "npm",
+      "run",
+      "seed",
+      "--workspace",
+      "services/messaging-service",
+    ),
+  );
+  if (messaging.status !== 0)
+    say("  ! The demo conversation could not be seeded.");
 }
 
 async function probe(path, init) {
@@ -330,9 +445,14 @@ function summary(healthy) {
   say(`  App      ${WEB_URL}`);
   say(`  Gateway  ${GATEWAY_URL}`);
   say("\n  Demo accounts (password: AUTH_DEMO_PASSWORD in .env.demo)");
-  say("    admin.demo@example.test       administrator");
-  say("    student.demo@example.test     student");
-  say("    candidate.demo@example.test   approved tutor (Mathematics)");
+  say("    admin.demo@example.test       Carol Davis, administrator");
+  say(
+    "    student.demo@example.test     Bob Smith, student (has a finished lesson to review)",
+  );
+  for (const tutor of TUTORS)
+    say(
+      `    ${tutor.email.padEnd(29)} ${tutor.name}, tutor: ${tutor.profile.subject.name}`,
+    );
   say("\n  npm run demo -- logs     follow logs");
   say("  npm run demo -- down     stop (data is kept)");
   say("  npm run demo -- reset --yes   stop and delete this demo's data\n");

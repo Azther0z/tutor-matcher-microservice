@@ -3,9 +3,14 @@ import { inTransaction, migrate, pool } from './db';
 import { hashPassword } from './security';
 
 export const DEMO_ACCOUNTS=[
-  {id:'10000000-0000-4000-8000-000000000001',email:'admin.demo@example.test',firstName:'Demo',lastName:'Admin',capabilities:['STUDENT','ADMIN']},
-  {id:'10000000-0000-4000-8000-000000000002',email:'student.demo@example.test',firstName:'Demo',lastName:'Student',capabilities:['STUDENT']},
-  {id:'10000000-0000-4000-8000-000000000003',email:'candidate.demo@example.test',firstName:'Demo',lastName:'Candidate',capabilities:['STUDENT']},
+  {id:'10000000-0000-4000-8000-000000000001',email:'admin.demo@example.test',firstName:'Carol',lastName:'Davis',capabilities:['STUDENT','ADMIN']},
+  {id:'10000000-0000-4000-8000-000000000002',email:'student.demo@example.test',firstName:'Bob',lastName:'Smith',capabilities:['STUDENT']},
+  {id:'10000000-0000-4000-8000-000000000003',email:'candidate.demo@example.test',firstName:'Alice',lastName:'Johnson',capabilities:['STUDENT']},
+  // Candidates the demo tutor seed turns into approved tutors.
+  {id:'10000000-0000-4000-8000-000000000004',email:'nara.demo@example.test',firstName:'Nara',lastName:'Wongsa',capabilities:['STUDENT']},
+  {id:'10000000-0000-4000-8000-000000000005',email:'kitti.demo@example.test',firstName:'Kitti',lastName:'Suriyan',capabilities:['STUDENT']},
+  {id:'10000000-0000-4000-8000-000000000006',email:'mali.demo@example.test',firstName:'Mali',lastName:'Chaiyo',capabilities:['STUDENT']},
+  {id:'10000000-0000-4000-8000-000000000007',email:'ben.demo@example.test',firstName:'Ben',lastName:'Carter',capabilities:['STUDENT']},
 ] as const;
 
 export async function seedDemoAccounts():Promise<{created:number;existing:number}>{

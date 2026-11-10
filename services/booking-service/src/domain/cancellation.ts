@@ -212,7 +212,7 @@ export async function cancelBooking(ctx: Ctx, actor: Actor, input: CancelInput):
     await finishUnpaidCancellation(ctx, input.bookingId);
   }
 
-  return ctx.idem.run({ ...input.scope, now: ctx.clock.now() }, async (tx) => {
+  return ctx.idem.run({ ...input.scope, now: ctx.clock.now() }, async (tx): Promise<Reply> => {
     const op = (await tx.query<{ status: string; resource_type: string | null; resource_id: string | null; resource_url: string | null }>(
       'SELECT id, status, resource_type, resource_id, resource_url FROM booking_operations WHERE id = $1', [operationId])).rows[0];
     if (op.status === 'REJECTED') throw conflict('QUOTE_CHANGED', 'The booking was paid while it was being cancelled. Request a new cancellation quote.');

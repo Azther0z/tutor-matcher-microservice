@@ -17,11 +17,22 @@ function stableKey(identity: string): string {
   const hex = buffer.toString("hex");
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
 }
+export interface SeedProfile {
+  headline?: string;
+  bio?: string;
+  subject?: {
+    name: string;
+    description: string;
+    hourlyRate: string;
+    learningAreas: string[];
+  };
+}
 export async function seedApprovedTutor(
   service: TutorService,
   student: ActorClaims,
   admin: ActorClaims,
   namespace: string,
+  profile: SeedProfile = {},
 ) {
   const command = (actor: ActorClaims, operation: string, revision?: string) =>
     fixtureContext(
@@ -32,8 +43,10 @@ export async function seedApprovedTutor(
     );
   const draft = (
     await service.createDraft(command(student, "createTutorDraft"), {
-      bio: "Synthetic demonstration tutor. No real identification documents are used.",
-      headline: "Demonstration tutor",
+      bio:
+        profile.bio ??
+        "Synthetic demonstration tutor. No real identification documents are used.",
+      headline: profile.headline ?? "Demonstration tutor",
       identificationDocumentUrl:
         "https://example.test/synthetic-identification",
       introVideoUrl: "https://example.test/synthetic-introduction",
@@ -70,11 +83,12 @@ export async function seedApprovedTutor(
   );
   const subject = (
     await service.createSubject(command(student, "createSubject"), {
-      name: "Mathematics",
-      description: "Synthetic algebra and calculus offering.",
-      hourlyRate: "400.00",
+      name: profile.subject?.name ?? "Mathematics",
+      description:
+        profile.subject?.description ?? "Synthetic algebra and calculus offering.",
+      hourlyRate: profile.subject?.hourlyRate ?? "400.00",
       format: "ONLINE",
-      learningAreas: ["mathematics"],
+      learningAreas: profile.subject?.learningAreas ?? ["mathematics"],
     })
   ).body as Subject;
   return {
@@ -91,6 +105,7 @@ async function main() {
   const requested = JSON.parse(process.env.TUTOR_SEED_USERS) as Array<{
     userId: string;
     adminUserId: string;
+    profile?: SeedProfile;
   }>;
   if (
     !Array.isArray(requested) ||
@@ -125,7 +140,13 @@ async function main() {
       actor.sessionId = randomUUID();
       adminActor.sessionId = randomUUID();
       seeded.push(
-        await seedApprovedTutor(service, actor, adminActor, student.id),
+        await seedApprovedTutor(
+          service,
+          actor,
+          adminActor,
+          student.id,
+          pair.profile,
+        ),
       );
     }
     console.log(JSON.stringify({ items: seeded }));
@@ -135,9 +156,10 @@ async function main() {
   }
 }
 if (require.main === module)
-  main().catch(() => {
+  main().catch((error) => {
     console.error(
       "Tutor seed failed. Review synthetic account configuration and pending activation.",
+      error instanceof Error ? `(${error.message})` : "",
     );
     process.exitCode = 1;
   });

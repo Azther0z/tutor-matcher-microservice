@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import type { Db, MongoClient } from 'mongodb';
+import type { Db, Filter, MongoClient } from 'mongodb';
 import type { Actor } from './auth';
 import type { CallContext, Peers } from './clients';
 import type { Contracts } from './contracts';
@@ -92,7 +92,7 @@ export function roleAllows(conversation: ConversationDoc, userId: string, view: 
   return conversation.kind === 'ADMIN_SUPPORT' && conversation.adminUserId === userId && actor.capabilities.includes('ADMIN');
 }
 
-function inboxFilter(userId: string, view: View) {
+function inboxFilter(userId: string, view: View): Filter<ConversationDoc> {
   if (view === 'STUDENT') {
     return { $or: [{ kind: 'STUDENT_TUTOR', studentUserId: userId }, { kind: 'ADMIN_SUPPORT', userIds: userId, adminUserId: { $ne: userId } }] };
   }

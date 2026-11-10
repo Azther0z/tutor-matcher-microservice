@@ -86,7 +86,7 @@ export async function payBooking(ctx: Ctx, actor: Actor, input: PayInput): Promi
   const decision = await chargeOnce(ctx, attemptId, command, input.context);
   if (decision) await settleAttempt(ctx, attemptId, decision);
 
-  return ctx.idem.run({ ...input.scope, now: ctx.clock.now() }, async (tx) => {
+  return ctx.idem.run({ ...input.scope, now: ctx.clock.now() }, async (tx): Promise<Reply> => {
     const attempt = (await tx.query<{ status: string; booking_operation_id: string }>('SELECT status, booking_operation_id FROM payment_attempts WHERE operation_id = $1', [attemptId])).rows[0];
     if (attempt.status === 'DECLINED') throw insufficientFunds('INSUFFICIENT_BALANCE', 'Your wallet balance is too low for this lesson. Add funds and pay again before the hold expires.');
     if (attempt.status === 'CLOSED') throw conflict('HOLD_EXPIRED', 'The payment hold has expired. Choose your lesson times again.');
