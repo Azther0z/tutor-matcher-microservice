@@ -425,12 +425,17 @@ fieldset.field legend { font-size: 14px; font-weight: 500; padding: 0; margin-bo
 .tutor-card .tutor-card-by a:hover { color: var(--ink); }
 .tutor-card .verified-badge { flex: none; }
 .tutor-card .tutor-card-meta { margin: 0; font-size: 13px; color: var(--muted); }
-.tutor-card .tutor-card-desc { margin: 2px 0 4px; font-size: 14px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.tutor-card .stat-line { margin: 0; }
 .tutor-card { position: relative; transition: border-color 0.15s, background 0.15s; }
 .tutor-card:hover, .tutor-card:focus-within { border-color: var(--amber); }
 .tutor-card h2 a::after { content: ""; position: absolute; inset: 0; border-radius: inherit; }
 .tutor-card h2 a:focus-visible { outline: none; }
 .tutor-card:has(h2 a:focus-visible) { outline: 3px solid var(--amber); outline-offset: 2px; }
 .tutor-card .tutor-card-by a { position: relative; z-index: 1; }
-.tutor-card > .tutor-card-meta:last-child { margin-top: auto; padding-top: 6px; }
+.tutor-card .tutor-card-desc { margin: 4px 0 12px; font-size: 14px; flex: 1; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; align-content: start; }
+.tutor-card-foot { display: grid; gap: 4px; padding-top: 12px; border-top: 1px solid var(--line); }
+.tutor-card-price { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 14px; }
+.tutor-card-price strong { color: var(--ink); }
+.rating-stars { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); }
+.rating-stars-row { position: relative; display: inline-block; line-height: 1; letter-spacing: 1px; font-size: 14px; }
+.rating-stars-base { color: var(--line-strong); }
+.rating-stars-fill { position: absolute; left: 0; top: 0; overflow: hidden; white-space: nowrap; color: #f5b83d; }

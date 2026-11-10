@@ -63,6 +63,24 @@ function RatingLabel({
     </span>
   );
 }
+function RatingStars({ average, count }: { average: number | null; count: number }) {
+  const percent = average === null ? 0 : Math.max(0, Math.min(100, (average / 5) * 100));
+  const label =
+    average === null
+      ? "No ratings yet"
+      : `${average.toFixed(1)} out of 5, ${count} ${count === 1 ? "review" : "reviews"}`;
+  return (
+    <span className="rating-stars" role="img" aria-label={label}>
+      <span className="rating-stars-row" aria-hidden="true">
+        <span className="rating-stars-base">★★★★★</span>
+        <span className="rating-stars-fill" style={{ width: `${percent}%` }}>★★★★★</span>
+      </span>
+      <span className="rating-stars-text" aria-hidden="true">
+        {average === null ? "No ratings yet" : `${average.toFixed(1)} (${count})`}
+      </span>
+    </span>
+  );
+}
 export function Discover() {
   const query = useSearchParams();
   const router = useRouter();
@@ -315,19 +333,21 @@ export function Discover() {
                   Online · {item.subject.learningAreas.join(", ")}
                 </p>
                 <p className="tutor-card-desc">{item.subject.description}</p>
-                <div className="stat-line">
-                  <strong>THB {item.subject.hourlyRate}/hour</strong>
-                  <RatingLabel
-                    average={item.rating.average}
-                    count={item.rating.reviewCount}
-                  />
+                <div className="tutor-card-foot">
+                  <div className="tutor-card-price">
+                    <strong>THB {item.subject.hourlyRate}/hour</strong>
+                    <RatingStars
+                      average={item.rating.average}
+                      count={item.rating.reviewCount}
+                    />
+                  </div>
+                  <p className="tutor-card-meta">
+                    Next available:{" "}
+                    {item.nextAvailableAt
+                      ? `${bangkokTime(item.nextAvailableAt)} (Bangkok)`
+                      : "No future free slots"}
+                  </p>
                 </div>
-                <p className="tutor-card-meta">
-                  Next available:{" "}
-                  {item.nextAvailableAt
-                    ? `${bangkokTime(item.nextAvailableAt)} (Bangkok)`
-                    : "No future free slots"}
-                </p>
               </article>
             ))}
           </div>
