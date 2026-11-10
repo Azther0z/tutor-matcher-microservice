@@ -89,7 +89,12 @@ async function freePort() {
   return port;
 }
 
-function providerFixture(provider, backends, initialTaskCounts = {}) {
+function providerFixture(
+  provider,
+  backends,
+  initialTaskCounts = {},
+  healthCheckTimeout = "100ms",
+) {
   const networkId = "gateway-test-network";
   const networkName = "tutor-matcher_backend";
   const state = {
@@ -116,7 +121,7 @@ function providerFixture(provider, backends, initialTaskCounts = {}) {
         [`traefik.http.services.${name}.loadbalancer.healthcheck.interval`]:
           "100ms",
         [`traefik.http.services.${name}.loadbalancer.healthcheck.timeout`]:
-          "100ms",
+          healthCheckTimeout,
         "com.docker.stack.namespace": "tutor-matcher",
       },
     ]),
@@ -304,6 +309,7 @@ export async function startTestGateway({
   provider = process.env.GATEWAY_TEST_PROVIDER || "swarm",
   redactValues = [],
   initialTaskCounts = {},
+  healthCheckTimeout = "100ms",
 }) {
   assert.ok(authUrl, "authUrl is required");
   assert.ok(workloadCredential, "workloadCredential is required");
@@ -338,6 +344,7 @@ export async function startTestGateway({
     provider,
     backends,
     initialTaskCounts,
+    healthCheckTimeout,
   );
   const api = discoveryFixture.server;
   const apiPort = await listen(api);

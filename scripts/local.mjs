@@ -31,7 +31,12 @@ const secrets = [
   "MESSAGING_WORKLOAD_CREDENTIAL",
   "NOTIFICATION_WORKLOAD_CREDENTIAL",
 ];
-secrets.push("RABBITMQ_AUTH_PASSWORD", "AUTH_WORKLOAD_CREDENTIAL");
+secrets.push(
+  "RABBITMQ_AUTH_PASSWORD",
+  "RABBITMQ_TUTOR_PASSWORD",
+  "RABBITMQ_REVIEW_PASSWORD",
+  "AUTH_WORKLOAD_CREDENTIAL",
+);
 if (action === "up") {
   if (secrets.some((name) => !env[name])) {
     if (!env.COMPOSE_PROJECT_NAME)
