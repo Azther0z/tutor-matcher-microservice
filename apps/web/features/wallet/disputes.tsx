@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { use, useCallback, useEffect, useState } from "react";
-import { Field, Notice } from "@/components/field";
-import { api, apiResponse, errorMessage, fieldErrors, newIdempotencyKey } from "@/lib/api";
+import { Field, LoadError, Notice } from "@/components/field";
+import { api, apiResponse, errorMessage, failureOf, fieldErrors, newIdempotencyKey, type Failure } from "@/lib/api";
 import { Pager, StatusBadge } from "./common";
 import { formatMoney, formatTime, titleCase } from "./format";
 import type { AdminDisputeDetail, Dispute, DisputeStatus, Paged } from "./types";
@@ -86,13 +86,13 @@ export function DisputesPage() {
   const prefill = params.get("bookingId") ?? "";
   const [result, setResult] = useState<Paged<Dispute> | null>(null);
   const [pending, setPending] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState<Failure | null>(null);
   const [notice, setNotice] = useState("");
 
   const load = useCallback(async (page = 1) => {
-    setPending(true); setError("");
+    setPending(true); setError(null);
     try { setResult(await api<Paged<Dispute>>(`/disputes?page=${page}&pageSize=20`)); }
-    catch (e) { setError(errorMessage(e, "We couldn’t load your disputes.")); }
+    catch (e) { setError(failureOf(e, "We couldn’t load your disputes.")); }
     finally { setPending(false); }
   }, []);
   useEffect(() => { void load(1); }, [load]);
@@ -104,7 +104,7 @@ export function DisputesPage() {
       <section className="panel"><OpenDispute initialBookingId={prefill} onOpened={() => { setNotice("Your dispute was opened."); void load(1); }} /></section>
       <section className="panel">
         <h2>Your disputes</h2>
-        {error && <Notice kind="error">{error}</Notice>}
+        <LoadError failure={error} onRetry={() => void load(1)}/>
         {!result && !error && <p role="status">Loading…</p>}
         {result && result.items.length === 0 && <p className="empty-state">You have no disputes.</p>}
         {result && result.items.length > 0 && (
@@ -123,15 +123,17 @@ export function DisputesPage() {
 export function DisputeDetailPage({ params }: { params: Promise<{ disputeId: string }> }) {
   const { disputeId } = use(params);
   const [dispute, setDispute] = useState<Dispute | null>(null);
-  const [error, setError] = useState("");
-  useEffect(() => {
-    api<Dispute>(`/disputes/${disputeId}`).then(setDispute).catch((e) => setError(errorMessage(e, "We couldn’t load this dispute.")));
+  const [error, setError] = useState<Failure | null>(null);
+  const load = useCallback(() => {
+    setError(null);
+    api<Dispute>(`/disputes/${disputeId}`).then(setDispute).catch((e) => setError(failureOf(e, "We couldn’t load this dispute.")));
   }, [disputeId]);
+  useEffect(() => { load(); }, [load]);
   return (
     <>
       <header className="section-heading"><p className="eyebrow">WALLET</p><h1>Dispute</h1><p><Link className="text-link" href="/disputes">Back to disputes</Link></p></header>
       <section className="panel">
-        {error && <Notice kind="error">{error}</Notice>}
+        <LoadError failure={error} onRetry={load} backHref="/disputes" backLabel="Back to disputes"/>
         {!dispute && !error && <p role="status">Loading…</p>}
         {dispute && <><OutcomeSummary dispute={dispute} /><h2>History</h2><AuditList dispute={dispute} /></>}
       </section>

@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { use, useCallback, useEffect, useState } from "react";
-import { Notice } from "@/components/field";
-import { api, errorMessage } from "@/lib/api";
+import { LoadError } from "@/components/field";
+import { api, failureOf, type Failure } from "@/lib/api";
 import { Pager, StatusBadge } from "./common";
 import { formatMoney, formatTime, titleCase } from "./format";
 import { TRANSACTION_TYPES, type Paged, type WalletTransaction } from "./types";
@@ -12,14 +12,14 @@ export function TransactionsPage() {
   const [type, setType] = useState("");
   const [result, setResult] = useState<Paged<WalletTransaction> | null>(null);
   const [pending, setPending] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState<Failure | null>(null);
 
   const load = useCallback(async (page: number) => {
-    setPending(true); setError("");
+    setPending(true); setError(null);
     const params = new URLSearchParams({ page: String(page), pageSize: "20" });
     if (type) params.set("type", type);
     try { setResult(await api<Paged<WalletTransaction>>(`/wallet/transactions?${params}`)); }
-    catch (e) { setError(errorMessage(e, "We couldn’t load your transactions.")); }
+    catch (e) { setError(failureOf(e, "We couldn’t load your transactions.")); }
     finally { setPending(false); }
   }, [type]);
   useEffect(() => { void load(1); }, [load]);
@@ -39,7 +39,7 @@ export function TransactionsPage() {
             {TRANSACTION_TYPES.map((value) => <option key={value} value={value}>{titleCase(value)}</option>)}
           </select>
         </div>
-        {error && <Notice kind="error">{error}</Notice>}
+        <LoadError failure={error} onRetry={() => void load(1)} backHref="/wallet" backLabel="Back to wallet"/>
         {pending && !result && <p role="status">Loading transactions…</p>}
         {result && result.items.length === 0 && <p className="empty-state">No transactions yet.</p>}
         {result && result.items.length > 0 && (
@@ -70,15 +70,17 @@ export function TransactionsPage() {
 export function TransactionDetailPage({ params }: { params: Promise<{ transactionId: string }> }) {
   const { transactionId } = use(params);
   const [tx, setTx] = useState<WalletTransaction | null>(null);
-  const [error, setError] = useState("");
-  useEffect(() => {
-    api<WalletTransaction>(`/wallet/transactions/${transactionId}`).then(setTx).catch((e) => setError(errorMessage(e, "We couldn’t load this transaction.")));
+  const [error, setError] = useState<Failure | null>(null);
+  const load = useCallback(() => {
+    setError(null);
+    api<WalletTransaction>(`/wallet/transactions/${transactionId}`).then(setTx).catch((e) => setError(failureOf(e, "We couldn’t load this transaction.")));
   }, [transactionId]);
+  useEffect(() => { load(); }, [load]);
   return (
     <>
       <header className="section-heading"><p className="eyebrow">WALLET</p><h1>Transaction</h1><p><Link className="text-link" href="/wallet/transactions">Back to history</Link></p></header>
       <section className="panel">
-        {error && <Notice kind="error">{error}</Notice>}
+        <LoadError failure={error} onRetry={load} backHref="/wallet/transactions" backLabel="Back to history"/>
         {!tx && !error && <p role="status">Loading…</p>}
         {tx && (
           <dl className="audit-list">

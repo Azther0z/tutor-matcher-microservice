@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { RequireAuth, useAuth } from "@/lib/auth-context";
 import { Field, Notice } from "@/components/field";
@@ -146,14 +147,17 @@ function SubjectsContent() {
         <p className="eyebrow">YOUR TEACHING</p>
         <h1>Subjects</h1>
         <p>
-          Manage your online offerings, then open their half-hour slots in
-          Availability.
+          Manage your online offerings. Opening half-hour slots is not
+          available yet.
         </p>
       </header>
       <TutorNavigation />
       {!account?.capabilities.includes("TUTOR") ? (
         <Notice kind="info">
-          Approved and activated Tutor access is required to manage subjects.
+          Approved and activated Tutor access is required to manage subjects.{" "}
+          <Link className="text-link" href="/teach/application">
+            Apply to become a tutor
+          </Link>
         </Notice>
       ) : (
         <>

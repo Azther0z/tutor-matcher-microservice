@@ -1,4 +1,6 @@
 import { TutorRequestDetail } from "@/features/tutor/admin";
+
+export const metadata = { title: "Tutor request" };
 export default async function Page({
   params,
 }: {

@@ -2,10 +2,10 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
-import { Field, Notice } from "@/components/field";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { ErrorNotice, Field, Notice, focusFirstInvalid } from "@/components/field";
 import { useAuth } from "@/lib/auth-context";
-import { api, errorMessage, fieldErrors, newIdempotencyKey } from "@/lib/api";
+import { api, failureOf, fieldErrors, newIdempotencyKey, type Failure } from "@/lib/api";
 import { DemoBanner } from "./common";
 import { formatMoney, normalizeAmount, publicPath } from "./format";
 import type { Topup, WalletOverview } from "./types";
@@ -22,19 +22,24 @@ function Balance({ label, value, hint }: { label: string; value: string; hint?: 
   return <div className="stat-line"><span className="tiny-label">{label}</span><strong>{value}</strong>{hint && <span className="small-muted">{hint}</span>}</div>;
 }
 
-function TopupForm({ returnTo }: { returnTo: string | null }) {
+function TopupForm({ returnTo, unavailable }: { returnTo: string | null; unavailable: boolean }) {
   const router = useRouter();
   const [amount, setAmount] = useState("");
   const [key, setKey] = useState(newIdempotencyKey());
   const [pending, setPending] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState<Failure | null>(null);
   const [fields, setFields] = useState<Record<string, string>>({});
+  // State updates land after a quick second click, so a ref is what actually stops a double submit.
+  const inFlight = useRef(false);
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setError(""); setFields({});
+    if (inFlight.current || unavailable) return;
+    const formElement = event.currentTarget;
+    setError(null); setFields({});
     const normalized = normalizeAmount(amount);
-    if (!normalized) { setFields({ amount: "Enter an amount from 0.01 to 100,000.00 with at most two decimal places." }); return; }
+    if (!normalized) { setFields({ amount: "Enter an amount from 0.01 to 100,000.00 with at most two decimal places." }); focusFirstInvalid(formElement); return; }
+    inFlight.current = true;
     setPending(true);
     try {
       const topup = await api<Topup>("/wallet/topups", { method: "POST", body: { amount: normalized, ...(returnTo ? { returnToBookingId: returnTo } : {}) }, idempotencyKey: key });
@@ -42,8 +47,8 @@ function TopupForm({ returnTo }: { returnTo: string | null }) {
       router.push(`/wallet/topups/${topup.id}${returnTo ? `?returnToBookingId=${returnTo}` : ""}`);
     } catch (e) {
       setFields(fieldErrors(e));
-      setError(errorMessage(e, "We couldn’t start the top-up. Your balance has not changed."));
-    } finally { setPending(false); }
+      setError(failureOf(e, "We couldn’t start the top-up. Your balance has not changed."));
+    } finally { inFlight.current = false; setPending(false); }
   }
 
   return (
@@ -51,11 +56,12 @@ function TopupForm({ returnTo }: { returnTo: string | null }) {
       <h2 id="topup-heading">Add funds</h2>
       <p>Start a simulated top-up. Funds are credited only after the demonstration provider reports success.</p>
       {returnTo && <Notice kind="info">After your top-up you can return to your booking.</Notice>}
-      {error && <Notice kind="error">{error}</Notice>}
-      <form className="form" onSubmit={submit} noValidate>
-        <Field id="amount" label="Amount (THB)" inputMode="decimal" autoComplete="off" placeholder="e.g. 500.00" value={amount} error={fields.amount ?? fields.amount_amount}
+      {unavailable && <Notice kind="info">Adding funds is unavailable until your wallet loads.</Notice>}
+      <ErrorNotice failure={error}/>
+      <form className="form" onSubmit={submit} noValidate aria-busy={pending}>
+        <Field id="amount" label="Amount (THB)" inputMode="decimal" autoComplete="off" placeholder="e.g. 500.00" value={amount} error={fields.amount ?? fields.amount_amount} disabled={unavailable || pending}
           onChange={(e) => { setAmount(e.target.value); setKey(newIdempotencyKey()); }} />
-        <button className="button" disabled={pending}>{pending ? "Starting…" : "Start top-up"}</button>
+        <button className="button" disabled={pending || unavailable}>{pending ? "Starting…" : "Start top-up"}</button>
       </form>
     </section>
   );
@@ -66,15 +72,15 @@ export function WalletOverviewPage() {
   const params = useSearchParams();
   const returnTo = returnBookingId(params);
   const [wallet, setWallet] = useState<WalletOverview | null>(null);
-  const [error, setError] = useState("");
+  const [error, setError] = useState<Failure | null>(null);
   const [loading, setLoading] = useState(true);
   const isTutor = account?.capabilities.includes("TUTOR") ?? false;
   const isAdmin = account?.capabilities.includes("ADMIN") ?? false;
 
   const load = useCallback(async () => {
-    setLoading(true); setError("");
+    setLoading(true); setError(null);
     try { setWallet(await api<WalletOverview>("/wallet")); }
-    catch (e) { setError(errorMessage(e, "We couldn’t load your wallet.")); }
+    catch (e) { setError(failureOf(e, "We couldn’t load your wallet.")); }
     finally { setLoading(false); }
   }, []);
   useEffect(() => { void load(); }, [load]);
@@ -88,7 +94,7 @@ export function WalletOverviewPage() {
       </header>
       <DemoBanner />
       {loading && <p role="status">Loading your wallet…</p>}
-      {error && <Notice kind="error">{error} <button className="button button-quiet" onClick={() => void load()}>Try again</button></Notice>}
+      <ErrorNotice failure={error} onRetry={() => void load()}/>
       {wallet && (
         <section className="panel" aria-label="Balances">
           <div className="account-grid">
@@ -107,8 +113,9 @@ export function WalletOverviewPage() {
           )}
         </section>
       )}
-      <TopupForm returnTo={returnTo} />
-      <section className="panel" aria-label="More wallet pages">
+      <TopupForm returnTo={returnTo} unavailable={Boolean(error) && !wallet} />
+      <section className="panel" aria-labelledby="more-wallet-heading">
+        <h2 id="more-wallet-heading">More from your wallet</h2>
         <div className="button-row">
           <Link className="button button-quiet" href="/wallet/transactions">Transaction history</Link>
           <Link className="button button-quiet" href="/disputes">Disputes</Link>
