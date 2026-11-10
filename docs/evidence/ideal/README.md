@@ -1,6 +1,6 @@
 # Ideal delivery evidence
 
-Implemented locally on 10 November 2026, on `feat/ideal-marketplace` based on Saint's published identity/Traefik revision `8dff5c3`. This branch contains Tutor, Review, their marketplace UI, tests, runtime integration and new search measurement tools. It has not been pushed, deployed or submitted.
+Implemented locally on 10 November 2026, on `feat/ideal-marketplace` based on Saint's published identity/Traefik revision `8dff5c3`. This branch contains Tutor, Review, their marketplace UI, tests, runtime integration and new search measurement tools. Deployment and course submission remain pending.
 
 ## Verified locally
 
