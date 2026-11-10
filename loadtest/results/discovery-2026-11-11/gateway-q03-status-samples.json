@@ -1,0 +1,89 @@
+{
+  "note": "Supplemental gateway status samples within resource-sampling windows; parent topology samples share the run label, so these windows include warm-up, process startup and drain. They are not exact k6 measurement totals.",
+  "windows": {
+    "q03-1-replica-repeat-1": {
+      "start": "2026-11-10T21:45:41.221000+00:00",
+      "end": "2026-11-10T21:46:39.705000+00:00",
+      "statuses": {
+        "200": 4644,
+        "503": 1234
+      },
+      "origins": {
+        "200": 4644,
+        "0": 1234
+      },
+      "retryAttempts": {
+        "0": 5878
+      }
+    },
+    "q03-3-replica-repeat-1": {
+      "start": "2026-11-10T21:47:01.086000+00:00",
+      "end": "2026-11-10T21:48:00.535000+00:00",
+      "statuses": {
+        "200": 8572
+      },
+      "origins": {
+        "200": 8572
+      },
+      "retryAttempts": {
+        "0": 8572
+      }
+    },
+    "q03-3-replica-repeat-2": {
+      "start": "2026-11-10T21:48:15.402000+00:00",
+      "end": "2026-11-10T21:49:14.592000+00:00",
+      "statuses": {
+        "200": 8638
+      },
+      "origins": {
+        "200": 8638
+      },
+      "retryAttempts": {
+        "0": 8638
+      }
+    },
+    "q03-1-replica-repeat-2": {
+      "start": "2026-11-10T21:49:30.060000+00:00",
+      "end": "2026-11-10T21:50:28.536000+00:00",
+      "statuses": {
+        "200": 4635,
+        "503": 1586
+      },
+      "origins": {
+        "200": 4635,
+        "0": 1586
+      },
+      "retryAttempts": {
+        "0": 6221
+      }
+    },
+    "q03-1-replica-repeat-3": {
+      "start": "2026-11-10T21:50:43.133000+00:00",
+      "end": "2026-11-10T21:51:41.655000+00:00",
+      "statuses": {
+        "200": 4780,
+        "503": 1368
+      },
+      "origins": {
+        "200": 4780,
+        "0": 1368
+      },
+      "retryAttempts": {
+        "0": 6148
+      }
+    },
+    "q03-3-replica-repeat-3": {
+      "start": "2026-11-10T21:52:03.052000+00:00",
+      "end": "2026-11-10T21:53:01.124000+00:00",
+      "statuses": {
+        "200": 8753
+      },
+      "origins": {
+        "200": 8753
+      },
+      "retryAttempts": {
+        "0": 8753
+      }
+    }
+  }
+}

@@ -1,0 +1,72 @@
+{
+  "method": "Booking batchGetAvailability executes one awaited SELECT per candidate. Potential availability SELECT counts multiply all measured client category counts by fixture cardinality; failed requests may never reach Booking. For the three-replica Q03 runs all responses succeeded, making these counts a useful code-based projection. PostgreSQL commit deltas include setup, drain and background work and asynchronous statistics timing; they are supporting counters, not isolated query profiles.",
+  "source": "services/booking-service/src/domain/slots.ts:201-213",
+  "cardinalities": {
+    "broad": 48,
+    "selective": 4,
+    "availability": 1
+  },
+  "nominalSelectsPerSearch": 21,
+  "rows": [
+    {
+      "name": "q03-1-replica-repeat-1",
+      "replicas": 1,
+      "repeat": 1,
+      "measuredRequests": 3756,
+      "bookingCommitDelta": 67754,
+      "authCommitDelta": 3376,
+      "counterWindowSeconds": 37.725,
+      "potentialAvailabilitySelects": 78903
+    },
+    {
+      "name": "q03-1-replica-repeat-2",
+      "replicas": 1,
+      "repeat": 2,
+      "measuredRequests": 3973,
+      "bookingCommitDelta": 66824,
+      "authCommitDelta": 3340,
+      "counterWindowSeconds": 37.694,
+      "potentialAvailabilitySelects": 83470
+    },
+    {
+      "name": "q03-1-replica-repeat-3",
+      "replicas": 1,
+      "repeat": 3,
+      "measuredRequests": 4012,
+      "bookingCommitDelta": 68678,
+      "authCommitDelta": 3384,
+      "counterWindowSeconds": 37.618,
+      "potentialAvailabilitySelects": 84306
+    },
+    {
+      "name": "q03-3-replica-repeat-1",
+      "replicas": 3,
+      "repeat": 1,
+      "measuredRequests": 5620,
+      "bookingCommitDelta": 118121,
+      "authCommitDelta": 5730,
+      "counterWindowSeconds": 38.383,
+      "potentialAvailabilitySelects": 118020
+    },
+    {
+      "name": "q03-3-replica-repeat-2",
+      "replicas": 3,
+      "repeat": 2,
+      "measuredRequests": 5738,
+      "bookingCommitDelta": 118796,
+      "authCommitDelta": 5756,
+      "counterWindowSeconds": 38.116,
+      "potentialAvailabilitySelects": 120535
+    },
+    {
+      "name": "q03-3-replica-repeat-3",
+      "replicas": 3,
+      "repeat": 3,
+      "measuredRequests": 5781,
+      "bookingCommitDelta": 121012,
+      "authCommitDelta": 5870,
+      "counterWindowSeconds": 38.077,
+      "potentialAvailabilitySelects": 121428
+    }
+  ]
+}

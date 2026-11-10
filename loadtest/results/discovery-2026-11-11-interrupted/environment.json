@@ -1,0 +1,232 @@
+{
+  "id": "2026-11-10T21-09-18-794Z-53ed52",
+  "project": "discovery-133738fa0c",
+  "startedAt": "2026-11-10T21:09:18.832Z",
+  "baseRevision": "4935bc790d1743438756dd25cf808b7a890b5549",
+  "platform": "darwin/arm64",
+  "hostCpus": 8,
+  "hostMemoryBytes": 17179869184,
+  "configs": [
+    "1/1/1",
+    "3/1/1"
+  ],
+  "k6Image": "grafana/k6:1.6.1",
+  "datasetSweep": false,
+  "loadtestSourceSha256": "e3815fd3923b28994015b5248e1c966f739f6dc46488028f77a72f5341e700cf",
+  "engine": {
+    "version": "29.5.2",
+    "cpus": 8,
+    "memoryBytes": 8321994752,
+    "operatingSystem": "Docker Desktop"
+  },
+  "resourceLimits": {
+    "postgres": {
+      "cpus": 1,
+      "memoryBytes": "805306368"
+    },
+    "mongo": {
+      "cpus": 1,
+      "memoryBytes": "1073741824"
+    },
+    "mongo-init": {
+      "cpus": null,
+      "memoryBytes": null
+    },
+    "rabbitmq": {
+      "cpus": 0.5,
+      "memoryBytes": "536870912"
+    },
+    "rabbitmq-provision": {
+      "cpus": null,
+      "memoryBytes": null
+    },
+    "docker-api": {
+      "cpus": 0.1,
+      "memoryBytes": "134217728"
+    },
+    "api-gateway": {
+      "cpus": 0.5,
+      "memoryBytes": "268435456"
+    },
+    "internal-traefik": {
+      "cpus": 0.5,
+      "memoryBytes": "268435456"
+    },
+    "auth-service": {
+      "cpus": 0.5,
+      "memoryBytes": "402653184"
+    },
+    "tutor-service": {
+      "cpus": 0.5,
+      "memoryBytes": "402653184"
+    },
+    "booking-service": {
+      "cpus": 0.5,
+      "memoryBytes": "402653184"
+    },
+    "review-service": {
+      "cpus": 0.5,
+      "memoryBytes": "402653184"
+    },
+    "load-generator": {
+      "cpus": 1,
+      "memoryBytes": "1610612736"
+    }
+  },
+  "peakBudget": {
+    "cpus": 7.6,
+    "memoryBytes": 7113539584
+  },
+  "containers": [
+    {
+      "id": "feabaedb098f5cf8ab6ec5072de29dd60567bbdc78fbb8aa020251bda32d7ed6",
+      "name": "discovery-133738fa0c-review-service-1",
+      "service": "review-service",
+      "image": "sha256:c43ca95b0b0100b7403b6f1782e0f9f330b92bd565049fdb056f64e62531cb8f",
+      "status": "running",
+      "health": "healthy",
+      "oomKilled": false,
+      "restarts": 0,
+      "nanoCpus": 500000000,
+      "memoryBytes": 402653184
+    },
+    {
+      "id": "6e14671a15aaa8a8616cefeedcb8aa7eb236871030e49b2a86e2308db82bbc9d",
+      "name": "discovery-133738fa0c-booking-service-1",
+      "service": "booking-service",
+      "image": "sha256:4d33331dbc072cd4c807bf06f72db5ad14d94c879fa6c0c2d7b30a4fb5fa39f0",
+      "status": "running",
+      "health": "healthy",
+      "oomKilled": false,
+      "restarts": 0,
+      "nanoCpus": 500000000,
+      "memoryBytes": 402653184
+    },
+    {
+      "id": "d293a394c708787e1350898731a0c8149028ac3add0924984faa245e51a5b7fa",
+      "name": "discovery-133738fa0c-tutor-service-1",
+      "service": "tutor-service",
+      "image": "sha256:ff8044ac868411ef2384acb3254a6551d6807437fce02cb6aaad385f4b7d917d",
+      "status": "running",
+      "health": "healthy",
+      "oomKilled": false,
+      "restarts": 0,
+      "nanoCpus": 500000000,
+      "memoryBytes": 402653184
+    },
+    {
+      "id": "bebb445ee7d17aa76f56726fc093dcccd9782ea70a7e2e1b403a82c7f93dff17",
+      "name": "discovery-133738fa0c-auth-service-1",
+      "service": "auth-service",
+      "image": "sha256:4eaee5e4d9613f5f44f9db0f3bc3be6db8b2f4fa3f6e7b1404571a5e8254f406",
+      "status": "running",
+      "health": "healthy",
+      "oomKilled": false,
+      "restarts": 0,
+      "nanoCpus": 500000000,
+      "memoryBytes": 402653184
+    },
+    {
+      "id": "aaa9b440fd34dd364cc8a1dd4d2f31e8ff56f8ba2807572c0e829ce5e0412b22",
+      "name": "discovery-133738fa0c-api-gateway-1",
+      "service": "api-gateway",
+      "image": "sha256:f4bb143d1135a579b630ed491e17ec50f6f7c9c6a30585ff3d385471d2a86f5a",
+      "status": "running",
+      "health": "healthy",
+      "oomKilled": false,
+      "restarts": 0,
+      "nanoCpus": 500000000,
+      "memoryBytes": 268435456
+    },
+    {
+      "id": "910ac14ad5d42918bc6d5e014576905028b27642af1bfcc96eaf813e5494423a",
+      "name": "discovery-133738fa0c-internal-traefik-1",
+      "service": "internal-traefik",
+      "image": "sha256:f4bb143d1135a579b630ed491e17ec50f6f7c9c6a30585ff3d385471d2a86f5a",
+      "status": "running",
+      "health": "healthy",
+      "oomKilled": false,
+      "restarts": 0,
+      "nanoCpus": 500000000,
+      "memoryBytes": 268435456
+    },
+    {
+      "id": "1d5b82909ebe0f8c811413d704a2df138ec5daa0a1fae0519dbb402f29b95797",
+      "name": "discovery-133738fa0c-rabbitmq-provision-1",
+      "service": "rabbitmq-provision",
+      "image": "sha256:5ec23b7c622b00547753bc6ffd78085dd868a68aeb41c8e0a1418f033e13d96d",
+      "status": "exited",
+      "oomKilled": false,
+      "restarts": 0,
+      "nanoCpus": 0,
+      "memoryBytes": 0
+    },
+    {
+      "id": "e584c33fd7ce8f0b555f13bff9d6f5df1dd68b66f46aa17343a58227255ed7b2",
+      "name": "discovery-133738fa0c-mongo-init-1",
+      "service": "mongo-init",
+      "image": "sha256:8bb4442761a63a8dda452744082cdac9644b429807eb977b42324a63cef59ca4",
+      "status": "exited",
+      "oomKilled": false,
+      "restarts": 5,
+      "nanoCpus": 0,
+      "memoryBytes": 0
+    },
+    {
+      "id": "628d6c76e64c9547526ad61ddf83371f55ae7df82519c66496a7b7b303ae18bc",
+      "name": "discovery-133738fa0c-postgres-1",
+      "service": "postgres",
+      "image": "sha256:cf78e76683b9ca8c5733cbbdce6c9262b45b6767934dd0a95e671f9a0fc20685",
+      "status": "running",
+      "health": "healthy",
+      "oomKilled": false,
+      "restarts": 0,
+      "nanoCpus": 1000000000,
+      "memoryBytes": 805306368
+    },
+    {
+      "id": "cadddb8870f9723623aa2207dad273b8beed74c7343126e5fab5f8ff9a908f1e",
+      "name": "discovery-133738fa0c-docker-api-1",
+      "service": "docker-api",
+      "image": "sha256:1f5038b54f06c3e18422902cf00ba21803d1c97805aae032e5e6673d532d3459",
+      "status": "running",
+      "oomKilled": false,
+      "restarts": 0,
+      "nanoCpus": 100000000,
+      "memoryBytes": 134217728
+    },
+    {
+      "id": "69fbc7a805f50e7ac7a10146bbb156e42a242574936f96a38dbbca4a153dc543",
+      "name": "discovery-133738fa0c-rabbitmq-1",
+      "service": "rabbitmq",
+      "image": "sha256:54cb013d76cd1fd6c0a0708f34062ad61c452bb6f016b434c6c33f1a765d2b58",
+      "status": "running",
+      "health": "healthy",
+      "oomKilled": false,
+      "restarts": 0,
+      "nanoCpus": 500000000,
+      "memoryBytes": 536870912
+    },
+    {
+      "id": "ac121ec8ba79d545c9bbc9d2989a70739eb7a756ebe64e2a9960da22bd41b989",
+      "name": "discovery-133738fa0c-mongo-1",
+      "service": "mongo",
+      "image": "sha256:8bb4442761a63a8dda452744082cdac9644b429807eb977b42324a63cef59ca4",
+      "status": "running",
+      "oomKilled": false,
+      "restarts": 0,
+      "nanoCpus": 1000000000,
+      "memoryBytes": 1073741824
+    }
+  ],
+  "fixtureSha256": "b2b4a69bcf0b2b738a233071395925073992723410eaa7574635f90929a3c1a7",
+  "fixture": {
+    "tutorCount": 24,
+    "subjectsPerTutor": 2,
+    "subjectCount": 48,
+    "availableTutorCount": 12,
+    "unavailableTutorCount": 12,
+    "reviewCount": 1,
+    "availabilityDate": "2026-11-14"
+  }
+}

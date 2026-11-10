@@ -1,5 +1,7 @@
 # Target search measurement
 
+For the baseline-led Load and Stress experiment comparing `1/1/1` and `3/1/1` Tutor/Booking/Review replicas, use [the discovery experiment guide](DISCOVERY.md). It finds usable baseline capacity, then compares both configurations at 80%, 100%, and 150% of that rate.
+
 `tutor-search.js` and its original saved results describe the earlier demo and remain unchanged. Use `marketplace-search.js` for the target `/api/discovery/tutors` API.
 
 ## Prepare an isolated synthetic environment
