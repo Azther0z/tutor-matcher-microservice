@@ -349,7 +349,7 @@ function ApplicationContent({ profile = false }: { profile?: boolean }) {
               </p>
             </section>
           )}
-          <div className="button-row">
+          <div className="button-row new-draft-row">
             <button className="button" onClick={() => setShowNew(!showNew)}>
               {showNew
                 ? "Close new draft"

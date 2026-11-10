@@ -838,3 +838,13 @@ fieldset.field legend { font-size: 14px; font-weight: 500; padding: 0; margin-bo
 .sub-nav a { color: var(--muted); text-decoration: none; }
 .sub-nav a:hover, .sub-nav a[aria-current="page"] { color: var(--ink); }
 .list-title { font-size: 16px; font-weight: 500; margin: 22px 0 10px; color: var(--muted); }
+.sub-nav { padding-bottom: 0; border-bottom: 0; gap: 4px 20px; margin: 0 0 16px; }
+.sub-nav a, .sub-nav a:hover, .sub-nav a[aria-current="page"] { border-bottom: 0; padding: 4px 0; text-decoration: none; font-size: 14px; font-weight: 500; }
+.sub-nav a[aria-current="page"] { color: var(--ink); }
+.booking-new > h2 { font-size: 18px; }
+.booking-new > p, .booking-new > .tutor-card-meta { margin: 0; }
+.booking-new .form > .button { justify-self: end; width: auto; min-width: 120px; }
+.booking-new .form { display: grid; gap: 14px; }
+.booking-new .field input, .booking-new .field textarea { padding: 9px 12px; font-size: 14px; }
+.booking-new .field textarea { min-height: 0; }
+.new-draft-row { margin: 4px 0 14px; }
