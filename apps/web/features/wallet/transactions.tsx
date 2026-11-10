@@ -40,11 +40,11 @@ export function TransactionsPage() {
       {pending && !result && <p role="status" className="tutor-card-meta">Loading transactions…</p>}
       {result && result.items.length === 0 && <p className="tutor-card-meta">No transactions yet.</p>}
       {result && result.items.length > 0 && (
-        <section className="panel wallet-recent" aria-label="Transactions">
+        <div className="tx-list" aria-label="Transactions">
           {result.items.map((tx) => (
-            <Link key={tx.id} className="wallet-tx" href={`/wallet/transactions/${tx.id}`}>
+            <Link key={tx.id} className="panel tutor-card tx-card" href={`/wallet/transactions/${tx.id}`}>
               <span>
-                {titleCase(tx.type)}
+                <strong>{titleCase(tx.type)}</strong>
                 <small>{formatTime(tx.createdAt)}</small>
               </span>
               <span className="wallet-tx-amount">
@@ -55,7 +55,7 @@ export function TransactionsPage() {
               </span>
             </Link>
           ))}
-        </section>
+        </div>
       )}
       {result && <Pager meta={result.pagination} onPage={(page) => void load(page)} disabled={pending} />}
     </>
