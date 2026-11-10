@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import path from 'node:path';
 import { afterAll, beforeAll, beforeEach, describe, it } from 'vitest';
-import { MongoClient } from 'mongodb';
+import { MongoClient, type Db } from 'mongodb';
 import type { Actor } from '../src/auth';
 import type { CallContext, Peers } from '../src/clients';
 import { Contracts } from '../src/contracts';
@@ -69,67 +69,89 @@ const peers: Peers = {
 };
 
 describeMongo('MessagingService Mongo integration', () => {
-  const client = new MongoClient(mongoUri!);
-  const db = client.db(`messaging_test_${randomUUID().replaceAll('-', '')}`);
-  const service = new MessagingService({ client, db, clock, peers, contracts: new Contracts(path.resolve(__dirname, '../../../contracts')) });
+  let client: MongoClient | undefined;
+  let db: Db | undefined;
+  let service: MessagingService | undefined;
+  let connected = false;
 
   beforeAll(async () => {
-    await client.connect();
-    await service.migrate();
+    client = new MongoClient(mongoUri!);
+    try {
+      await client.connect();
+      connected = true;
+      db = client.db(`messaging_test_${randomUUID().replaceAll('-', '')}`);
+      service = new MessagingService({ client, db, clock, peers, contracts: new Contracts(path.resolve(__dirname, '../../../contracts')) });
+      await service.migrate();
+    } catch (error) {
+      try {
+        if (connected && db) await db.dropDatabase();
+      } finally {
+        await client.close();
+        connected = false;
+      }
+      throw error;
+    }
   });
 
   beforeEach(async () => {
-    await db.dropDatabase();
-    await service.migrate();
+    await db!.dropDatabase();
+    await service!.migrate();
   });
 
   afterAll(async () => {
-    await db.dropDatabase();
-    await client.close();
+    if (!client) return;
+    try {
+      if (connected && db) await db.dropDatabase();
+    } finally {
+      await client.close();
+      connected = false;
+    }
   });
 
   it('persists one message and notification event, replays idempotently, and enforces membership/read cursors', async () => {
+    const activeDb = db!;
+    const activeService = service!;
     const key = randomUUID();
     const firstBody = { recipientId: ids.tutor, view: 'STUDENT', content: 'Could we discuss algebra?' };
-    const first = await service.send(student, { body: firstBody, key, context });
+    const first = await activeService.send(student, { body: firstBody, key, context });
     assert.equal(first.status, 201);
     const message = first.body as { id: string; conversationId: string; content: string };
     assert.equal(message.content, firstBody.content);
 
-    const replay = await service.send(student, { body: firstBody, key, context });
+    const replay = await activeService.send(student, { body: firstBody, key, context });
     assert.equal(replay.status, 201);
     assert.deepEqual(replay.body, first.body);
     assert.equal(replay.headers?.['Idempotent-Replay'], 'true');
-    assert.equal(await db.collection('messages').countDocuments({}), 1);
-    assert.equal(await db.collection('conversations').countDocuments({}), 1);
+    assert.equal(await activeDb.collection('messages').countDocuments({}), 1);
+    assert.equal(await activeDb.collection('conversations').countDocuments({}), 1);
 
-    const event = await db.collection('outbox').findOne({});
-    assert.equal(await db.collection('outbox').countDocuments({}), 1);
+    const event = await activeDb.collection('outbox').findOne({});
+    assert.equal(await activeDb.collection('outbox').countDocuments({}), 1);
     assert.equal(event?.status, 'PENDING');
     assert.equal(event?.envelope.type, 'messaging.message-sent');
     assert.deepEqual(event?.envelope.targets.userIds, [ids.tutor]);
     assert.equal(JSON.stringify(event?.envelope).includes(firstBody.content), false);
 
     await assert.rejects(
-      service.send(student, { body: { ...firstBody, content: 'Different input' }, key, context }),
+      activeService.send(student, { body: { ...firstBody, content: 'Different input' }, key, context }),
       (error: unknown) => error instanceof AppError && error.code === 'IDEMPOTENCY_CONFLICT',
     );
-    assert.equal(await db.collection('messages').countDocuments({}), 1);
+    assert.equal(await activeDb.collection('messages').countDocuments({}), 1);
 
-    let tutorInbox = await service.inbox(tutor, 'TUTOR', { page: 1, pageSize: 20, offset: 0 });
+    let tutorInbox = await activeService.inbox(tutor, 'TUTOR', { page: 1, pageSize: 20, offset: 0 });
     assert.equal(tutorInbox.items[0]?.unreadCount, 1);
-    const thread = await service.thread(tutor, ids.student, 'TUTOR', { limit: 20 });
+    const thread = await activeService.thread(tutor, ids.student, 'TUTOR', { limit: 20 });
     assert.equal(thread.items.length, 1);
-    await service.markRead(tutor, ids.student, 'TUTOR', { lastReadMessageId: message.id });
-    tutorInbox = await service.inbox(tutor, 'TUTOR', { page: 1, pageSize: 20, offset: 0 });
+    await activeService.markRead(tutor, ids.student, 'TUTOR', { lastReadMessageId: message.id });
+    tutorInbox = await activeService.inbox(tutor, 'TUTOR', { page: 1, pageSize: 20, offset: 0 });
     assert.equal(tutorInbox.items[0]?.unreadCount, 0);
 
-    await service.send(student, { body: { ...firstBody, content: 'One more detail.' }, key: randomUUID(), context });
-    tutorInbox = await service.inbox(tutor, 'TUTOR', { page: 1, pageSize: 20, offset: 0 });
+    await activeService.send(student, { body: { ...firstBody, content: 'One more detail.' }, key: randomUUID(), context });
+    tutorInbox = await activeService.inbox(tutor, 'TUTOR', { page: 1, pageSize: 20, offset: 0 });
     assert.equal(tutorInbox.items[0]?.unreadCount, 1);
 
     await assert.rejects(
-      service.send(tutor, {
+      activeService.send(tutor, {
         body: { recipientId: ids.student, view: 'STUDENT', content: 'The tutor cannot use the student view.' },
         key: randomUUID(),
         context,
@@ -137,7 +159,7 @@ describeMongo('MessagingService Mongo integration', () => {
       (error: unknown) => error instanceof AppError && error.code === 'PARTICIPANT_NOT_ALLOWED',
     );
 
-    const outsiderThread = await service.thread(outsider, ids.student, 'STUDENT', { limit: 20 });
+    const outsiderThread = await activeService.thread(outsider, ids.student, 'STUDENT', { limit: 20 });
     assert.deepEqual(outsiderThread, { conversation: null, items: [], nextCursor: null });
   });
 });
