@@ -453,6 +453,25 @@ export async function startTestGateway({
             signal: AbortSignal.timeout(750),
           });
           ready = forwardAuthRoute.status === 401;
+          if (ready) {
+            // ForwardAuth talks to Auth directly. Public routes go to the backend that Traefik discovers,
+            // which can lag behind: a missing backend answers with Traefik's plain-text 5xx or 404, while a
+            // request that reaches the application answers in JSON. This route validates the body first,
+            // so the empty request is rejected without reading or changing any data.
+            const publicRoute = await fetch(
+              `${url}/api/auth/password-reset/validate`,
+              {
+                method: "POST",
+                headers: { "content-type": "application/json" },
+                body: "{}",
+                signal: AbortSignal.timeout(750),
+              },
+            );
+            await publicRoute.arrayBuffer();
+            ready =
+              publicRoute.status < 500 &&
+              (publicRoute.headers.get("content-type") ?? "").includes("json");
+          }
         }
         if (!ready) await new Promise((resolve) => setTimeout(resolve, 100));
       }
