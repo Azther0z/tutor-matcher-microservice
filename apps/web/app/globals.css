@@ -870,3 +870,10 @@ fieldset.field legend { font-size: 14px; font-weight: 500; padding: 0; margin-bo
 .draft-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line); }
 .draft-row strong { font-size: 15px; font-weight: 500; }
 .draft-row .button { min-height: 34px; padding: 6px 14px; font-size: 13px; }
+.draft-row { padding: 12px 2px; }
+.draft-row > strong, .draft-row > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.draft-row .button-row { flex: none; gap: 8px; }
+.draft-row .button-quiet { color: var(--muted); }
+.draft-row .button-quiet:hover { color: var(--ink); background: rgba(255, 255, 255, 0.05); }
+.draft-row:last-child { border-bottom: 0; padding-top: 8px; }
+.draft-row:last-child .button-quiet { margin-left: -14px; }
