@@ -1,9 +1,9 @@
 name: gateway-routing
 purpose: Verify real Traefik forwarding against controlled HTTP business services.
 sources:
-  - postman/d4-demo.postman_collection.json
-  - api-gateway/routes.yaml
-  - deploy/compose.yaml
+  - postman/legacy/d4-demo.postman_collection.json
+  - infra/gateway/routes.yaml
+  - infra/hosted/compose.yaml
   - contracts/public.openapi.json
   - tests/gateway.test.cjs
   - https://github.com/Azther0z/tutor-matcher-microservice/blob/23db6f8ae4debcd68aa94128eb93880652623930/auth-service/src/gateway-auth.js

@@ -81,17 +81,17 @@ flowchart LR
 | **Wallet Service** | REST, port `4003` | Wallet balances, top-ups, lesson charges, refunds, and transaction history | PostgreSQL `wallet_db` |
 | **Notification Service** | RabbitMQ consumer; no public HTTP API | Event-to-message rendering and delivery records | MongoDB `notification_db` |
 
-Each Node.js business service has its own package manifest and lockfile. Traefik is configured under `api-gateway/` and has no Node package. Services communicate through their APIs or events; they do not read another service's database directly. The service boundaries are separate processes and Docker containers in Compose, while MongoDB, PostgreSQL, and RabbitMQ are shared infrastructure instances in the local stack.
+Each Node.js business service has its own package manifest and lockfile. Traefik is configured under `infra/gateway/` and has no Node package. Services communicate through their APIs or events; they do not read another service's database directly. The service boundaries are separate processes and Docker containers in Compose, while MongoDB, PostgreSQL, and RabbitMQ are shared infrastructure instances in the local stack.
 
 ### API Gateway and authentication
 
-Traefik routes the explicit current public methods/paths under `/auth`, `/tutors`, `/availability`, `/bookings` and `/wallet` to their owners. Registration/login and tutor reads are public. Protected routes use a private Auth ForwardAuth check that verifies the JWT and current account existence. Traefik strips client identity headers, copies Auth's verified `x-user-id`/`x-user-email`, removes the browser token and forwards. Private routes are not public gateway routes. Auth database failure or an empty known Auth pool returns 503 before admission. See [gateway behavior](api-gateway/README.md).
+Traefik routes the explicit current public methods/paths under `/auth`, `/tutors`, `/availability`, `/bookings` and `/wallet` to their owners. Registration/login and tutor reads are public. Protected routes use a private Auth ForwardAuth check that verifies the JWT and current account existence. Traefik strips client identity headers, copies Auth's verified `x-user-id`/`x-user-email`, removes the browser token and forwards. Private routes are not public gateway routes. Auth database failure or an empty known Auth pool returns 503 before admission. See [gateway behavior](infra/gateway/README.md).
 
 Auth stores password hashes (bcrypt) in PostgreSQL and issues JWTs with a two-hour lifetime. The token subject (`sub`) is the account ID. The current account model does not define student, tutor, or admin role claims; there is no separate admin authorization workflow in this codebase.
 
 ### Tutor and Booking
 
-Tutor owns tutor profiles and embedded subject offerings. Tutor search filters to `PUBLISHED` profiles and supports subject, keyword, and maximum-rate filters. A profile response includes availability fetched from Booking using the shared contract in [`proto/booking.proto`](proto/booking.proto). If Booking cannot respond within the configured deadline, Tutor returns the profile with an empty availability list and an `availabilityUnavailable` indicator.
+Tutor owns tutor profiles and embedded subject offerings. Tutor search filters to `PUBLISHED` profiles and supports subject, keyword, and maximum-rate filters. A profile response includes availability fetched from Booking using the shared contract in [`contracts/legacy/booking.proto`](contracts/legacy/booking.proto). If Booking cannot respond within the configured deadline, Tutor returns the profile with an empty availability list and an `availabilityUnavailable` indicator.
 
 Booking owns dated availability slots and bookings. Slots refer to a tutor by ID; Booking does not query Tutor's database. The REST API supports the main marketplace workflow. The gRPC API provides `CreateSlot`, `GetAvailability`, `UpdateSlot`, and `DeleteSlot` for availability operations.
 
@@ -160,19 +160,21 @@ Booking and Wallet use different databases and communicate synchronously over RE
 
 ## 6. Runtime and Repository Layout
 
-The root [`compose.yaml`](compose.yaml) defines the local stack. It builds five domain/worker services and starts Traefik, a restricted Docker API proxy, MongoDB, PostgreSQL, RabbitMQ, and Adminer. [Hosted Swarm configuration](deploy/README.md) consumes published application images and mounted secrets. Traefik uses Docker discovery locally and Swarm discovery when hosted; Consul is removed. Only the Gateway is the application entry point exposed to API clients (`127.0.0.1:8080`); database and RabbitMQ management ports are bound to loopback for local development. PostgreSQL hosts `auth_db` and `wallet_db`; MongoDB hosts `tutor_db`, `booking_db`, and `notification_db`.
+The root [`compose.yaml`](compose.yaml) defines the local stack. It builds five domain/worker services and starts Traefik, a restricted Docker API proxy, MongoDB, PostgreSQL, RabbitMQ, and Adminer. [Hosted Swarm configuration](infra/hosted/README.md) consumes published application images and mounted secrets. Traefik uses Docker discovery locally and Swarm discovery when hosted; Consul is removed. Only the Gateway is the application entry point exposed to API clients (`127.0.0.1:8080`); database and RabbitMQ management ports are bound to loopback for local development. PostgreSQL hosts `auth_db` and `wallet_db`; MongoDB hosts `tutor_db`, `booking_db`, and `notification_db`.
 
 | Path | Contents |
 | --- | --- |
-| `api-gateway/` | Traefik route allowlist, ForwardAuth and discovery documentation |
-| `auth-service/` | Account API and PostgreSQL access |
-| `tutor-service/` | Tutor API, search, and gRPC client for availability |
-| `booking-service/` | Booking REST API, availability gRPC server, and service clients |
-| `wallet-service/` | Public wallet API and internal booking charge/refund API |
-| `notification-service/` | RabbitMQ consumer and delivery records |
-| `proto/booking.proto` | Shared Tutor-to-Booking gRPC contract |
-| `docker/postgres-init.sql` | Local PostgreSQL database initialization |
-| `postman/` | REST demo collections and Booking gRPC request examples |
+| `infra/gateway/` | Traefik route allowlist, ForwardAuth and discovery documentation |
+| `infra/docker/` | Workspace Dockerfile, database and broker bootstrap scripts |
+| `infra/hosted/` | Swarm stack template and hosted deployment examples |
+| `services/auth-service/` | Account API and PostgreSQL access |
+| `services/tutor-service/` | Tutor API, search, and gRPC client for availability |
+| `services/booking-service/` | Booking REST API, availability gRPC server, and service clients |
+| `services/wallet-service/` | Public wallet API and internal booking charge/refund API |
+| `services/notification-service/` | RabbitMQ consumer and delivery records |
+| `contracts/legacy/booking.proto` | Legacy Tutor-to-Booking gRPC contract |
+| `infra/docker/postgres-init.sql` | Local PostgreSQL database initialization |
+| `postman/` | Target public collection; `legacy/` holds the earlier demo collections |
 
 ## 7. Current Scope Boundaries
 

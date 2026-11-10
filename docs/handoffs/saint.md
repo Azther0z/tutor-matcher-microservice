@@ -11,21 +11,21 @@ Use the [pinned monolith](https://github.com/Azther0z/tutor-matcher/tree/ce3ec82
 The [source index](../sources/README.md) links both original PDFs.
 Use the same approved baseline commit before creating implementation branches. It must include the requirements, design, contracts and handoffs.
 
-Existing code starts in `auth-service/src/`, `api-gateway/routes.yaml`, `shared/runtime-env.js` and `deploy/compose.yaml`.
+Existing code starts in `services/auth-service/src/`, `infra/gateway/routes.yaml`, `packages/shared/runtime-env.js` and `infra/hosted/compose.yaml`.
 Auth, shared adapters, the workspace, identity UI and deployment templates have local implementations. Traefik replaces the former Node gateway and Consul. The [evidence record](../evidence/saint/README.md) distinguishes earlier checks from integration verification. Cross-owner integration and an authorized hosted rollout remain required before this whole handoff is complete.
 
 | Area | Your implementation ownership |
 | --- | --- |
-| Backend | `auth-service/**`, `api-gateway/**`, `shared/**` |
+| Backend | `services/auth-service/**`, `infra/gateway/**`, `packages/shared/**` |
 | Workspace | Root package/lockfile, TypeScript and quality configuration, shared transport types if needed |
-| Frontend foundation | `web/package.json`, root layout/home, shared navigation, UI primitives and `web/lib/**` |
-| Frontend features | `web/features/identity/**` |
-| Frontend routes | `web/app/login/**`, `web/app/signup/**`, `web/app/password-reset/**`, `web/app/account/**`, `web/app/admin/users/**`, `web/app/demo/password-resets/**` |
-| Browser tests | Shared test configuration, `web/e2e/support/**`, `web/e2e/identity/**` |
-| Operations | Root Compose, `docker/**`, hosted manifests and `.github/**` |
+| Frontend foundation | `apps/web/package.json`, root layout/home, shared navigation, UI primitives and `apps/web/lib/**` |
+| Frontend features | `apps/web/features/identity/**` |
+| Frontend routes | `apps/web/app/login/**`, `apps/web/app/signup/**`, `apps/web/app/password-reset/**`, `apps/web/app/account/**`, `apps/web/app/admin/users/**`, `apps/web/app/demo/password-resets/**` |
+| Browser tests | Shared test configuration, `apps/web/e2e/support/**`, `apps/web/e2e/identity/**` |
+| Operations | Root Compose, `infra/docker/**`, hosted manifests and `.github/**` |
 | Evidence | Planned `docs/evidence/saint/**` and root documentation and final evidence assembly |
 
-Treat frontend routes above as paths under `web/app/`. They do not change public API paths.
+Treat frontend routes above as paths under `apps/web/app/`. They do not change public API paths.
 Other members own their feature pages, feature tests and service Dockerfiles.
 Coordinate shared changes instead of rewriting another owner's service.
 

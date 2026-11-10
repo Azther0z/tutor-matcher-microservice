@@ -9,7 +9,7 @@ These results cover the uncommitted Review service changes on that base. The fin
 | ---------------------------------------------------------------------------------------------- | -------------------------------------------------- |
 | `npm run typecheck -w @tutor-matcher/review-service`                                           | Passed.                                            |
 | `npm run build -w @tutor-matcher/review-service`                                               | Passed.                                            |
-| `npx eslint review-service/src`                                                                | Zero errors. Nine warnings for dynamic gRPC types. |
+| `npx eslint services/review-service/src`                                                                | Zero errors. Nine warnings for dynamic gRPC types. |
 | `REVIEW_TEST_MONGO_URI=<disposable replica-set URI> npm test -w @tutor-matcher/review-service` | 21 tests passed, zero failures and zero skips.     |
 
 The transaction tests used a real local MongoDB replica set, a new isolated synthetic database and real MongoDB sessions.

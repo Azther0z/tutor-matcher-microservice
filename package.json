@@ -3,25 +3,25 @@
   "version": "1.0.0",
   "private": true,
   "workspaces": [
-    "shared",
-    "*-service",
-    "web"
+    "packages/*",
+    "services/*",
+    "apps/*"
   ],
   "engines": {
     "node": ">=22"
   },
   "scripts": {
-    "build": "npm run build -w @tutor-matcher/shared && npm run build -w auth-service -w wallet-service -w notification-service -w tutor-service -w review-service && npm run build -w web",
+    "build": "npm run build -w @tutor-matcher/shared && npm run build -w @tutor-matcher/auth-service -w @tutor-matcher/wallet-service -w @tutor-matcher/notification-service -w @tutor-matcher/tutor-service -w @tutor-matcher/review-service && npm run build -w @tutor-matcher/web",
     "typecheck": "npm run build -w @tutor-matcher/shared && npm run typecheck --workspaces --if-present",
-    "lint": "eslint shared/src auth-service/src wallet-service/src notification-service/src \"tutor-service/src/**/*.ts\" \"review-service/src/**/*.ts\" web",
+    "lint": "eslint packages/shared/src services/auth-service/src services/wallet-service/src services/notification-service/src \"services/tutor-service/src/**/*.ts\" \"services/review-service/src/**/*.ts\" apps/web",
     "format": "prettier --write package.json tsconfig.base.json eslint.config.mjs scripts",
     "format:check": "prettier --check package.json tsconfig.base.json eslint.config.mjs scripts",
     "test": "npm run test --workspaces --if-present && node --test tests/*.test.cjs",
-    "test:browser": "npm run test:e2e -w web",
+    "test:browser": "npm run test:e2e -w @tutor-matcher/web",
     "contracts": "uv run --offline --with jsonschema==4.26.0 --with pyyaml==6.0.3 python contracts/validate.py --collection \"postman/collections/Tutor Matcher Target Public v1\" && node contracts/check-proto.cjs",
-    "dev:auth": "npm run dev -w auth-service",
+    "dev:auth": "npm run dev -w @tutor-matcher/auth-service",
     "dev:gateway": "docker compose up api-gateway",
-    "dev:web": "npm run dev -w web",
+    "dev:web": "npm run dev -w @tutor-matcher/web",
     "local": "node scripts/local.mjs",
     "test:db": "node scripts/test-postgres.mjs",
     "config:check": "node scripts/check-manifests.mjs",
@@ -30,11 +30,11 @@
     "smoke:browser": "node scripts/smoke-browser.mjs",
     "smoke:outbox": "node scripts/smoke-outbox.mjs",
     "routes:check": "node scripts/generate-traefik-routes.mjs --check",
-    "test:marketplace": "npm run build -w @tutor-matcher/shared && npm test -w tutor-service && npm test -w review-service",
+    "test:marketplace": "npm run build -w @tutor-matcher/shared && npm test -w @tutor-matcher/tutor-service && npm test -w @tutor-matcher/review-service",
     "loadtest:prepare": "node loadtest/prepare-marketplace.mjs",
     "test:marketplace:integrated": "node loadtest/marketplace-integration.mjs",
-    "dev:wallet": "npm run dev -w wallet-service",
-    "dev:notification": "npm run dev -w notification-service",
+    "dev:wallet": "npm run dev -w @tutor-matcher/wallet-service",
+    "dev:notification": "npm run dev -w @tutor-matcher/notification-service",
     "smoke:p-broker": "node scripts/smoke-p-broker.mjs"
   },
   "devDependencies": {

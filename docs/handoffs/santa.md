@@ -12,18 +12,18 @@ Use the [pinned monolith](https://github.com/Azther0z/tutor-matcher/tree/ce3ec82
 The [source index](../sources/README.md) links both original PDFs.
 Use the shared reviewed baseline commit containing the requirements, design, contracts and handoffs.
 
-Existing code starts in `booking-service/src/`. Messaging is a new service in this checkout.
+Existing code starts in `services/booking-service/src/`. Messaging is a new service in this checkout.
 The current Booking models use MongoDB. The accepted target uses a separate PostgreSQL `booking_db`.
 
 | Area | Your implementation ownership |
 | --- | --- |
-| Backend | `booking-service/**`, new `messaging-service/**` |
-| Frontend features | `web/features/booking/**`, `web/features/messaging/**` |
-| Frontend routes | `web/app/teach/availability/**`, `web/app/bookings/**`, `web/app/teach/lessons/**`, `web/app/messages/**`, `web/app/demo/meetings/**` |
-| Browser tests | `web/e2e/lessons/**` |
+| Backend | `services/booking-service/**`, new `messaging-service/**` |
+| Frontend features | `apps/web/features/booking/**`, `apps/web/features/messaging/**` |
+| Frontend routes | `apps/web/app/teach/availability/**`, `apps/web/app/bookings/**`, `apps/web/app/teach/lessons/**`, `apps/web/app/messages/**`, `apps/web/app/demo/meetings/**` |
+| Browser tests | `apps/web/e2e/lessons/**` |
 | Evidence | Planned `docs/evidence/santa/**`, including lifecycle sequence and paired recovery results |
 
-Treat frontend routes above as paths under `web/app/`. Use Saint's shared shell and API/session adapter.
+Treat frontend routes above as paths under `apps/web/app/`. Use Saint's shared shell and API/session adapter.
 Ideal owns subject/profile pages and the review form. P owns wallet/top-up pages and all financial decisions.
 Link these flows while preserving the booking destination and original hold deadline.
 

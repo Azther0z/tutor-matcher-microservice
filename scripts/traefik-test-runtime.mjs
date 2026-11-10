@@ -352,7 +352,7 @@ export async function startTestGateway({
   const authListenerPort = await freePort();
   const pingPort = await freePort();
   const sourceConfig = await readFile(
-    path.join(root, "api-gateway/routes.yaml"),
+    path.join(root, "infra/gateway/routes.yaml"),
     "utf8",
   );
   const configFile = path.join(cache, `routes-${process.pid}-${webPort}.yaml`);

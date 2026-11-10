@@ -36,9 +36,9 @@ export async function runDiagnostic({ gatewayUrl, token, request }) {
     }
   }
   for (const folder of [
-    "tutor-service/src",
-    "review-service/src",
-    "shared/src",
+    "services/tutor-service/src",
+    "services/review-service/src",
+    "packages/shared/src",
     "contracts",
   ])
     await include(folder);

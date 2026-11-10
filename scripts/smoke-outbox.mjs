@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 import { readFile } from "node:fs/promises";
 
 const require = createRequire(
-  new URL("../shared/package.json", import.meta.url),
+  new URL("../packages/shared/package.json", import.meta.url),
 );
 const Ajv2020 = require("ajv/dist/2020").default;
 const addFormats = require("ajv-formats");
@@ -178,7 +178,7 @@ async function main() {
   );
   process.env.DATABASE_URL = testDatabaseUrl;
   process.env.AUTH_MIGRATIONS_DIR = fileURLToPath(
-    new URL("../auth-service/migrations", import.meta.url),
+    new URL("../services/auth-service/migrations", import.meta.url),
   );
   process.env.NODE_ENV = "test";
   process.env.JWT_SECRET = randomBytes(32).toString("hex");
@@ -191,7 +191,7 @@ async function main() {
   process.env.AUTH_SYNTHETIC_EMAILS = `outbox-${randomUUID()}@example.invalid`;
 
   failureStage = "Auth database migration";
-  const { migrate, pool } = await import("../auth-service/dist/db.js");
+  const { migrate, pool } = await import("../services/auth-service/dist/db.js");
   authPool = pool;
   await migrate();
   const database = await pool.query("SELECT current_database() AS name");
@@ -201,9 +201,10 @@ async function main() {
   );
 
   failureStage = "Auth app startup";
-  const { createAuthApp } = await import("../auth-service/dist/index.js");
+  const { createAuthApp } =
+    await import("../services/auth-service/dist/index.js");
   const { startOutboxPublisher } =
-    await import("../auth-service/dist/events.js");
+    await import("../services/auth-service/dist/events.js");
   authServer = await startAuthServer(createAuthApp());
   const baseUrl = `http://127.0.0.1:${authServer.address().port}`;
 
