@@ -21,10 +21,10 @@ export function ErrorNotice({ failure, onRetry }: { failure: Failure | null; onR
  * The one error state for a region that failed to load. A malformed or unknown id gets a "not found" message with a
  * way back (retrying cannot help); anything else gets the message and a retry button.
  */
-export function LoadError({ failure, onRetry }: { failure: Failure | null; onRetry?: () => void }) {
+export function LoadError({ failure, onRetry, backHref, backLabel }: { failure: Failure | null; onRetry?: () => void; backHref?: string; backLabel?: string }) {
   if (!failure) return null;
   if (failure.missing) {
-    return <Notice kind="error" requestId={failure.requestId}>We couldn’t find that record.</Notice>;
+    return <Notice kind="error" requestId={failure.requestId}>We couldn’t find that record.{backHref && <> <Link className="text-link" href={backHref}>{backLabel ?? "Go back"}</Link></>}</Notice>;
   }
   return <ErrorNotice failure={failure} onRetry={onRetry} />;
 }

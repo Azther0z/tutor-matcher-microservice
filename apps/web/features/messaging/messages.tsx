@@ -1,11 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { Fragment, use, useCallback, useEffect, useRef, useState } from "react";
+import { use, useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Notice } from "@/components/field";
-import { Avatar } from "@/components/avatar";
-import type { BookingPage } from "@/features/booking/types";
 import { RequireAuth, useAuth } from "@/lib/auth-context";
 import { api, errorMessage, isUuid, newIdempotencyKey } from "@/lib/api";
 import { formatTime } from "@/features/wallet/format";
@@ -32,20 +30,6 @@ type ThreadPage = {
   items: Message[];
   nextCursor: string | null;
 };
-
-const dayFormat = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Bangkok" });
-const clockFormat = new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Bangkok", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
-const dayLabelFormat = new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Bangkok", weekday: "short", day: "numeric", month: "short" });
-const dayKey = (value: string) => dayFormat.format(new Date(value));
-const clock = (value: string) => clockFormat.format(new Date(value));
-
-/** "Today", "Yesterday" or "Wed, 11 Nov": the label chat apps put between days. */
-function dayLabel(value: string) {
-  const day = dayKey(value);
-  if (day === dayFormat.format(new Date())) return "Today";
-  if (day === dayFormat.format(new Date(Date.now() - 86400000))) return "Yesterday";
-  return dayLabelFormat.format(new Date(value));
-}
 
 function Inbox() {
   const { account } = useAuth();
@@ -79,8 +63,10 @@ function Inbox() {
   ].filter(Boolean) as Array<"STUDENT" | "TUTOR" | "ADMIN">;
   return (
     <>
-      <header className="page-heading">
+      <header className="section-heading">
+        <p className="eyebrow">CONVERSATIONS</p>
         <h1>Messages</h1>
+        <p>Keep lesson questions and tutor conversations together.</p>
       </header>
       {views.length > 1 && (
         <div className="view-switch" role="group" aria-label="Message view">
@@ -99,7 +85,7 @@ function Inbox() {
           ))}
         </div>
       )}
-      {loading && <p role="status" className="tutor-card-meta">Loading conversations…</p>}
+      {loading && <p role="status">Loading conversations…</p>}
       {error && (
         <Notice kind="error">
           {error}{" "}
@@ -109,9 +95,13 @@ function Inbox() {
         </Notice>
       )}
       {result?.items.length === 0 && (
-        <p className="tutor-card-meta">
-          No conversations yet. Open a tutor profile to ask about a subject or lesson.
-        </p>
+        <section className="empty-state">
+          <h2>No conversations yet</h2>
+          <p>Open a tutor profile to ask about a subject or lesson.</p>
+          <Link className="button" href="/discover">
+            Find a tutor
+          </Link>
+        </section>
       )}
       <div className="message-list">
         {result?.items.map((conversation) => {
@@ -122,16 +112,13 @@ function Inbox() {
             <Link
               className="message-row"
               key={conversation.id}
-              href={`/messages/${other?.userId}?${new URLSearchParams({ view, ...(other?.displayName ? { name: other.displayName } : {}) })}`}
+              href={`/messages/${other?.userId}?view=${view}`}
             >
-              <span className="message-who">
-                <Avatar name={other?.displayName ?? "?"} size={40} />
-                <span>
-                  <strong>{other?.displayName ?? "Conversation"}</strong>
-                  {conversation.lastMessage && (
-                    <small>{conversation.lastMessage.content}</small>
-                  )}
-                </span>
+              <span>
+                <strong>{other?.displayName ?? "Conversation"}</strong>
+                {conversation.lastMessage && (
+                  <small>{conversation.lastMessage.content}</small>
+                )}
               </span>
               <span>
                 {conversation.unreadCount > 0 && (
@@ -175,14 +162,10 @@ function Thread({ userId }: { userId: string }) {
         ? "ADMIN"
         : "STUDENT";
   const [thread, setThread] = useState<ThreadPage | null>(null);
-  type Outgoing = { id: string; content: string; key: string; createdAt: string; status: "sending" | "failed" };
-  const [outbox, setOutbox] = useState<Outgoing[]>([]);
-  const queue = useRef<Promise<void>>(Promise.resolve());
+  const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
-  const scroller = useRef<HTMLDivElement>(null);
-  const [lookedUp, setLookedUp] = useState("");
-  const [draft, setDraft] = useState("");
+  const [key, setKey] = useState(newIdempotencyKey());
   const load = useCallback(async () => {
     setError("");
     try {
@@ -208,76 +191,57 @@ function Thread({ userId }: { userId: string }) {
   useEffect(() => {
     if (isUuid(userId)) void load();
   }, [load, userId]);
-  // Before the first message the thread has no participant names, so find the person among the caller's bookings.
-  const hasName = Boolean(thread?.conversation) || Boolean(params.get("name"));
-  useEffect(() => {
-    if (!thread || hasName || !isUuid(userId)) return;
-    const views = account?.capabilities.includes("TUTOR") ? ["STUDENT", "TUTOR"] : ["STUDENT"];
-    void Promise.all(views.map((v) => api<BookingPage>(`/bookings?page=1&pageSize=50&view=${v}`).catch(() => null))).then((pages) => {
-      for (const page of pages) {
-        for (const booking of page?.items ?? []) {
-          if (booking.tutorUserId === userId) return setLookedUp(booking.tutorDisplayName);
-          if (booking.studentUserId === userId) return setLookedUp(booking.studentDisplayName);
-        }
-      }
-    });
-  }, [thread, hasName, userId, account?.capabilities]);
-  // Newest messages are at the bottom; keep them in view.
-  useEffect(() => {
-    const node = scroller.current;
-    if (node) node.scrollTop = node.scrollHeight;
-  }, [thread?.items.length, outbox.length]);
-  // Messages appear at once as "sending" and are delivered in order in the background. A failure marks only that message.
-  async function deliver(item: Outgoing) {
+  async function send(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const content = String(new FormData(form).get("content") ?? "").trim();
+    if (!content) {
+      setError("Write a message before sending.");
+      form.querySelector("textarea")?.focus();
+      return;
+    }
+    setPending(true);
+    setError("");
+    setNotice("");
     try {
       await api<Message>("/messages", {
         method: "POST",
-        body: { recipientId: userId, view, content: item.content },
-        idempotencyKey: item.key,
+        body: { recipientId: userId, view, content },
+        idempotencyKey: key,
       });
+      form.reset();
+      setKey(newIdempotencyKey());
+      setNotice("Message sent.");
       await load();
-      setOutbox((current) => current.filter((entry) => entry.id !== item.id));
-    } catch {
-      setOutbox((current) => current.map((entry) => (entry.id === item.id ? { ...entry, status: "failed" } : entry)));
+    } catch (caught) {
+      setError(errorMessage(caught, "We couldn’t send your message."));
+    } finally {
+      setPending(false);
     }
-  }
-  function enqueue(item: Outgoing) {
-    queue.current = queue.current.then(() => deliver(item));
-  }
-  function send(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const content = draft.trim();
-    if (!content) return;
-    const item: Outgoing = { id: newIdempotencyKey(), content, key: newIdempotencyKey(), createdAt: new Date().toISOString(), status: "sending" };
-    setOutbox((current) => [...current, item]);
-    setDraft("");
-    setNotice("");
-    enqueue(item);
-  }
-  function retry(id: string) {
-    const item = outbox.find((entry) => entry.id === id);
-    if (!item) return;
-    setOutbox((current) => current.map((entry) => (entry.id === id ? { ...entry, status: "sending" } : entry)));
-    enqueue({ ...item, status: "sending" });
-  }
-  function discard(id: string) {
-    setOutbox((current) => current.filter((entry) => entry.id !== id));
   }
   if (!isUuid(userId))
     return (
       <section className="panel">
-        <h1 style={{ fontSize: 22 }}>We couldn’t find that conversation.</h1>
+        <h1>We couldn’t find that conversation.</h1>
+        <Link className="button" href="/messages">
+          Back to messages
+        </Link>
       </section>
     );
   const other = thread?.conversation?.participants.find(
     (participant) => participant.userId !== account?.id,
   );
-  const shownName = other?.displayName ?? params.get("name")?.slice(0, 80) ?? (lookedUp || "Conversation");
   return (
     <>
-      <header className="page-heading chat-head">
-        <Avatar name={shownName} size={36} />
-        <h1>{shownName}</h1>
+      <p>
+        <Link className="text-link" href="/messages">
+          ← All messages
+        </Link>
+      </p>
+      <header className="section-heading">
+        <p className="eyebrow">CONVERSATION</p>
+        <h1>{other?.displayName ?? "New conversation"}</h1>
+        <p>Messages are visible only to the participants in this thread.</p>
       </header>
       {error && (
         <Notice kind="error">
@@ -290,64 +254,40 @@ function Thread({ userId }: { userId: string }) {
         </Notice>
       )}
       {notice && <Notice kind="success">{notice}</Notice>}
-      {!thread && !error && <p role="status" className="tutor-card-meta">Loading conversation…</p>}
+      {!thread && !error && <p role="status">Loading conversation…</p>}
       {thread && (
-        <section className="panel chat">
-          <div className="thread" ref={scroller} aria-live="polite">
-            {thread.items.length === 0 && outbox.length === 0 && (
-              <p className="chat-empty">No messages yet. Say hello below.</p>
+        <section className="panel">
+          <div className="thread" aria-live="polite">
+            {thread.items.length === 0 && (
+              <p className="empty-state">
+                No messages yet. Start the conversation below.
+              </p>
             )}
-            {thread.items.map((message, index) => {
-              const previous = thread.items[index - 1];
-              const own = message.senderUserId === account?.id;
-              const newDay = !previous || dayKey(previous.createdAt) !== dayKey(message.createdAt);
-              const joinsPrevious =
-                !newDay && previous?.senderUserId === message.senderUserId;
-              return (
-                <Fragment key={message.id}>
-                  {newDay && <div className="chat-day">{dayLabel(message.createdAt)}</div>}
-                  <div className={`chat-line ${own ? "own" : ""}${joinsPrevious ? " joined" : ""}`}>
-                    <article className={`message-bubble ${own ? "own" : ""}`}>
-                      <p>{message.content}</p>
-                    </article>
-                    <time dateTime={message.createdAt}>{clock(message.createdAt)}</time>
-                  </div>
-                </Fragment>
-              );
-            })}
-            {outbox.map((item) => (
-              <div key={item.id} className={`chat-line own pending ${item.status}`}>
-                <article className={`message-bubble own ${item.status === "failed" ? "is-failed" : "is-sending"}`}>
-                  <p>{item.content}</p>
-                </article>
-                {item.status === "sending" ? (
-                  <time>Sending</time>
-                ) : (
-                  <span className="chat-failed">
-                    Not sent
-                    <button type="button" onClick={() => retry(item.id)}>Retry</button>
-                    <button type="button" onClick={() => discard(item.id)}>Delete</button>
-                  </span>
-                )}
-              </div>
+            {thread.items.map((message) => (
+              <article
+                key={message.id}
+                className={`message-bubble ${message.senderUserId === account?.id ? "own" : ""}`}
+              >
+                <p>{message.content}</p>
+                <time dateTime={message.createdAt}>
+                  {formatTime(message.createdAt)}
+                </time>
+              </article>
             ))}
           </div>
-          <form className="chat-composer" onSubmit={send}>
-            <input
-              id="content"
-              name="content"
-              type="text"
-              autoComplete="off"
-              aria-label="Message"
-              placeholder="Write a message"
-              maxLength={2000}
-              value={draft}
-              onChange={(event) => setDraft(event.target.value)}
-            />
-            <button className="chat-send" disabled={!draft.trim()} aria-label="Send message" title="Send">
-              <svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M17.5 2.5 8.75 11.25M17.5 2.5l-5.5 15-3.25-6.25L2.5 8 17.5 2.5Z" />
-              </svg>
+          <form className="form" onSubmit={send}>
+            <div className="field">
+              <label htmlFor="content">Message</label>
+              <textarea
+                id="content"
+                name="content"
+                rows={4}
+                maxLength={2000}
+                required
+              />
+            </div>
+            <button className="button" disabled={pending}>
+              {pending ? "Sending…" : "Send message"}
             </button>
           </form>
         </section>

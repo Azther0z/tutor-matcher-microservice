@@ -5,7 +5,6 @@ import { useSearchParams } from "next/navigation";
 import { use, useCallback, useEffect, useState } from "react";
 import { Field, LoadError, Notice } from "@/components/field";
 import { Dropdown } from "@/components/dropdown";
-import { LegalModal } from "@/components/legal-modal";
 import { api, apiResponse, errorMessage, failureOf, fieldErrors, newIdempotencyKey, type Failure } from "@/lib/api";
 import { Pager, StatusBadge } from "./common";
 import { formatMoney, formatTime, titleCase } from "./format";
@@ -17,8 +16,8 @@ function AuditList({ dispute }: { dispute: Dispute }) {
   if (dispute.audit.length === 0) return <p className="muted">No audit entries yet.</p>;
   return (
     <ul className="audit-list">
-      {[...dispute.audit].sort((a, b) => b.occurredAt.localeCompare(a.occurredAt)).map((entry) => (
-        <li key={entry.id}><strong>{titleCase(entry.action)}</strong>, {formatTime(entry.occurredAt)}{entry.reason && <><br /><span className="small-muted">{entry.reason}</span></>}</li>
+      {dispute.audit.map((entry) => (
+        <li key={entry.id}><strong>{titleCase(entry.action)}</strong> · {formatTime(entry.occurredAt)}{entry.reason && <><br /><span className="small-muted">{entry.reason}</span></>}</li>
       ))}
     </ul>
   );
@@ -101,7 +100,7 @@ export function DisputesPage() {
 
   return (
     <>
-      <header className="section-heading"><h1>Disputes</h1><p>Open a dispute for a completed lesson and follow the decision here.</p></header>
+      <header className="section-heading"><p className="eyebrow">WALLET</p><h1>Disputes</h1><p>Open a dispute for a completed lesson and follow the decision here.</p></header>
       {notice && <Notice kind="success">{notice}</Notice>}
       <section className="panel"><OpenDispute initialBookingId={prefill} onOpened={() => { setNotice("Your dispute was opened."); void load(1); }} /></section>
       <section className="panel">
@@ -112,7 +111,7 @@ export function DisputesPage() {
         {result && result.items.length > 0 && (
           <ul className="audit-list">
             {result.items.map((dispute) => (
-              <li key={dispute.id}><StatusBadge value={dispute.status} /> Opened {formatTime(dispute.createdAt)}, <Link className="text-link" href={`/disputes/${dispute.id}`}>View</Link></li>
+              <li key={dispute.id}><StatusBadge value={dispute.status} /> Opened {formatTime(dispute.createdAt)} · <Link className="text-link" href={`/disputes/${dispute.id}`}>View</Link></li>
             ))}
           </ul>
         )}
@@ -133,9 +132,9 @@ export function DisputeDetailPage({ params }: { params: Promise<{ disputeId: str
   useEffect(() => { load(); }, [load]);
   return (
     <>
-      <header className="page-heading"><h1>Dispute</h1></header>
+      <header className="section-heading"><p className="eyebrow">WALLET</p><h1>Dispute</h1><p><Link className="text-link" href="/disputes">Back to disputes</Link></p></header>
       <section className="panel">
-        <LoadError failure={error} onRetry={load}/>
+        <LoadError failure={error} onRetry={load} backHref="/disputes" backLabel="Back to disputes"/>
         {!dispute && !error && <p role="status">Loading…</p>}
         {dispute && <><OutcomeSummary dispute={dispute} /><h2>History</h2><AuditList dispute={dispute} /></>}
       </section>
@@ -163,34 +162,37 @@ export function AdminDisputesPage() {
 
   return (
     <>
-      <header className="page-heading page-heading-row">
-        <h1>Disputes</h1>
-        <div className="tx-filter">
+      <header className="section-heading"><p className="eyebrow">ADMIN TOOLS</p><h1>Disputes</h1><p>Inspect the evidence, decide the case, and the remedy and audit trail appear here.</p></header>
+      <section className="panel">
+        <div className="field">
+          <label htmlFor="status">Status</label>
           <Dropdown id="status" value={status} onValueChange={(value) => setStatus(value as DisputeStatus | "")} options={
             STATUS_FILTERS.map((value) => ({ value, label: value ? titleCase(value) : "All statuses" }))
           } />
         </div>
-      </header>
-      {error && <Notice kind="error">{error}</Notice>}
-      {!result && !error && <p role="status" className="tutor-card-meta">Loading…</p>}
-      {result && result.items.length === 0 && <p className="tutor-card-meta">No disputes match.</p>}
-      {result && result.items.length > 0 && (
-        <div className="tx-list">
-          {result.items.map((dispute) => (
-            <Link key={dispute.id} className="panel tutor-card tx-card" href={`/admin/disputes/${dispute.id}`}>
-              <span>
-                <strong>Booking {dispute.bookingId.slice(0, 8)}</strong>
-                <small>Opened {formatTime(dispute.createdAt)}</small>
-              </span>
-              <span className="wallet-tx-amount">
-                <StatusBadge value={dispute.status} />
-                <small>Refunded {formatMoney(dispute.refundedAmount)}</small>
-              </span>
-            </Link>
-          ))}
-        </div>
-      )}
-      {result && <Pager meta={result.pagination} onPage={(page) => void load(page)} disabled={pending} />}
+        {error && <Notice kind="error">{error}</Notice>}
+        {!result && !error && <p role="status">Loading…</p>}
+        {result && result.items.length === 0 && <p className="empty-state">No disputes match.</p>}
+        {result && result.items.length > 0 && (
+          <div className="table-wrap">
+            <table className="data-table">
+              <thead><tr><th>Opened</th><th>Booking</th><th>Status</th><th>Refunded</th><th><span className="muted">Review</span></th></tr></thead>
+              <tbody>
+                {result.items.map((dispute) => (
+                  <tr key={dispute.id}>
+                    <td>{formatTime(dispute.createdAt)}</td>
+                    <td>{dispute.bookingId.slice(0, 8)}</td>
+                    <td><StatusBadge value={dispute.status} /></td>
+                    <td>{formatMoney(dispute.refundedAmount)}</td>
+                    <td><Link className="text-link" href={`/admin/disputes/${dispute.id}`}>Review</Link></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+        {result && <Pager meta={result.pagination} onPage={(page) => void load(page)} disabled={pending} />}
+      </section>
     </>
   );
 }
@@ -224,7 +226,6 @@ export function AdminDisputeDetailPage({ params }: { params: Promise<{ disputeId
       await api<Dispute>(`/admin/disputes/${disputeId}/decision`, { method: "POST", body: { decision, reason: reason.trim() }, idempotencyKey: key, ifMatch: etag });
       setKey(newIdempotencyKey()); setReason("");
       setNotice(decision === "REJECT" ? "Dispute rejected. The tutor’s earnings follow the normal clearing rules." : "Dispute approved. The remaining paid amount was refunded.");
-      setDeciding(false);
       await load();
     } catch (e) {
       setError(errorMessage(e, "We couldn’t record the decision."));
@@ -233,88 +234,69 @@ export function AdminDisputeDetailPage({ params }: { params: Promise<{ disputeId
   }
 
   const open = detail?.dispute.status === "OPEN";
-  const [deciding, setDeciding] = useState(false);
   return (
     <>
-      <header className="page-heading"><h1>Dispute</h1></header>
+      <header className="section-heading"><p className="eyebrow">ADMIN TOOLS</p><h1>Dispute review</h1><p><Link className="text-link" href="/admin/disputes">Back to disputes</Link></p></header>
       {notice && <Notice kind="success">{notice}</Notice>}
-      {error && !deciding && <Notice kind="error">{error}</Notice>}
-      {!detail && !error && <p role="status" className="tutor-card-meta">Loading…</p>}
+      {error && <Notice kind="error">{error}</Notice>}
+      {!detail && !error && <p role="status">Loading…</p>}
       {detail && (
         <>
-          <section className="panel booking-new submission-card">
-            <StatusBadge value={detail.dispute.status} corner />
-            <div className="booking-title">
-              <h2>{detail.studentDisplayName} and {detail.tutorDisplayName}</h2>
-              <p className="tutor-card-meta">Opened {formatTime(detail.dispute.createdAt)}</p>
-            </div>
-            <p className="submission-bio full">{detail.dispute.reason}</p>
-            <div className="summary-rows">
-              <div><span>Booking</span><strong>{titleCase(detail.booking.status)}, {formatTime(detail.booking.startsAt)}</strong></div>
-              <div><span>Paid</span><strong>{formatMoney(detail.financial.paid)}</strong></div>
-              <div><span>Already refunded</span><strong>{formatMoney(detail.financial.refunded)}</strong></div>
-              <div><span>Pending tutor earning</span><strong>{formatMoney(detail.financial.pendingEarning)}{detail.financial.disputeHeld ? " (held)" : ""}</strong></div>
-              <div><span>Platform fee</span><strong>{formatMoney(detail.financial.fee)}</strong></div>
-              <div><span>Clearing due</span><strong>{formatTime(detail.financial.clearingDueAt)}</strong></div>
-              <div><span>Refunded by this dispute</span><strong>{formatMoney(detail.dispute.refundedAmount)}</strong></div>
-              {detail.dispute.decisionReason && <div><span>Decision</span><strong>{detail.dispute.decisionReason}</strong></div>}
-            </div>
-            {open && (
-              <div className="slot-footer flush">
-                <span />
-                <button className="button" onClick={() => { setError(""); setDeciding(true); }}>Decide</button>
+          <section className="panel">
+            <h2>Evidence</h2>
+            <p>Status: <StatusBadge value={detail.dispute.status} /></p>
+            <dl className="audit-list">
+              <dt>Student</dt><dd>{detail.studentDisplayName}</dd>
+              <dt>Tutor</dt><dd>{detail.tutorDisplayName}</dd>
+              <dt>Student’s reason</dt><dd>{detail.dispute.reason}</dd>
+              <dt>Booking</dt><dd>{titleCase(detail.booking.status)} · {formatTime(detail.booking.startsAt)} to {formatTime(detail.booking.endsAt)}</dd>
+              <dt>Completed</dt><dd>{formatTime(detail.booking.completedAt)}</dd>
+              <dt>Cancelled</dt><dd>{formatTime(detail.booking.cancelledAt)}</dd>
+            </dl>
+          </section>
+          <section className="panel">
+            <h2>Money</h2>
+            <dl className="audit-list">
+              <dt>Paid</dt><dd>{formatMoney(detail.financial.paid)}</dd>
+              <dt>Already refunded</dt><dd>{formatMoney(detail.financial.refunded)}</dd>
+              <dt>Pending tutor earning</dt><dd>{formatMoney(detail.financial.pendingEarning)}{detail.financial.disputeHeld ? " (held)" : ""}</dd>
+              <dt>Platform fee</dt><dd>{formatMoney(detail.financial.fee)}</dd>
+              <dt>Clearing due</dt><dd>{formatTime(detail.financial.clearingDueAt)}</dd>
+              <dt>Refunded by this dispute</dt><dd>{formatMoney(detail.dispute.refundedAmount)}</dd>
+            </dl>
+            {detail.transactions.length > 0 && (
+              <div className="table-wrap">
+                <table className="data-table">
+                  <caption className="muted">Related wallet movements</caption>
+                  <thead><tr><th>When</th><th>Type</th><th>Amount</th></tr></thead>
+                  <tbody>{detail.transactions.map((tx) => <tr key={tx.id}><td>{formatTime(tx.createdAt)}</td><td>{titleCase(tx.type)}</td><td>{formatMoney(tx.amount)}</td></tr>)}</tbody>
+                </table>
               </div>
             )}
           </section>
-          {detail.transactions.length > 0 && (
-            <section className="panel wallet-recent">
-              <h2>Related wallet movements</h2>
-              {[...detail.transactions].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).map((tx) => (
-                <div key={tx.id} className="audit-row">
-                  <span><strong>{titleCase(tx.type)}</strong><small>{formatTime(tx.createdAt)}</small></span>
-                  <strong>{formatMoney(tx.amount)}</strong>
+          <section className="panel">
+            <h2>Audit trail</h2>
+            {detail.dispute.decisionReason && <p><strong>Decision:</strong> {detail.dispute.decisionReason}</p>}
+            <AuditList dispute={detail.dispute} />
+          </section>
+          {open && (
+            <section className="panel">
+              <form className="form" onSubmit={submit} noValidate>
+                <h2>Decide this dispute</h2>
+                <fieldset className="field">
+                  <legend>Decision</legend>
+                  <label className="check-row"><input type="radio" name="decision" checked={decision === "APPROVE_FULL_REMAINDER"} onChange={() => { setDecision("APPROVE_FULL_REMAINDER"); setKey(newIdempotencyKey()); }} /><span>Approve: refund the full remaining paid amount</span></label>
+                  <label className="check-row"><input type="radio" name="decision" checked={decision === "REJECT"} onChange={() => { setDecision("REJECT"); setKey(newIdempotencyKey()); }} /><span>Reject: no refund</span></label>
+                </fieldset>
+                <div className="field">
+                  <label htmlFor="reason">Reason (kept in the audit trail)</label>
+                  <textarea id="reason" rows={3} maxLength={2000} value={reason} aria-invalid={Boolean(reasonError)} onChange={(e) => { setReason(e.target.value); setKey(newIdempotencyKey()); }} />
+                  {reasonError && <span className="field-error">{reasonError}</span>}
                 </div>
-              ))}
+                <button className="button" disabled={pending}>{pending ? "Recording…" : "Record decision"}</button>
+              </form>
             </section>
           )}
-          <section className="panel wallet-recent">
-            <h2>Audit trail</h2>
-            {detail.dispute.audit.length === 0 && <p className="tutor-card-meta">No audit entries yet.</p>}
-            {[...detail.dispute.audit].sort((a, b) => b.occurredAt.localeCompare(a.occurredAt)).map((entry) => (
-              <div key={entry.id} className="audit-row">
-                <span><strong>{titleCase(entry.action)}</strong>{entry.reason && <small>{entry.reason}</small>}</span>
-                <time dateTime={entry.occurredAt}>{formatTime(entry.occurredAt)}</time>
-              </div>
-            ))}
-          </section>
-          <LegalModal
-            open={deciding}
-            title="Decide this dispute"
-            onClose={() => setDeciding(false)}
-            actions={
-              <div className="button-row" style={{ justifyContent: "flex-end" }}>
-                <button type="button" className="button button-quiet" onClick={() => setDeciding(false)}>Cancel</button>
-                <button type="submit" form="decide-form" className="button" disabled={pending}>{pending ? "Recording…" : "Record decision"}</button>
-              </div>
-            }
-          >
-            <form id="decide-form" className="topup-step" onSubmit={submit} noValidate>
-              {error && <Notice kind="error">{error}</Notice>}
-              <div className="field">
-                <span className="field-label">Decision</span>
-                <div className="topup-quick" role="group" aria-label="Decision">
-                  <button type="button" className="topup-chip" aria-pressed={decision === "APPROVE_FULL_REMAINDER"} onClick={() => { setDecision("APPROVE_FULL_REMAINDER"); setKey(newIdempotencyKey()); }}>Approve and refund</button>
-                  <button type="button" className="topup-chip" aria-pressed={decision === "REJECT"} onClick={() => { setDecision("REJECT"); setKey(newIdempotencyKey()); }}>Reject</button>
-                </div>
-              </div>
-              <div className="field">
-                <label htmlFor="reason">Reason (kept in the audit trail)</label>
-                <textarea id="reason" rows={3} maxLength={2000} value={reason} aria-invalid={Boolean(reasonError)} onChange={(e) => { setReason(e.target.value); setKey(newIdempotencyKey()); }} />
-                {reasonError && <span className="field-error">{reasonError}</span>}
-              </div>
-              <p className="tutor-card-meta">Approving refunds the full remaining paid amount. Rejecting means no refund.</p>
-            </form>
-          </LegalModal>
         </>
       )}
     </>

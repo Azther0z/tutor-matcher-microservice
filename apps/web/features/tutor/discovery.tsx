@@ -1,18 +1,11 @@
 "use client";
 
-import { VerifiedBadge } from "@/components/verified-badge";
-import { StarRatingFilter } from "@/components/star-rating-filter";
-import { PriceRangeFilter } from "@/components/price-range-filter";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Field, Notice, focusFirstInvalid } from "@/components/field";
 import { Dropdown } from "@/components/dropdown";
-import { Avatar } from "@/components/avatar";
-import { IntroVideo } from "@/components/intro-video";
-import { LessonCalendar } from "@/components/lesson-calendar";
 import { useAuth } from "@/lib/auth-context";
-import type { Booking, BookingPage } from "@/features/booking/types";
 import { ReviewList } from "../review/reviews";
 import {
   bangkokDate,
@@ -55,21 +48,17 @@ function priceProblems(
     problems.max = "The maximum rate must be at least the minimum rate.";
   return problems;
 }
-function RatingStars({ average, count }: { average: number | null; count: number }) {
-  const percent = average === null ? 0 : Math.max(0, Math.min(100, (average / 5) * 100));
-  const label =
-    average === null
-      ? "No ratings yet"
-      : `${average.toFixed(1)} out of 5, ${count} ${count === 1 ? "review" : "reviews"}`;
+function RatingLabel({
+  average,
+  count,
+}: {
+  average: number | null;
+  count: number;
+}) {
   return (
-    <span className="rating-stars" role="img" aria-label={label}>
-      <span className="rating-stars-row" aria-hidden="true">
-        <span className="rating-stars-base">★★★★★</span>
-        <span className="rating-stars-fill" style={{ width: `${percent}%` }}>★★★★★</span>
-      </span>
-      <span className="rating-stars-text" aria-hidden="true">
-        {average === null ? "No ratings yet" : `${average.toFixed(1)} (${count})`}
-      </span>
+    <span>
+      {average === null ? "No ratings yet" : `${average.toFixed(1)}/5`} ({count}{" "}
+      reviews)
     </span>
   );
 }
@@ -155,6 +144,11 @@ export function Discover() {
   const resultCount = resource.data?.pagination.totalItems ?? 0;
   return (
     <>
+      <header className="search-hero">
+        <p className="eyebrow">TUTOR SEARCH</p>
+        <h1>Find a tutor</h1>
+        <p>Filter by subject, tutor, price, rating and format, then open a tutor to see more.</p>
+      </header>
       <div className="search-layout">
         <aside className="search-side" aria-label="Filters">
           {searchDown && (
@@ -171,7 +165,6 @@ export function Discover() {
           )}
           <form key={query.toString()} className="form" onSubmit={filter} noValidate>
             <fieldset className="plain-fieldset" disabled={searchDown || areas.loading}>
-              <div className="search-fields">
               <Field
                 id="search-keyword"
                 name="q"
@@ -203,19 +196,46 @@ export function Discover() {
               </div>
               <div className="field">
                 <span className="field-label" id="rating-label">Minimum rating</span>
-                <StarRatingFilter
-                  value={rating}
-                  labelId="rating-label"
-                  onChange={(next) => apply({ minRating: next === null ? null : String(next) })}
-                />
+                <div className="star-picker" role="group" aria-labelledby="rating-label">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      type="button"
+                      className={`star ${star <= rating ? "on" : ""}`}
+                      aria-label={`${star} ${star === 1 ? "star" : "stars"} and up`}
+                      aria-pressed={rating === star}
+                      onClick={() => apply({ minRating: rating === star ? null : String(star) })}
+                    >
+                      ★
+                    </button>
+                  ))}
+                </div>
+                <span className="field-hint">{rating ? `${rating} ${rating === 1 ? "star" : "stars"} & up` : "Any rating"}</span>
                 <input type="hidden" name="minRating" value={query.get("minRating") ?? ""} />
               </div>
-              <PriceRangeFilter
-                defaultMin={query.get("minRate") ?? ""}
-                defaultMax={query.get("maxRate") ?? ""}
-                minError={priceErrors.min}
-                maxError={priceErrors.max}
-              />
+              <div className="field-set">
+                <Field
+                  id="minimum-rate"
+                  name="minRate"
+                  label="Min price (THB/hr)"
+                  inputMode="decimal"
+                  defaultValue={query.get("minRate") ?? ""}
+                  error={priceErrors.min}
+                />
+                <Field
+                  id="maximum-rate"
+                  name="maxRate"
+                  label="Max price (THB/hr)"
+                  inputMode="decimal"
+                  defaultValue={query.get("maxRate") ?? ""}
+                  error={priceErrors.max}
+                />
+              </div>
+              {range.data && (
+                <p className="field-hint">
+                  Published rates: THB {range.data.minimum.amount} to {range.data.maximum.amount} per hour.
+                </p>
+              )}
               <div className="field">
                 <span className="field-label" id="format-label">Format</span>
                 <div className="pill-toggle" role="group" aria-labelledby="format-label">
@@ -225,20 +245,14 @@ export function Discover() {
                 <span className="field-hint">Lessons are online.</span>
                 <input type="hidden" name="format" value={format} />
               </div>
-              </div>
-              <div className="search-actions">
-                <button className="button">Search</button>
-                <Link className="button button-outline clear-filters" href="/discover">
-                  Clear filters
-                </Link>
-              </div>
+              <button className="button">Search</button>
+              <Link className="button button-outline clear-filters" href="/discover">
+                Clear filters
+              </Link>
             </fieldset>
           </form>
         </aside>
         <section className="search-results" aria-live="polite">
-          <header className="search-hero">
-            <h1>Find a tutor</h1>
-          </header>
           <div className="recommend-banner">
             <strong>Recommended tutors</strong>
             {account ? (
@@ -291,35 +305,46 @@ export function Discover() {
               )}
               <div className="account-grid">
             {resource.data.items.map((item) => (
-              <article className="panel tutor-card" key={item.subject.id}>
+              <article className="panel" key={item.subject.id}>
+                <p className="eyebrow">ONLINE SUBJECT</p>
                 <h2>
-                  <Link href={`/tutors/${item.subject.tutorId}/subjects/${item.subject.id}`}>
+                  <Link
+                    className="text-link"
+                    href={`/tutors/${item.subject.tutorId}/subjects/${item.subject.id}`}
+                  >
                     {item.subject.name}
                   </Link>
                 </h2>
-                <p className="tutor-card-by">
-                  <Link href={`/tutors/${item.subject.tutorId}`}>{item.tutorDisplayName}</Link>
-                  <VerifiedBadge />
+                <p>
+                  <Link
+                    className="text-link"
+                    href={`/tutors/${item.subject.tutorId}`}
+                  >
+                    {item.tutorDisplayName}
+                  </Link>{" "}
+                  <span className="badge">Verified tutor</span>
                 </p>
-                <p className="tutor-card-meta">
-                  Online, {item.subject.learningAreas.join(", ")}
-                </p>
-                <p className="tutor-card-desc">{item.subject.description}</p>
-                <div className="tutor-card-foot">
-                  <div className="tutor-card-price">
-                    <strong>THB {item.subject.hourlyRate}/hour</strong>
-                    <RatingStars
-                      average={item.rating.average}
-                      count={item.rating.reviewCount}
-                    />
-                  </div>
-                  <p className="tutor-card-meta">
-                    Next available:{" "}
-                    {item.nextAvailableAt
-                      ? `${bangkokTime(item.nextAvailableAt)} (Bangkok)`
-                      : "No future free slots"}
-                  </p>
+                <p>{item.subject.description}</p>
+                <div className="stat-line">
+                  <strong>THB {item.subject.hourlyRate}/hour</strong>
+                  <RatingLabel
+                    average={item.rating.average}
+                    count={item.rating.reviewCount}
+                  />
                 </div>
+                <p>
+                  Next available:{" "}
+                  {item.nextAvailableAt
+                    ? `${bangkokTime(item.nextAvailableAt)} (Bangkok)`
+                    : "No future free slots"}
+                </p>
+                <p className="muted">{item.subject.learningAreas.join(", ")}</p>
+                <Link
+                  className="button"
+                  href={`/tutors/${item.subject.tutorId}/subjects/${item.subject.id}`}
+                >
+                  View subject and availability
+                </Link>
               </article>
             ))}
           </div>
@@ -339,47 +364,51 @@ export function TutorProfile({ tutorId }: { tutorId: string }) {
   const tutor = resource.data;
   return (
     <>
-      {!tutor && <header className="page-heading"><h1>Tutor profile</h1></header>}
+      <Link className="text-link" href="/discover">
+        Back to discovery
+      </Link>
+      {!tutor && <h1 className="page-title">Tutor profile</h1>}
       <ResourceState
         loading={resource.loading}
         error={resource.error}
         failure={resource.failure}
         retry={() => void resource.reload()}
+        backHref="/discover"
+        backLabel="Find tutors"
       />
       {tutor && (
         <>
-          <section className="panel booking-new">
-            <div className="chat-head">
-              <Avatar name={tutor.displayName} src={tutor.avatarUrl} size={56} />
-              <div className="booking-title">
-                <h2>
-                  {tutor.displayName} <VerifiedBadge />
-                </h2>
-                <p className="tutor-card-meta">{tutor.headline}</p>
-              </div>
-            </div>
-            {tutor.bio && <p className="submission-bio full">{tutor.bio}</p>}
-            {tutor.introVideoUrl && <IntroVideo url={tutor.introVideoUrl} />}
+          <section className="panel">
+            <p className="eyebrow">VERIFIED TUTOR</p>
+            <h1>{tutor.displayName}</h1>
+            <h2>{tutor.headline}</h2>
+            <p style={{ whiteSpace: "pre-wrap" }}>{tutor.bio}</p>
+            {tutor.introVideoUrl && (
+              <a
+                className="text-link"
+                href={tutor.introVideoUrl}
+                rel="noreferrer"
+                target="_blank"
+              >
+                Watch introduction video
+              </a>
+            )}
           </section>
-          <h2 className="list-title">Online subjects</h2>
-          {tutor.subjects.length === 0 && (
-            <p className="tutor-card-meta">No subjects published yet.</p>
-          )}
+          <h2>Online subjects</h2>
+          {tutor.subjects.length === 0 && <p>No subjects published yet.</p>}
           <div className="account-grid">
             {tutor.subjects.map((subject) => (
-              <Link
-                className="panel tutor-card"
-                key={subject.id}
-                href={`/tutors/${tutor.id}/subjects/${subject.id}`}
-              >
-                <strong>{subject.name}</strong>
-                <p className="tutor-card-desc">{subject.description}</p>
-                <div className="tutor-card-foot">
-                  <div className="tutor-card-price">
-                    <strong>THB {subject.hourlyRate}/hour</strong>
-                  </div>
-                </div>
-              </Link>
+              <section className="panel" key={subject.id}>
+                <h3>{subject.name}</h3>
+                <p>{subject.description}</p>
+                <p>THB {subject.hourlyRate}/hour</p>
+                <Link
+                  className="button"
+                  href={`/tutors/${tutor.id}/subjects/${subject.id}`}
+                >
+                  View availability
+                </Link>
+              </section>
             ))}
           </div>
           <ReviewList tutorId={tutor.id} />
@@ -421,34 +450,12 @@ export function SubjectDetails({
     false,
   );
   const data = resource.data;
-  // The viewer's own held (payment due) and confirmed bookings with this tutor show as unavailable for a reason.
-  const mine = useResource<BookingPage>(
-    account ? "/bookings?page=1&pageSize=50&view=STUDENT" : null,
-  );
-  const ownBookings = (mine.data?.items ?? []).filter(
-    (booking) =>
-      booking.tutorId === tutorId &&
-      (booking.status === "PAYMENT_DUE" || booking.status === "CONFIRMED"),
-  );
   useEffect(() => {
     setSelected([]);
   }, [date]);
   const selectedSlots =
     data?.slots.filter((slot) => selected.includes(slot.id)) ?? [];
   const error = selectionError(selectedSlots);
-  // Keep the page up while another day loads, and never show the previous day's times under the new date.
-  const stale = !data || data.selectedDate !== date;
-  const slotByTime = new Map(
-    (stale ? [] : data.slots).map((slot) => [
-      new Intl.DateTimeFormat("en-GB", {
-        timeZone: "Asia/Bangkok",
-        hour: "2-digit",
-        minute: "2-digit",
-        hourCycle: "h23",
-      }).format(new Date(slot.startsAt)),
-      slot,
-    ]),
-  );
   const firstSlot = [...selectedSlots].sort((a, b) => a.startsAt.localeCompare(b.startsAt))[0];
   const selectionQuery = new URLSearchParams({
     tutorId,
@@ -463,149 +470,125 @@ export function SubjectDetails({
   const bookingPath = `/bookings/new?${selectionQuery}`;
   return (
     <>
+      <Link className="text-link" href={`/tutors/${tutorId}`}>
+        Back to tutor profile
+      </Link>
       {!data && <h1 className="page-title">Subject details</h1>}
       <ResourceState
-        loading={resource.loading && !data}
+        loading={resource.loading}
         error={resource.error}
         failure={resource.failure}
         retry={() => void resource.reload()}
+        backHref={`/tutors/${tutorId}`}
+        backLabel="Back to tutor profile"
       />
       {data && (
         <>
-          <header className="page-heading subject-head">
-            <div className="subject-head-top">
-              <h1>{data.subject.name}</h1>
-              <Link className="subject-tutor" href={`/tutors/${data.tutor.id}`}>
-                With {data.tutor.displayName}
+          <section className="panel">
+            <p className="eyebrow">ONLINE LESSON</p>
+            <h1>{data.subject.name}</h1>
+            <p>
+              With{" "}
+              <Link className="text-link" href={`/tutors/${data.tutor.id}`}>
+                {data.tutor.displayName}
               </Link>
-            </div>
-            {data.subject.learningAreas.length > 0 && (
-              <p className="tutor-card-meta">
-                {data.subject.learningAreas.join(", ")}
-              </p>
-            )}
+            </p>
             <p style={{ whiteSpace: "pre-wrap" }}>{data.subject.description}</p>
-            <div className="subject-meta">
+            <div className="stat-line">
               <strong>THB {data.subject.hourlyRate}/hour</strong>
-              <RatingStars
+              <RatingLabel
                 average={data.rating.average}
                 count={data.rating.reviewCount}
               />
             </div>
-          </header>
-          <section className="panel slot-panel">
-            <div className="slot-layout">
-              <div className="slot-col">
-                <h2>Pick a date</h2>
-                <LessonCalendar value={date} min={bangkokDate()} onChange={setDate} />
-              </div>
-              <div className="slot-col">
-                <h2>Pick your time</h2>
-                <p className="tutor-card-meta">
-                  Choose 1 to 8 back-to-back half-hour slots. Times are Asia/Bangkok.
-                </p>
-                <div className={`slot-grid${stale ? " is-loading" : ""}`} role="group" aria-label="Available half-hour slots">
-                  {Array.from({ length: 48 }, (_, i) => {
-                    const label = `${String(Math.floor(i / 2)).padStart(2, "0")}:${i % 2 ? "30" : "00"}`;
-                    const slot = slotByTime.get(label);
-                    const on = slot ? selected.includes(slot.id) : false;
-                    const at = Date.parse(`${date}T${label}:00.000+07:00`);
-                    const own = slot
-                      ? undefined
-                      : ownBookings.find(
-                          (booking) =>
-                            Date.parse(booking.startsAt) <= at &&
-                            at < Date.parse(booking.endsAt),
-                        );
-                    if (own) {
-                      const held = own.status === "PAYMENT_DUE";
-                      return (
-                        <span
-                          key={label}
-                          className="tooltip-wrap"
-                          data-tip={held ? "Held" : "Booked"}
-                        >
-                          <span
-                            className={`slot-chip slot-own ${held ? "is-held" : "is-booked"}`}
-                            aria-disabled="true"
-                          >
-                            {label}
-                          </span>
-                        </span>
-                      );
+            <p>{data.subject.learningAreas.join(", ")}</p>
+          </section>
+          <section className="panel">
+            <h2>Choose your lesson time</h2>
+            <p>
+              Select 1 to 8 consecutive half-hour slots. All times use
+              Asia/Bangkok.
+            </p>
+            <Field
+              id="lesson-date"
+              label="Lesson date (Bangkok)"
+              type="date"
+              min={bangkokDate()}
+              value={date}
+              onChange={(event) => {
+                if (event.target.value) setDate(event.target.value);
+              }}
+            />
+            {data.slots.length === 0 && (
+              <p className="empty-state">No free slots on this date.</p>
+            )}
+            <fieldset className="field">
+              <legend>Available half-hour slots</legend>
+              {data.slots.map((slot) => (
+                <label key={slot.id} className="check-row">
+                  <input
+                    type="checkbox"
+                    checked={selected.includes(slot.id)}
+                    disabled={new Date(slot.startsAt).getTime() <= Date.now()}
+                    onChange={(event) =>
+                      setSelected((previous) =>
+                        event.target.checked
+                          ? [...previous, slot.id]
+                          : previous.filter((id) => id !== slot.id),
+                      )
                     }
-                    return (
-                      <button
-                        type="button"
-                        key={label}
-                        className="slot-chip"
-                        aria-pressed={on}
-                        disabled={!slot || new Date(slot.startsAt).getTime() <= Date.now()}
-                        onClick={() =>
-                          slot &&
-                          setSelected((previous) =>
-                            on
-                              ? previous.filter((id) => id !== slot.id)
-                              : [...previous, slot.id],
-                          )
-                        }
-                      >
-                        {label}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
+                  />
+                  <span>
+                    {bangkokTime(slot.startsAt)} to{" "}
+                    {new Intl.DateTimeFormat("en-GB", {
+                      timeZone: "Asia/Bangkok",
+                      timeStyle: "short",
+                    }).format(new Date(slot.endsAt))}
+                  </span>
+                </label>
+              ))}
+            </fieldset>
+            <p>
+              {selectedSlots.length} slots selected, {selectedSlots.length / 2}{" "}
+              hours.
+            </p>
             {selectedSlots.length > 0 && error && (
               <Notice kind="error">{error}</Notice>
             )}
             {account?.id === data.subject.tutorUserId ? (
               <Notice kind="info">You cannot book your own subject.</Notice>
             ) : (
-              <div className="slot-footer">
-                <span className="tutor-card-meta">
-                  {selectedSlots.length === 0
-                    ? "Nothing selected. Selecting slots does not reserve them."
-                    : `${selectedSlots.length * 30} minutes selected on ${date}. Selecting slots does not reserve them.`}
-                </span>
-                {!error && (
-                  <Link
-                    className="button"
-                    href={
-                      account
-                        ? bookingPath
-                        : `/login?returnTo=${encodeURIComponent(bookingPath)}`
-                    }
-                  >
-                    {account ? "Continue to booking" : "Sign in and continue"}
-                  </Link>
-                )}
-              </div>
+              !error && (
+                <Link
+                  className="button"
+                  href={
+                    account
+                      ? bookingPath
+                      : `/login?returnTo=${encodeURIComponent(bookingPath)}`
+                  }
+                >
+                  {account ? "Continue to booking" : "Sign in and continue"}
+                </Link>
+              )
             )}
+            <p className="muted">
+              Your booking summary will show the final price and learning-goal
+              note before a hold is created. Selecting slots here does not
+              reserve them.
+            </p>
           </section>
           <section className="panel">
             <h2>Rating breakdown</h2>
-            <div className="rating-bars">
-              {([5, 4, 3, 2, 1] as const).map((rating) => {
-                const n =
+            {([5, 4, 3, 2, 1] as const).map((rating) => (
+              <p key={rating}>
+                {rating} stars:{" "}
+                {
                   data.rating.distribution[
                     String(rating) as keyof typeof data.rating.distribution
-                  ];
-                const pct = data.rating.reviewCount
-                  ? (n / data.rating.reviewCount) * 100
-                  : 0;
-                return (
-                  <div className="rating-bar-row" key={rating}>
-                    <span>{rating} stars</span>
-                    <span className="rating-bar">
-                      <span style={{ width: `${pct}%` }} />
-                    </span>
-                    <span>{n}</span>
-                  </div>
-                );
-              })}
-            </div>
+                  ]
+                }
+              </p>
+            ))}
           </section>
           <ReviewList tutorId={tutorId} subjectId={subjectId} />
         </>

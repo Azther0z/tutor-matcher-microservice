@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useState } from "react";
 import { RequireAuth, useAuth } from "@/lib/auth-context";
 import { Field, Notice } from "@/components/field";
-import { LegalModal } from "@/components/legal-modal";
 import {
   ActionMessages,
   Pager,
@@ -19,42 +18,29 @@ function SubjectEditor({
   subject,
   areas,
   reload,
-  onClose,
 }: {
   subject?: Subject;
   areas: LearningAreas;
   reload: () => Promise<void>;
-  onClose: () => void;
 }) {
-  const action = useAction(async () => {
-    await reload();
-    onClose();
-  });
+  const action = useAction(reload);
   const [validation, setValidation] = useState("");
-  const [chosen, setChosen] = useState<string[]>(subject?.learningAreas ?? []);
-  const formId = `subject-form-${subject?.id ?? "new"}`;
-  function toggle(id: string) {
-    setChosen((current) =>
-      current.includes(id) ? current.filter((item) => item !== id) : [...current, id],
-    );
-  }
   async function save(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setValidation("");
     const form = new FormData(event.currentTarget);
-    const rawRate = String(form.get("hourlyRate") ?? "").trim();
-    // Accept "450" or "450.5" and normalise to two decimals.
-    const hourlyRate = /^\d{1,8}(?:\.\d{1,2})?$/.test(rawRate)
-      ? Number(rawRate).toFixed(2)
-      : rawRate;
+    const hourlyRate = String(form.get("hourlyRate") ?? "").trim();
+    const learningAreas = form.getAll("learningAreas").map(String);
     if (
       !/^(?:0|[1-9]\d{0,7})\.\d{2}$/.test(hourlyRate) ||
       /^0\.00$/.test(hourlyRate)
     ) {
-      setValidation("Enter a positive rate in baht, such as 400 or 400.50.");
+      setValidation(
+        "Enter a positive rate with exactly two decimal places, such as 400.00.",
+      );
       return;
     }
-    if (chosen.length < 1 || chosen.length > 3) {
+    if (learningAreas.length < 1 || learningAreas.length > 3) {
       setValidation("Choose one to three learning areas.");
       return;
     }
@@ -63,7 +49,7 @@ function SubjectEditor({
       description: String(form.get("description") ?? "").trim(),
       hourlyRate,
       format: "ONLINE",
-      learningAreas: chosen,
+      learningAreas,
     };
     await action.run(
       subject
@@ -75,24 +61,11 @@ function SubjectEditor({
     );
   }
   return (
-    <LegalModal
-      open
-      onClose={onClose}
-      title={subject ? "Edit subject" : "New subject"}
-      actions={
-        <div className="button-row" style={{ justifyContent: "flex-end" }}>
-          <button type="button" className="button button-quiet" onClick={onClose}>
-            Cancel
-          </button>
-          <button className="button" form={formId} disabled={action.pending || action.uncertain}>
-            {action.pending ? "Saving..." : "Save subject"}
-          </button>
-        </div>
-      }
-    >
+    <section className="panel">
+      <h2>{subject ? `Edit ${subject.name}` : "Create a subject"}</h2>
       <ActionMessages action={action} />
       {validation && <Notice kind="error">{validation}</Notice>}
-      <form id={formId} className="form" onSubmit={(event) => void save(event)}>
+      <form className="form" onSubmit={(event) => void save(event)}>
         <Field
           id={`name-${subject?.id ?? "new"}`}
           name="name"
@@ -102,7 +75,9 @@ function SubjectEditor({
           defaultValue={subject?.name ?? ""}
         />
         <div className="field">
-          <label htmlFor={`description-${subject?.id ?? "new"}`}>Description</label>
+          <label htmlFor={`description-${subject?.id ?? "new"}`}>
+            Description
+          </label>
           <textarea
             id={`description-${subject?.id ?? "new"}`}
             name="description"
@@ -118,37 +93,48 @@ function SubjectEditor({
           label="Hourly rate (THB)"
           required
           inputMode="decimal"
+          pattern="(?:0|[1-9][0-9]{0,7})\.[0-9]{2}"
           placeholder="400.00"
           defaultValue={subject?.hourlyRate ?? ""}
         />
-        <div className="field">
-          <span className="field-label">Learning areas (choose 1 to 3)</span>
-          <div className="topup-quick" role="group" aria-label="Learning areas">
-            {areas.items.map((area) => (
-              <button
-                type="button"
-                key={area.id}
-                className="topup-chip"
-                aria-pressed={chosen.includes(area.id)}
-                onClick={() => toggle(area.id)}
-              >
-                {area.label}
-              </button>
-            ))}
-          </div>
-        </div>
+        <p>
+          Lesson format: <strong>Online</strong>
+        </p>
+        <fieldset className="field">
+          <legend>Learning areas (choose 1 to 3)</legend>
+          {areas.items.map((area) => (
+            <label key={area.id} className="check-row">
+              <input
+                type="checkbox"
+                name="learningAreas"
+                value={area.id}
+                defaultChecked={subject?.learningAreas.includes(area.id)}
+              />
+              <span>{area.label}</span>
+            </label>
+          ))}
+        </fieldset>
+        <button
+          className="button"
+          disabled={action.pending || action.uncertain}
+        >
+          {action.pending
+            ? "Saving..."
+            : subject
+              ? "Save subject"
+              : "Create subject"}
+        </button>
       </form>
-      <p className="tutor-card-meta">
-        Lessons are online. Changes apply to future bookings; existing bookings
-        keep their original subject and rate.
+      <p className="muted">
+        These changes apply to future bookings. Existing bookings keep their
+        original subject and rate.
       </p>
-    </LegalModal>
+    </section>
   );
 }
 function SubjectsContent() {
   const { account } = useAuth();
   const [page, setPage] = useState(1);
-  const [editing, setEditing] = useState<string | null>(null);
   const resource = useResource<Page<Subject>>(
     account?.capabilities.includes("TUTOR")
       ? `/profiles/me/tutor/subjects?page=${page}&pageSize=20`
@@ -157,13 +143,13 @@ function SubjectsContent() {
   const areas = useResource<LearningAreas>("/discovery/learning-areas", false);
   return (
     <>
-      <header className="page-heading page-heading-row">
+      <header className="section-heading">
+        <p className="eyebrow">YOUR TEACHING</p>
         <h1>Subjects</h1>
-        {account?.capabilities.includes("TUTOR") && (
-          <button className="button" onClick={() => setEditing("new")}>
-            New subject
-          </button>
-        )}
+        <p>
+          Manage your online offerings. Opening half-hour slots is not
+          available yet.
+        </p>
       </header>
       <TutorNavigation />
       {!account?.capabilities.includes("TUTOR") ? (
@@ -185,45 +171,23 @@ function SubjectsContent() {
           />
           {resource.data && areas.data && (
             <>
+              <SubjectEditor
+                key={`new-${resource.data.pagination.totalItems}`}
+                areas={areas.data}
+                reload={resource.reload}
+              />
+              <h2>Your offerings</h2>
               {resource.data.items.length === 0 && (
-                <p className="tutor-card-meta">No subjects yet.</p>
+                <p className="empty-state">No subjects yet.</p>
               )}
-              <div className="draft-list">
-                {resource.data.items.map((subject) => (
-                  <div className="draft-row" key={subject.id}>
-                    <span className="subject-row-main">
-                      <strong>{subject.name}</strong>
-                      <small>THB {subject.hourlyRate}/hour</small>
-                    </span>
-                    <button
-                      className="button button-quiet"
-                      onClick={() => setEditing(subject.id)}
-                    >
-                      Edit
-                    </button>
-                  </div>
-                ))}
-              </div>
-              {editing === "new" && (
-                                  <SubjectEditor
-                    key={`new-${resource.data.pagination.totalItems}`}
-                    areas={areas.data}
-                    reload={resource.reload}
-                    onClose={() => setEditing(null)}
-                  />
-              )}
-              {resource.data.items.map(
-                (subject) =>
-                  editing === subject.id && (
-                    <SubjectEditor
-                      key={`${subject.id}:${subject.revision}`}
-                      subject={subject}
-                      areas={areas.data!}
-                      reload={resource.reload}
-                      onClose={() => setEditing(null)}
-                    />
-                  ),
-              )}
+              {resource.data.items.map((subject) => (
+                <SubjectEditor
+                  key={`${subject.id}:${subject.revision}`}
+                  subject={subject}
+                  areas={areas.data!}
+                  reload={resource.reload}
+                />
+              ))}
               <Pager pagination={resource.data.pagination} onPage={setPage} />
             </>
           )}

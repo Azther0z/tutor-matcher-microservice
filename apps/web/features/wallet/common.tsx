@@ -21,20 +21,14 @@ function CapabilityGate({ capability, children }: { capability: Capability; chil
   return <>{children}</>;
 }
 
-const STATUS_TONE: Record<string, string> = {
-  PAYMENT_DUE: "due",
-  PENDING: "due", UNKNOWN: "due", OPEN: "due", SKIPPED: "muted",
-  CONFIRMED: "info",
-  COMPLETED: "good", SUCCEEDED: "good", APPROVED: "good", DELIVERED: "good", ACTIVE: "good", IN: "good",
-  CANCELLED: "bad", FAILED: "bad", REJECTED: "bad", BANNED: "bad", OUT: "muted",
-  SUSPENDED: "due", DEACTIVATED: "muted",
+const BADGE: Record<string, string> = {
+  SUCCEEDED: "badge", APPROVED: "badge", DELIVERED: "badge", IN: "badge", ACTIVE: "badge",
+  FAILED: "badge danger", REJECTED: "badge danger", OUT: "badge warn",
+  PENDING: "badge warn", UNKNOWN: "badge warn", OPEN: "badge warn", SKIPPED: "badge warn",
+  PAYMENT_DUE: "badge warn", CANCELLED: "badge danger", CONFIRMED: "badge", COMPLETED: "badge",
 };
-export function StatusBadge({ value, corner }: { value: string; corner?: boolean }) {
-  return (
-    <span className={`status-text status-${STATUS_TONE[value] ?? "muted"}${corner ? " status-corner" : ""}`}>
-      {titleCase(value)}
-    </span>
-  );
+export function StatusBadge({ value }: { value: string }) {
+  return <span className={BADGE[value] ?? "badge"}>{titleCase(value)}</span>;
 }
 
 export function Pager({ meta, onPage, disabled }: { meta: PageMeta; onPage: (page: number) => void; disabled?: boolean }) {

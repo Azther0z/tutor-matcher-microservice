@@ -16,28 +16,6 @@ function ResetContentLookup() {
     catch (e) { setError(errorMessage(e, "Could not load synthetic reset content.")); }
     finally { setPending(false); }
   }
-  return (
-    <>
-      <header className="page-heading"><h1>Password reset delivery</h1></header>
-      <section className="panel booking-new">
-        <p className="tutor-card-meta">Look up synthetic reset content by reference. Demo content is short-lived and sensitive, so use synthetic fixtures only.</p>
-        {error && <Notice kind="error">{error}</Notice>}
-        <form className="form" onSubmit={submit}>
-          <Field id="contentRef" label="Content reference" autoComplete="off" required placeholder="content reference" />
-          <button className="button" disabled={pending}>{pending ? "Loading…" : "Inspect content"}</button>
-        </form>
-        {content && (
-          <>
-            <div className="summary-rows">
-              <div><span>Recipient</span><strong className="mono-id">{content.recipientUserId}</strong></div>
-              <div><span>Expires</span><strong>{new Date(content.expiresAt).toLocaleString()}</strong></div>
-            </div>
-            <h3 className="list-title" style={{ margin: 0 }}>{content.subject}</h3>
-            <div className="sensitive-box">{content.text}</div>
-          </>
-        )}
-      </section>
-    </>
-  );
+  return <><header className="section-heading"><p className="eyebrow">DEMO ONLY · ADMIN</p><h1>Password reset delivery</h1><p>Inspect synthetic delivery content by reference. This page does not accept actual recipient data.</p></header><section className="panel"><Notice kind="info">Demo content is short-lived and sensitive. Use synthetic fixtures only. The service checks ADMIN access; the page does not grant it.</Notice>{error && <Notice kind="error">{error}</Notice>}<form className="inline-form" onSubmit={submit}><Field id="contentRef" label="Synthetic content reference" autoComplete="off" required placeholder="content reference"/><button className="button" disabled={pending}>{pending ? "Loading…" : "Inspect content"}</button></form>{content && <div style={{ marginTop: 24 }}><div className="stat-line"><span>Recipient ID: <strong>{content.recipientUserId}</strong></span><span>Expires: <strong>{new Date(content.expiresAt).toLocaleString()}</strong></span></div><h2 style={{ marginTop: 18 }}>{content.subject}</h2><div className="sensitive-box">{content.text}</div><p className="form-footer">Sensitive content is shown only on this admin demo page. Do not copy it into logs, tickets, or screenshots.</p></div>}</section></>;
 }
 export default function DemoPasswordResetsPage() { return <RequireAuth admin><ResetContentLookup/></RequireAuth>; }

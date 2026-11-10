@@ -1,13 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Field, Notice } from "@/components/field";
 import { Dropdown } from "@/components/dropdown";
-import { LegalModal } from "@/components/legal-modal";
 import { RequireAuth, useAuth } from "@/lib/auth-context";
-import { api, errorMessage } from "@/lib/api";
 import {
   ActionMessages,
   bangkokTime,
@@ -30,7 +28,6 @@ function ReviewCard({
   const reply = useAction(reload);
   const flag = useAction();
   const [flagged, setFlagged] = useState(false);
-  const [reporting, setReporting] = useState(false);
   async function submitReply(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     await reply.run(
@@ -51,59 +48,29 @@ function ReviewCard({
         new FormData(event.currentTarget).get("reason") ?? "",
       ).trim(),
     });
-    if (result) {
-      setFlagged(true);
-      setReporting(false);
-    }
+    if (result) setFlagged(true);
   }
   return (
-    <article className="review-item">
-      <div className="review-top">
+    <article className="panel">
+      <div className="stat-line">
         <strong>{review.studentDisplayName}</strong>
-        <span className="review-top-right">
-          <time dateTime={review.createdAt}>
-            {bangkokTime(review.createdAt)}
-          </time>
-          {flagged ? (
-            <span className="review-reported">Reported</span>
-          ) : account ? (
-            <button
-              type="button"
-              className="review-report-btn"
-              title="Report this review"
-              aria-label="Report this review"
-              onClick={() => setReporting(true)}
-            >
-              <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" aria-hidden="true"><path d="M3 1.5a.75.75 0 0 1 .75.75v.4c.9-.5 1.9-.65 3.1-.3 1.4.4 2.5.4 4.4-.3a.5.5 0 0 1 .7.46v6.1a.5.5 0 0 1-.3.46c-2.1.9-3.6.9-5.2.45-1-.3-1.8-.2-2.7.25V14a.75.75 0 0 1-1.5 0V2.25A.75.75 0 0 1 3 1.5Z"/></svg>
-            </button>
-          ) : (
-            <Link
-              className="review-report-btn"
-              title="Sign in to report this review"
-              aria-label="Sign in to report this review"
-              href={`/login?returnTo=${encodeURIComponent(`/tutors/${review.tutorId}`)}`}
-            >
-              <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" aria-hidden="true"><path d="M3 1.5a.75.75 0 0 1 .75.75v.4c.9-.5 1.9-.65 3.1-.3 1.4.4 2.5.4 4.4-.3a.5.5 0 0 1 .7.46v6.1a.5.5 0 0 1-.3.46c-2.1.9-3.6.9-5.2.45-1-.3-1.8-.2-2.7.25V14a.75.75 0 0 1-1.5 0V2.25A.75.75 0 0 1 3 1.5Z"/></svg>
-            </Link>
-          )}
+        <span aria-label={`${review.rating} out of 5 stars`}>
+          {review.rating}/5
         </span>
+        <time dateTime={review.createdAt}>
+          {bangkokTime(review.createdAt)} (Bangkok)
+        </time>
       </div>
-      <span className="review-stars" role="img" aria-label={`${review.rating} out of 5 stars`}>
-        {"★".repeat(review.rating)}
-        <span className="review-stars-off">{"★".repeat(5 - review.rating)}</span>
-      </span>
       {review.headline && <h3>{review.headline}</h3>}
-      <p className="review-text" style={{ whiteSpace: "pre-wrap" }}>{review.text}</p>
+      <p style={{ whiteSpace: "pre-wrap" }}>{review.text}</p>
       {review.reply && (
-        <div className="review-reply">
-          <div className="review-top">
-            <strong>Tutor reply</strong>
-            <time dateTime={review.reply.createdAt}>
-              {bangkokTime(review.reply.createdAt)}
-            </time>
-          </div>
-          <p className="review-text" style={{ whiteSpace: "pre-wrap" }}>{review.reply.text}</p>
-        </div>
+        <blockquote>
+          <strong>Tutor reply</strong>
+          <p style={{ whiteSpace: "pre-wrap" }}>{review.reply.text}</p>
+          <time dateTime={review.reply.createdAt}>
+            {bangkokTime(review.reply.createdAt)}
+          </time>
+        </blockquote>
       )}
       {account?.id === review.tutorUserId && !review.reply && (
         <form className="form" onSubmit={(event) => void submitReply(event)}>
@@ -119,7 +86,7 @@ function ReviewCard({
               rows={3}
             />
           </div>
-          <p className="tutor-card-meta">Only one reply is allowed.</p>
+          <p>Only one reply is allowed.</p>
           <button
             className="button"
             disabled={reply.pending || reply.uncertain}
@@ -128,44 +95,43 @@ function ReviewCard({
           </button>
         </form>
       )}
-      {account && (
-        <LegalModal
-          open={reporting}
-          title="Report this review"
-          onClose={() => setReporting(false)}
-          actions={
-            <div className="button-row" style={{ justifyContent: "flex-end" }}>
-              <button type="button" className="button button-quiet" onClick={() => setReporting(false)}>
-                Cancel
-              </button>
+      {account ? (
+        <details>
+          <summary>Report this review</summary>
+          <ActionMessages action={flag} />
+          {flagged ? (
+            <p role="status">Your report was submitted for moderation.</p>
+          ) : (
+            <form className="form" onSubmit={(event) => void submitFlag(event)}>
+              <div className="field">
+                <label htmlFor={`flag-${review.id}`}>Report reason</label>
+                <textarea
+                  id={`flag-${review.id}`}
+                  name="reason"
+                  required
+                  maxLength={2000}
+                  rows={3}
+                />
+              </div>
+              <p>Each person can report a review once.</p>
               <button
-                type="submit"
-                form={`flag-form-${review.id}`}
-                className="button"
+                className="button button-quiet"
                 disabled={flag.pending || flag.uncertain}
               >
-                {flag.pending ? "Sending..." : "Submit report"}
+                Submit report
               </button>
-            </div>
-          }
-        >
-          <form id={`flag-form-${review.id}`} className="form" onSubmit={(event) => void submitFlag(event)}>
-            <ActionMessages action={flag} />
-            <div className="field">
-              <label htmlFor={`flag-${review.id}`}>What is wrong with this review?</label>
-              <textarea
-                id={`flag-${review.id}`}
-                name="reason"
-                required
-                maxLength={2000}
-                rows={5}
-              />
-            </div>
-            <p className="tutor-card-meta">
-              Each person can report a review once. A moderator will look at it.
-            </p>
-          </form>
-        </LegalModal>
+            </form>
+          )}
+        </details>
+      ) : (
+        <p>
+          <Link
+            className="text-link"
+            href={`/login?returnTo=${encodeURIComponent(`/tutors/${review.tutorId}`)}`}
+          >
+            Sign in to report a review
+          </Link>
+        </p>
       )}
     </article>
   );
@@ -177,106 +143,38 @@ export function ReviewList({
   tutorId: string;
   subjectId?: string;
 }) {
-  const [items, setItems] = useState<Review[]>([]);
-  const [total, setTotal] = useState<number | null>(null);
-  const [hasMore, setHasMore] = useState(true);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const nextPage = useRef(1);
-  const busy = useRef(false);
-  const sentinel = useRef<HTMLDivElement>(null);
-  const url = useCallback(
-    (page: number) =>
-      `/reviews?${new URLSearchParams({
-        tutorId,
-        page: String(page),
-        pageSize: "10",
-        ...(subjectId ? { subjectId } : {}),
-      })}`,
-    [tutorId, subjectId],
-  );
-  const loadMore = useCallback(async () => {
-    if (busy.current) return;
-    busy.current = true;
-    setLoading(true);
-    setError("");
-    try {
-      const result = await api<Page<Review>>(url(nextPage.current), { auth: false });
-      setItems((previous) => [...previous, ...result.items]);
-      setTotal(result.pagination.totalItems);
-      setHasMore(nextPage.current < result.pagination.totalPages);
-      nextPage.current += 1;
-    } catch (caught) {
-      setError(errorMessage(caught, "Reviews are unavailable right now."));
-      setHasMore(false);
-    } finally {
-      busy.current = false;
-      setLoading(false);
-    }
-  }, [url]);
-  // Refetch everything loaded so far, so a posted reply shows up in place without losing scroll position.
-  const reload = useCallback(async () => {
-    const pages = nextPage.current - 1;
-    const all: Review[] = [];
-    for (let page = 1; page <= Math.max(pages, 1); page += 1) {
-      const result = await api<Page<Review>>(url(page), { auth: false });
-      all.push(...result.items);
-    }
-    setItems(all);
-  }, [url]);
-  useEffect(() => {
-    nextPage.current = 1;
-    setItems([]);
-    setTotal(null);
-    setHasMore(true);
-    void loadMore();
-  }, [loadMore]);
-  useEffect(() => {
-    const node = sentinel.current;
-    if (!node || !hasMore) return;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries.some((entry) => entry.isIntersecting)) void loadMore();
-      },
-      { rootMargin: "300px" },
-    );
-    observer.observe(node);
-    return () => observer.disconnect();
-  }, [hasMore, loadMore, items.length]);
+  const [page, setPage] = useState(1);
+  const query = new URLSearchParams({
+    tutorId,
+    page: String(page),
+    pageSize: "20",
+    ...(subjectId ? { subjectId } : {}),
+  });
+  const resource = useResource<Page<Review>>(`/reviews?${query}`, false);
   return (
-    <section className="review-section">
-      <h2>
-        Reviews{total !== null && total > 0 ? ` (${total})` : ""}
-      </h2>
-      {total === 0 && <p className="tutor-card-meta">No reviews yet.</p>}
-      {items.length > 0 && (
-        <div className="review-list">
-          {items.map((review) => (
-            <ReviewCard
-              key={`${review.id}:${review.revision}`}
-              review={review}
-              reload={reload}
-            />
-          ))}
-        </div>
+    <section>
+      <h2>Verified lesson reviews</h2>
+      <ResourceState
+        loading={resource.loading}
+        error={resource.error}
+        retry={() => void resource.reload()}
+      />
+      {resource.data && (
+        <>
+          {resource.data.items.length === 0 ? (
+            <p className="empty-state">No reviews yet.</p>
+          ) : (
+            resource.data.items.map((review) => (
+              <ReviewCard
+                key={`${review.id}:${review.revision}`}
+                review={review}
+                reload={resource.reload}
+              />
+            ))
+          )}
+          <Pager pagination={resource.data.pagination} onPage={setPage} />
+        </>
       )}
-      {error && (
-        <Notice kind="error">
-          {error}{" "}
-          <button
-            type="button"
-            className="button button-quiet"
-            onClick={() => {
-              setHasMore(true);
-              void loadMore();
-            }}
-          >
-            Try again
-          </button>
-        </Notice>
-      )}
-      {loading && <p className="tutor-card-meta" role="status">Loading reviews…</p>}
-      {hasMore && !error && <div ref={sentinel} aria-hidden="true" style={{ height: 1 }} />}
     </section>
   );
 }
@@ -312,6 +210,7 @@ function ReviewWriterContent({ bookingId }: { bookingId: string }) {
   return (
     <>
       <header className="section-heading">
+        <p className="eyebrow">YOUR LESSON</p>
         <h1>Write a review</h1>
         <p>
           Reviews are linked to a completed booking. Only its student can write
@@ -329,6 +228,8 @@ function ReviewWriterContent({ bookingId }: { bookingId: string }) {
             error={resource.error}
             failure={resource.failure}
             retry={() => void resource.reload()}
+            backHref="/reviews"
+            backLabel="Back to reviews"
           />
           {booking && (
             <section className="panel">
@@ -389,6 +290,11 @@ function ReviewWriterContent({ bookingId }: { bookingId: string }) {
                   review.
                 </Notice>
               )}
+              <p>
+                <Link className="text-link" href={`/bookings/${booking.id}`}>
+                  Back to booking
+                </Link>
+              </p>
             </section>
           )}
         </>

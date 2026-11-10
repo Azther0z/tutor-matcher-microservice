@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Field, Notice } from "@/components/field";
 import { Dropdown } from "@/components/dropdown";
 import { api, ApiError, errorMessage, fieldErrors, newIdempotencyKey } from "@/lib/api";
-import { StatusBadge } from "./common";
+import { DemoBanner, StatusBadge } from "./common";
 import { formatMoney } from "./format";
 import type { Payout, Topup } from "./types";
 
@@ -44,11 +44,13 @@ export function DemoFinancePage() {
 
   return (
     <>
-      <header className="page-heading">
-        <h1>Provider outcomes</h1>
+      <header className="section-heading">
+        <p className="eyebrow">ADMIN TOOLS · DEMO</p>
+        <h1>Simulated provider outcomes</h1>
+        <p>Stand in for the payment provider. Only an admin can resolve a simulated top-up or payout, and only for synthetic resources.</p>
       </header>
-      <section className="panel booking-new">
-        <p className="tutor-card-meta">Stand in for the payment provider on a simulated top-up or payout. Demonstration only, no real money moves.</p>
+      <DemoBanner />
+      <section className="panel">
         <form className="form" onSubmit={submit} noValidate>
           {error && <Notice kind="error">{error}</Notice>}
           <div className="field">

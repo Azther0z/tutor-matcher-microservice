@@ -96,7 +96,7 @@ export function PayoutAccountsPage() {
   const bankName = (code: string) => banks.find((bank) => bank.code === code)?.name ?? code;
   return (
     <>
-      <header className="section-heading"><h1>Payout accounts</h1><p>Up to {MAX_ACCOUNTS} accounts. Numbers are shown masked. <Link className="text-link" href="/wallet/payouts">Go to payouts</Link></p></header>
+      <header className="section-heading"><p className="eyebrow">TUTOR · PAYOUTS</p><h1>Payout accounts</h1><p>Up to {MAX_ACCOUNTS} accounts. Numbers are shown masked. <Link className="text-link" href="/wallet/payouts">Go to payouts</Link></p></header>
       <DemoBanner />
       {notice && <Notice kind="success">{notice}</Notice>}
       {error && <Notice kind="error">{error}</Notice>}
@@ -107,7 +107,7 @@ export function PayoutAccountsPage() {
           <ul className="audit-list">
             {accounts.map((account) => (
               <li key={account.id}>
-                <strong>{bankName(account.bankCode)}</strong> {account.maskedAccountNumber}, {account.accountHolderName} {account.isDefault && <span className="status-text status-muted">Default</span>}
+                <strong>{bankName(account.bankCode)}</strong> {account.maskedAccountNumber} · {account.accountHolderName} {account.isDefault && <span className="badge">Default</span>}
                 <div className="button-row">
                   {!account.isDefault && <button className="button button-quiet" disabled={busy === account.id} onClick={() => void act(account, "default")}>Make default</button>}
                   <button className="button button-danger" disabled={busy === account.id} onClick={() => void act(account, "delete")}>Remove</button>

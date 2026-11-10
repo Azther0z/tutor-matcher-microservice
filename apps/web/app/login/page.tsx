@@ -13,20 +13,6 @@ const NOTICES: Record<string, string> = {
   deactivated: "Your account was deactivated and you were signed out. An administrator can restore access.",
 };
 
-const COPY = {
-  asideTitle: "Pick up where you left off.",
-  asideText: "Sign in to manage your learning account and continue your journey.",
-  title: "Log in",
-  intro: "Use the email address linked to your account.",
-  submit: "Log in",
-  pending: "Signing in…",
-};
-
-/** Where a fresh login lands when no page asked for it: admins go to their review queue, everyone else to tutor search. */
-function homeFor(capabilities: string[]): string {
-  return capabilities.includes("ADMIN") ? "/admin/tutor-requests" : "/discover";
-}
-
 function LoginForm() {
   const params = useSearchParams();
   const router = useRouter();
@@ -37,7 +23,7 @@ function LoginForm() {
   const [emailError, setEmailError] = useState("");
   const [passwordError, setPasswordError] = useState("");
   // Someone who is already signed in has no use for the form.
-  useEffect(() => { if (ready && account) router.replace(safeReturnPath(params.get("returnTo"), homeFor(account.capabilities))); }, [ready, account, router, params]);
+  useEffect(() => { if (ready && account) router.replace(safeReturnPath(params.get("returnTo"))); }, [ready, account, router, params]);
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault(); setPending(true); setError(null); setEmailError(""); setPasswordError("");
     const formElement = event.currentTarget;
@@ -51,7 +37,7 @@ function LoginForm() {
     try {
       const session = await api<AuthSession>("/auth/login", { method: "POST", auth: false, body: { email, password } });
       accept(session);
-      router.replace(safeReturnPath(params.get("returnTo"), homeFor(session.user.capabilities)));
+      router.replace(safeReturnPath(params.get("returnTo")));
     } catch (e) {
       const failure = failureOf(e, "We couldn’t sign you in. Try again in a moment.");
       const code = e instanceof ApiError ? e.body?.code : undefined;
@@ -65,33 +51,7 @@ function LoginForm() {
     } finally { setPending(false); }
   }
   if (ready && account) return <p role="status">You’re already signed in. Opening your account…</p>;
-  return (
-    <div className="form-layout form-layout-compact">
-      <aside className="form-aside">
-        <h1>{COPY.asideTitle}</h1>
-        <p>{COPY.asideText}</p>
-      </aside>
-      <section className="form-card form-card-compact">
-        <h2>{COPY.title}</h2>
-        <p>{COPY.intro}</p>
-        {notice && <Notice kind="success">{notice}</Notice>}
-        <ErrorNotice failure={error} />
-        <form className="form" onSubmit={submit} noValidate>
-          <Field id="email" label="Email address" type="email" autoComplete="email" required error={emailError} />
-          <Field id="password" label="Password" type="password" autoComplete="current-password" required error={passwordError} />
-          <div className="auth-forgot">
-            <Link href="/password-reset">Forgot password?</Link>
-          </div>
-          <button className="button auth-submit" type="submit" disabled={pending}>
-            {pending ? COPY.pending : COPY.submit}
-          </button>
-        </form>
-        <p className="form-footer auth-footer">
-          New here? <Link href="/signup">Create an account</Link>
-        </p>
-      </section>
-    </div>
-  );
+  return <div className="form-layout"><aside className="form-aside"><p className="eyebrow">WELCOME BACK</p><h1>Pick up where you left off.</h1><p>Sign in to manage your learning account and continue your journey.</p></aside><section className="form-card"><h2>Log in</h2><p>Use the email address linked to your account.</p>{notice && <Notice kind="success">{notice}</Notice>}<ErrorNotice failure={error}/><form className="form" onSubmit={submit} noValidate><Field id="email" label="Email address" type="email" autoComplete="email" required error={emailError}/><Field id="password" label="Password" type="password" autoComplete="current-password" required error={passwordError}/><div><button className="button" type="submit" disabled={pending}>{pending ? "Signing in…" : "Log in"}</button></div></form><p className="form-footer"><Link href="/password-reset">Forgot your password?</Link> · New here? <Link href="/signup">Create an account</Link></p></section></div>;
 }
 
 export default function LoginPage() { return <Suspense fallback={<p role="status">Loading sign in…</p>}><LoginForm /></Suspense>; }

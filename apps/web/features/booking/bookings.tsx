@@ -4,8 +4,6 @@ import Link from "next/link";
 import { use, useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Field, Notice } from "@/components/field";
-import { LegalModal } from "@/components/legal-modal";
-import { ProgressStepper } from "@/components/progress-stepper";
 import { Pager, StatusBadge } from "@/features/wallet/common";
 import { formatMoney, formatTime } from "@/features/wallet/format";
 import { ActionMessages, useAction } from "@/features/tutor/common";
@@ -37,40 +35,24 @@ function HoldCountdown({ expiresAt, onExpired }: { expiresAt: string; onExpired:
   return <strong role="timer">{minutes}:{String(seconds).padStart(2, "0")}</strong>;
 }
 
-const STEPS = ["Select time", "Booked", "Paid", "Completed"];
-function BookingProgress({ booking }: { booking: Booking }) {
-  const { status } = booking;
-  const cancelled = status === "CANCELLED";
-  // Last finished step. A cancelled booking stops at the step it never reached.
-  const reached = cancelled
-    ? booking.paidAt
-      ? 2
-      : 1
-    : status === "PAYMENT_DUE"
-      ? 1
-      : status === "CONFIRMED"
-        ? 2
-        : 3;
-  return <ProgressStepper steps={STEPS} reached={reached} failed={cancelled} label="Booking cancelled" />;
-}
-
 function BookingCard({ booking }: { booking: Booking }) {
   return (
-    <article className="panel tutor-card">
-      <StatusBadge value={booking.status} corner />
+    <article className="panel">
       <div className="stat-line">
+        <StatusBadge value={booking.status} />
         <span>{formatTime(booking.startsAt)}</span>
       </div>
-      <h2>
-        <Link href={`/bookings/${booking.id}`}>{booking.subject.name}</Link>
-      </h2>
-      <p className="tutor-card-meta">
-        {booking.studentUserId ? `Student: ${booking.studentDisplayName}, ` : ""}
-        Tutor: {booking.tutorDisplayName}
+      <h2>{booking.subject.name}</h2>
+      <p>
+        {booking.studentUserId ? `Student: ${booking.studentDisplayName}` : ""}{" "}
+        · Tutor: {booking.tutorDisplayName}
       </p>
-      <p className="tutor-card-meta">
-        <strong>{formatMoney(booking.amount)}</strong>, Online
+      <p>
+        <strong>{formatMoney(booking.amount)}</strong> · Online
       </p>
+      <Link className="button" href={`/bookings/${booking.id}`}>
+        View booking
+      </Link>
     </article>
   );
 }
@@ -102,8 +84,13 @@ function BookingsContent() {
   }, [load]);
   return (
     <>
-      <header className="page-heading">
+      <header className="section-heading">
+        <p className="eyebrow">YOUR LESSONS</p>
         <h1>Your bookings</h1>
+        <p>
+          Review upcoming lessons, payments, meeting access, and completed
+          lessons.
+        </p>
       </header>
       {account?.capabilities.includes("TUTOR") && (
         <div className="view-switch" role="group" aria-label="Booking view">
@@ -210,8 +197,8 @@ function NewBookingContent() {
   if (!valid)
     return (
       <section className="panel">
-        <h1 style={{ fontSize: 22 }}>Choose lesson times again</h1>
-        <p className="tutor-card-meta">This booking link is incomplete or invalid.</p>
+        <h1>Choose lesson times again</h1>
+        <p>This booking link is incomplete or invalid.</p>
         <Link className="button" href="/discover">
           Find a tutor
         </Link>
@@ -228,40 +215,35 @@ function NewBookingContent() {
     : null;
   return (
     <>
-      <header className="page-heading">
+      <header className="section-heading">
+        <p className="eyebrow">NEW BOOKING</p>
         <h1>Review your lesson</h1>
+        <p>
+          Creating the booking holds these times briefly while you pay from your
+          wallet.
+        </p>
       </header>
-      {loading && <p role="status" className="tutor-card-meta">Loading lesson summary…</p>}
+      {loading && <p role="status">Loading lesson summary…</p>}
       {error && <Notice kind="error">{error}</Notice>}
       <ActionMessages action={createAction} />
       {createAction.notice && <p><Link className="text-link" href="/bookings">View your bookings</Link></p>}
       {summary && (
-        <section className="panel booking-new">
+        <section className="panel">
           {!slotsAvailable && <Notice kind="error">Some selected times are no longer available. Choose your lesson times again.</Notice>}
-          <div className="subject-head-top">
-            <h2>{summary.subject.name}</h2>
-            <Link className="subject-tutor" href={`/tutors/${summary.tutor.id}`}>
-              With {summary.tutor.displayName}
-            </Link>
-          </div>
-          <div className="summary-rows">
-            <div>
-              <span>Time</span>
-              <strong>
-                {selected.length
-                  ? `${formatTime(selected[0].startsAt)} to ${new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Bangkok", timeStyle: "short" }).format(new Date(selected[selected.length - 1].endsAt))}`
-                  : `${availabilityIds.length} selected half-hour slots`}
-              </strong>
-            </div>
-            <div>
-              <span>Duration</span>
-              <strong>{availabilityIds.length / 2} hour(s)</strong>
-            </div>
-            <div>
-              <span>Estimated total</span>
-              <strong>THB {estimated}</strong>
-            </div>
-          </div>
+          <h2>{summary.subject.name}</h2>
+          <p>With {summary.tutor.displayName}</p>
+          <dl className="detail-list">
+            <dt>Time</dt>
+            <dd>
+              {selected.length
+                ? `${formatTime(selected[0].startsAt)} to ${new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Bangkok", timeStyle: "short" }).format(new Date(selected[selected.length - 1].endsAt))}`
+                : `${availabilityIds.length} selected half-hour slots`}
+            </dd>
+            <dt>Duration</dt>
+            <dd>{availabilityIds.length / 2} hour(s)</dd>
+            <dt>Estimated total</dt>
+            <dd>THB {estimated}</dd>
+          </dl>
           <form className="form" onSubmit={submit}>
             <div className="field">
               <label htmlFor="description">
@@ -275,21 +257,16 @@ function NewBookingContent() {
                 disabled={createAction.pending || createAction.uncertain}
               />
             </div>
-            <div className="slot-footer">
-              <span className="tutor-card-meta">
-                Holding these times keeps them for you briefly while you pay from your wallet.
-              </span>
-              <span className="button-row">
-                <Link
-                  className="button button-quiet"
-                  href={`/tutors/${tutorId}/subjects/${subjectId}`}
-                >
-                  Choose different times
-                </Link>
-                <button className="button" disabled={createAction.pending || createAction.uncertain || !slotsAvailable}>
-                  {createAction.pending ? "Holding times…" : "Hold these times"}
-                </button>
-              </span>
+            <div className="button-row">
+              <button className="button" disabled={createAction.pending || createAction.uncertain || !slotsAvailable}>
+                {createAction.pending ? "Holding times…" : "Hold these times"}
+              </button>
+              <Link
+                className="button button-quiet"
+                href={`/tutors/${tutorId}/subjects/${subjectId}`}
+              >
+                Choose different times
+              </Link>
             </div>
           </form>
         </section>
@@ -311,7 +288,6 @@ function BookingDetailContent({ bookingId }: { bookingId: string }) {
   const [booking, setBooking] = useState<Booking | null>(null);
   const [etag, setEtag] = useState("");
   const [quote, setQuote] = useState<CancellationQuote | null>(null);
-  const [paying, setPaying] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -333,10 +309,7 @@ function BookingDetailContent({ bookingId }: { bookingId: string }) {
     setError("");
     setNotice("");
     const result = await action.run(path, body, method, quote && /\/(tutor-)?cancel$/.test(path) ? quote.bookingRevision : etag.replace(/^"|"$/g, ""));
-    if (result) {
-      setQuote(null);
-      window.dispatchEvent(new Event("wallet:changed"));
-    }
+    if (result) setQuote(null);
     // A rejected action may have advanced the booking (for example a declined payment), so show its current state and revision.
     else await load();
   }
@@ -360,18 +333,31 @@ function BookingDetailContent({ bookingId }: { bookingId: string }) {
   if (!isUuid(bookingId))
     return (
       <section className="panel">
-        <h1 style={{ fontSize: 22 }}>We couldn’t find that booking.</h1>
-        <p className="tutor-card-meta">The booking address is invalid.</p>
+        <h1>We couldn’t find that booking.</h1>
+        <p>The booking address is invalid.</p>
+        <Link className="button" href="/bookings">
+          Back to bookings
+        </Link>
       </section>
     );
   const isStudent = booking?.studentUserId === account?.id;
   const isTutor = booking?.tutorUserId === account?.id;
-  const busy = pending || action.pending || action.uncertain || action.operation?.status === "PENDING";
-  const endTime = booking
-    ? new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Bangkok", timeStyle: "short" }).format(new Date(booking.endsAt))
-    : "";
   return (
     <>
+      <p>
+        <Link className="text-link" href="/bookings">
+          ← All bookings
+        </Link>
+      </p>
+      <header className="section-heading">
+        <p className="eyebrow">YOUR LESSON</p>
+        <h1>Booking</h1>
+        <p>
+          {booking
+            ? `${booking.subject.name} with ${booking.tutorDisplayName}`
+            : "Lesson details"}
+        </p>
+      </header>
       {error && (
         <Notice kind="error">
           {error}
@@ -388,88 +374,76 @@ function BookingDetailContent({ bookingId }: { bookingId: string }) {
       )}
       {notice && <Notice kind="success">{notice}</Notice>}
       <ActionMessages action={action} />
-      {!booking && !error && <p role="status" className="tutor-card-meta">Loading booking…</p>}
-      <header className="page-heading">
-        <h1>Booking</h1>
-      </header>
-      {booking && <BookingProgress booking={booking} />}
+      {!booking && !error && <p role="status">Loading booking…</p>}
       {booking && (
-        <section className="panel booking-new">
-          <StatusBadge value={booking.status} corner />
-          <div className="booking-title">
-            <h2>{booking.subject.name}</h2>
-            <p className="tutor-card-meta">
-              {isStudent ? "With " : "Student: "}
-              <strong className="booking-who">
-                {isStudent ? booking.tutorDisplayName : booking.studentDisplayName}
-              </strong>
-            </p>
-          </div>
-          <div className="summary-rows">
-            <div>
-              <span>Time</span>
-              <strong>{formatTime(booking.startsAt)} to {endTime}</strong>
-            </div>
-            {booking.description && (
-              <div>
-                <span>Learning note</span>
-                <strong className="summary-note">{booking.description}</strong>
-              </div>
-            )}
-            {booking.holdExpiresAt && (
-              <div>
-                <span>Time left to pay</span>
-                <HoldCountdown expiresAt={booking.holdExpiresAt} onExpired={() => void load()} />
-              </div>
-            )}
-            <div>
-              <span>Total</span>
+        <>
+          <section className="panel">
+            <div className="stat-line">
+              <StatusBadge value={booking.status} />
               <strong>{formatMoney(booking.amount)}</strong>
             </div>
-          </div>
-          {isTutor && booking.meeting.canEdit && (
-            <form
-              className="booking-meeting"
-              onSubmit={(event) => {
-                event.preventDefault();
-                const url = String(
-                  new FormData(event.currentTarget).get("meetingUrl") ?? "",
-                ).trim();
-                void command(
-                  `/bookings/${bookingId}/meeting-link`,
-                  { customMeetingUrl: url || null },
-                  "PATCH",
-                );
-              }}
-            >
-              <Field
-                id="meetingUrl"
-                label="Custom HTTPS meeting link"
-                type="url"
-                defaultValue={booking.meeting.customMeetingUrl ?? ""}
-              />
-              <button className="button button-quiet" disabled={busy}>
-                Save link
-              </button>
-            </form>
-          )}
-          <div className="slot-footer flush">
-            <span className="button-row">
-              <Link
-                className="button button-quiet"
-                href={`/messages/${isStudent ? booking.tutorUserId : booking.studentUserId}?${new URLSearchParams({ view: isStudent ? "STUDENT" : "TUTOR", name: isStudent ? booking.tutorDisplayName : booking.studentDisplayName })}`}
+            <h2>{booking.subject.name}</h2>
+            <dl className="detail-list">
+              <dt>Starts</dt>
+              <dd>{formatTime(booking.startsAt)}</dd>
+              <dt>Ends</dt>
+              <dd>{formatTime(booking.endsAt)}</dd>
+              <dt>Student</dt>
+              <dd>{booking.studentDisplayName}</dd>
+              <dt>Tutor</dt>
+              <dd>{booking.tutorDisplayName}</dd>
+              {booking.description && (
+                <>
+                  <dt>Learning note</dt>
+                  <dd>{booking.description}</dd>
+                </>
+              )}
+              {booking.holdExpiresAt && (
+                <>
+                  <dt>Payment hold expires</dt>
+                  <dd>{formatTime(booking.holdExpiresAt)}</dd>
+                  <dt>Time left to pay</dt>
+                  <dd><HoldCountdown expiresAt={booking.holdExpiresAt} onExpired={() => void load()} /></dd>
+                </>
+              )}
+            </dl>
+            {booking.meeting.canJoin && booking.meeting.effectiveUrl && (
+              <a
+                className="button"
+                href={booking.meeting.effectiveUrl}
+                target="_blank"
+                rel="noreferrer"
               >
-                Message {isStudent ? "tutor" : "student"}
-              </Link>
-              {(isStudent || isTutor) &&
-                ["PAYMENT_DUE", "CONFIRMED"].includes(booking.status) && (
-                  <button
-                    className="button button-quiet"
-                    disabled={busy}
-                    onClick={() => void requestQuote()}
+                Join lesson
+              </a>
+            )}
+            {booking.meeting.state === "PROVISIONING" && (
+              <Notice kind="info">Meeting access is being prepared.</Notice>
+            )}
+          </section>
+          <section className="panel">
+            <h2>Booking actions</h2>
+            <div className="button-row">
+              {isStudent && booking.status === "PAYMENT_DUE" && (
+                <button
+                  className="button"
+                  disabled={pending || action.pending || action.uncertain || action.operation?.status === "PENDING"}
+                  onClick={() =>
+                    void command(`/bookings/${bookingId}/confirm-payment`)
+                  }
+                >
+                  {pending ? "Processing…" : "Pay from wallet"}
+                </button>
+              )}
+              {isStudent &&
+                booking.status === "COMPLETED" &&
+                booking.canReview && (
+                  <Link
+                    className="button"
+                    href={`/reviews/new?bookingId=${bookingId}`}
                   >
-                    Cancel booking
-                  </button>
+                    Write a review
+                  </Link>
                 )}
               {isStudent && booking.status === "COMPLETED" && (
                 <Link
@@ -479,135 +453,101 @@ function BookingDetailContent({ bookingId }: { bookingId: string }) {
                   Open a dispute
                 </Link>
               )}
-            </span>
-            <span className="button-row">
-              {booking.meeting.state === "PROVISIONING" && (
-                <span className="tooltip-wrap" data-tip="Meeting access is being prepared.">
-                  <button className="button" disabled aria-disabled="true">
-                    Join lesson
-                  </button>
-                </span>
-              )}
-              {booking.meeting.canJoin && booking.meeting.effectiveUrl && (
-                <a
-                  className="button"
-                  href={booking.meeting.effectiveUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  Join lesson
-                </a>
-              )}
-              {isStudent && booking.status === "PAYMENT_DUE" && (
-                <button
-                  className="button"
-                  disabled={busy}
-                  onClick={() => setPaying(true)}
-                >
-                  {pending ? "Processing…" : "Pay from wallet"}
-                </button>
-              )}
-              {isStudent && booking.status === "COMPLETED" && booking.canReview && (
-                <Link className="button" href={`/reviews/new?bookingId=${bookingId}`}>
-                  Write a review
-                </Link>
-              )}
               {isTutor &&
                 booking.status === "CONFIRMED" &&
                 new Date(booking.endsAt).getTime() <= Date.now() && (
                   <button
                     className="button"
-                    disabled={busy}
-                    onClick={() => void command(`/bookings/${bookingId}/confirm-completion`)}
+                    disabled={pending || action.pending || action.uncertain || action.operation?.status === "PENDING"}
+                    onClick={() =>
+                      void command(`/bookings/${bookingId}/confirm-completion`)
+                    }
                   >
                     Confirm lesson completed
                   </button>
                 )}
-            </span>
-          </div>
-        </section>
-      )}
-      {booking && (
-        <LegalModal
-          open={paying}
-          title="Pay from wallet"
-          onClose={() => setPaying(false)}
-          actions={
-            <div className="button-row" style={{ justifyContent: "flex-end" }}>
-              <button type="button" className="button button-quiet" onClick={() => setPaying(false)}>
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="button"
-                disabled={busy}
-                onClick={() => {
-                  setPaying(false);
-                  void command(`/bookings/${bookingId}/confirm-payment`);
+              {(isStudent || isTutor) &&
+                ["PAYMENT_DUE", "CONFIRMED"].includes(booking.status) && (
+                  <button
+                    className="button button-quiet"
+                    disabled={pending || action.pending || action.uncertain || action.operation?.status === "PENDING"}
+                    onClick={() => void requestQuote()}
+                  >
+                    Review cancellation
+                  </button>
+                )}
+              <Link
+                className="button button-quiet"
+              href={`/messages/${isStudent ? booking.tutorUserId : booking.studentUserId}?view=${isStudent ? "STUDENT" : "TUTOR"}`}
+              >
+                Message {isStudent ? "tutor" : "student"}
+              </Link>
+            </div>
+            {isTutor && booking.meeting.canEdit && (
+              <form
+                className="inline-form"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  const url = String(
+                    new FormData(event.currentTarget).get("meetingUrl") ?? "",
+                  ).trim();
+                  void command(
+                    `/bookings/${bookingId}/meeting-link`,
+                    { customMeetingUrl: url || null },
+                    "PATCH",
+                  );
                 }}
               >
-                Pay {formatMoney(booking.amount)}
-              </button>
-            </div>
-          }
-        >
-          <p>
-            Pay <strong>{formatMoney(booking.amount)}</strong> from your wallet
-            to confirm this booking?
-          </p>
-        </LegalModal>
-      )}
-      {booking && (
-        <LegalModal
-          open={Boolean(quote)}
-          title="Cancel this booking"
-          onClose={() => setQuote(null)}
-          actions={
-            <div className="button-row" style={{ justifyContent: "flex-end" }}>
-              <button type="button" className="button button-quiet" onClick={() => setQuote(null)}>
-                Keep booking
-              </button>
-              <button type="submit" form="cancel-form" className="button button-danger" disabled={busy}>
-                Confirm cancellation
-              </button>
-            </div>
-          }
-        >
+                <Field
+                  id="meetingUrl"
+                  label="Custom HTTPS meeting link"
+                  type="url"
+                  defaultValue={booking.meeting.customMeetingUrl ?? ""}
+                />
+                <button className="button" disabled={pending || action.pending || action.uncertain || action.operation?.status === "PENDING"}>
+                  Save meeting link
+                </button>
+              </form>
+            )}
+          </section>
           {quote && (
-            <form
-              id="cancel-form"
-              className="form"
-              onSubmit={(event) => {
-                event.preventDefault();
-                const reason = String(
-                  new FormData(event.currentTarget).get("cancelReason") ?? "",
-                ).trim();
-                void command(`/bookings/${bookingId}/${isStudent ? "cancel" : "tutor-cancel"}`, {
-                  quoteId: quote.quoteId,
-                  reason,
-                });
-              }}
-            >
-              <div className="summary-rows">
-                <div>
-                  <span>Refund</span>
-                  <strong>{formatMoney(quote.refund)}</strong>
-                </div>
-                <div>
-                  <span>Fee</span>
-                  <strong>{formatMoney(quote.fee)}</strong>
-                </div>
-              </div>
+            <section className="panel danger-panel">
+              <h2>Cancellation quote</h2>
+              <p>
+                Refund: <strong>{formatMoney(quote.refund)}</strong> · Fee:{" "}
+                <strong>{formatMoney(quote.fee)}</strong>
+              </p>
               {quote.requiresWarning && (
                 <Notice kind="info">
                   This is a late cancellation. Review the refund and fee before
                   confirming.
                 </Notice>
               )}
-              <Field id="cancelReason" label="Reason (optional)" maxLength={500} />
-            </form>
+              <form
+                className="form"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  const reason = String(
+                    new FormData(event.currentTarget).get("cancelReason") ?? "",
+                  ).trim();
+                  void command(`/bookings/${bookingId}/${isStudent ? "cancel" : "tutor-cancel"}`, {
+                    quoteId: quote.quoteId,
+                    reason,
+                  });
+                }}
+              >
+                <Field
+                  id="cancelReason"
+                  label="Reason (optional)"
+                  maxLength={500}
+                />
+                <button className="button button-danger" disabled={pending || action.pending || action.uncertain || action.operation?.status === "PENDING"}>
+                  Confirm cancellation
+                </button>
+              </form>
+            </section>
           )}
-        </LegalModal>
+        </>
       )}
     </>
   );

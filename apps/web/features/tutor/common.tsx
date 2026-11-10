@@ -254,11 +254,15 @@ export function ResourceState({
   error,
   retry,
   failure,
+  backHref,
+  backLabel,
 }: {
   loading: boolean;
   error: string;
   retry: () => void;
   failure?: Failure | null;
+  backHref?: string;
+  backLabel?: string;
 }) {
   if (loading) return <p role="status">Loading...</p>;
   if (error)
@@ -266,6 +270,8 @@ export function ResourceState({
       <LoadError
         failure={failure ?? { message: error, missing: false, outage: false }}
         onRetry={retry}
+        backHref={backHref}
+        backLabel={backLabel}
       />
     );
   return null;
@@ -321,6 +327,9 @@ export function TutorNavigation() {
           {link.label}
         </Link>
       ))}
+      <Link className="text-link" href="/discover">
+        Find a tutor
+      </Link>
     </nav>
   );
 }

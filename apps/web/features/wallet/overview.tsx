@@ -6,10 +6,10 @@ import { useCallback, useEffect, useState } from "react";
 import { ErrorNotice } from "@/components/field";
 import { useAuth } from "@/lib/auth-context";
 import { api, failureOf, type Failure } from "@/lib/api";
-import { DemoBanner, StatusBadge } from "./common";
+import { DemoBanner } from "./common";
 import { TopupRequestPanel } from "./topup-request";
-import { formatMoney, formatTime, titleCase } from "./format";
-import type { Paged, Topup, WalletOverview, WalletTransaction } from "./types";
+import { formatMoney, publicPath } from "./format";
+import type { WalletOverview } from "./types";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 
@@ -19,13 +19,8 @@ export function returnBookingId(params: URLSearchParams): string | null {
   return value && UUID.test(value) ? value : null;
 }
 
-function Row({ label, value, hint }: { label: string; value: string; hint?: string }) {
-  return (
-    <div title={hint}>
-      <span>{label}</span>
-      <strong>{value}</strong>
-    </div>
-  );
+function Balance({ label, value, hint }: { label: string; value: string; hint?: string }) {
+  return <div className="stat-line"><span className="tiny-label">{label}</span><strong>{value}</strong>{hint && <span className="small-muted">{hint}</span>}</div>;
 }
 
 export function WalletOverviewPage() {
@@ -35,10 +30,6 @@ export function WalletOverviewPage() {
   const [wallet, setWallet] = useState<WalletOverview | null>(null);
   const [error, setError] = useState<Failure | null>(null);
   const [loading, setLoading] = useState(true);
-  const [waiting, setWaiting] = useState(false);
-  const [latestTopup, setLatestTopup] = useState<Topup | null>(null);
-  const [topupOpen, setTopupOpen] = useState(Boolean(returnTo));
-  const [recent, setRecent] = useState<WalletTransaction[]>([]);
   const isTutor = account?.capabilities.includes("TUTOR") ?? false;
   const isAdmin = account?.capabilities.includes("ADMIN") ?? false;
 
@@ -49,79 +40,46 @@ export function WalletOverviewPage() {
     finally { setLoading(false); }
   }, []);
   useEffect(() => { void load(); }, [load]);
-  useEffect(() => {
-    api<Paged<WalletTransaction>>("/wallet/transactions?page=1&pageSize=6").then((page) => setRecent(page.items)).catch(() => setRecent([]));
-  }, []);
 
   return (
     <>
-      <header className="page-heading page-heading-row">
-        <h1>Wallet</h1>
-        <nav className="wallet-links" aria-label="Wallet pages">
-          <Link href="/wallet/transactions">Transactions</Link>
-          <Link href="/disputes">Disputes</Link>
-          {isTutor && <Link href="/wallet/payout-accounts">Payout accounts</Link>}
-          {isTutor && <Link href="/wallet/payouts">Payouts</Link>}
-          {isAdmin && <Link href="/admin/disputes">Review disputes</Link>}
-          {isAdmin && <Link href="/demo/finance">Demo provider controls</Link>}
-        </nav>
+      <header className="section-heading">
+        <p className="eyebrow">WALLET</p>
+        <h1>Your wallet</h1>
+        <p>Posted funds, payout reservations and pending earnings are kept separate.</p>
       </header>
       <DemoBanner />
-      {loading && <p role="status" className="tutor-card-meta">Loading your wallet…</p>}
+      {loading && <p role="status">Loading your wallet…</p>}
       <ErrorNotice failure={error} onRetry={() => void load()}/>
       {wallet && (
-        <section className="panel wallet-balance" aria-label="Balances">
-          <div className="wallet-available-row">
-            <div className="wallet-available">
-              <span>Available balance</span>
-              <strong>{formatMoney(wallet.availableBalance)}</strong>
+        <section className="panel" aria-label="Balances">
+          <div className="account-grid">
+            <Balance label="AVAILABLE" value={formatMoney(wallet.availableBalance)} hint="Spendable now" />
+            <Balance label="POSTED" value={formatMoney(wallet.postedBalance)} hint="Completed movements" />
+            <Balance label="RESERVED FOR PAYOUTS" value={formatMoney(wallet.reservedPayouts)} hint="Held until a payout resolves" />
+            {isTutor && <Balance label="PENDING EARNINGS" value={formatMoney(wallet.pendingEarnings)} hint="Not spendable or payable yet" />}
+            {isTutor && <Balance label="EARNED THIS MONTH" value={formatMoney(wallet.earningsThisMonth)} />}
+            {isTutor && <Balance label="TOTAL PAID OUT" value={formatMoney(wallet.totalPaidOut)} />}
+          </div>
+          {wallet.paymentDueBookings.length > 0 && (
+            <div>
+              <h2>Bookings waiting for payment</h2>
+              <ul>{wallet.paymentDueBookings.map((booking) => <li key={booking.id}><Link className="text-link" href={publicPath(booking.url)}>Booking {booking.id.slice(0, 8)}</Link></li>)}</ul>
             </div>
-            <span className={waiting ? "tooltip-wrap tip-right" : undefined} data-tip={waiting ? "A top-up request is waiting for review" : undefined}>
-              <button type="button" className="button" onClick={() => setTopupOpen(true)} disabled={waiting || (Boolean(error) && !wallet)}><span aria-hidden="true">+</span> Top up</button>
-            </span>
-          </div>
-          <div className="summary-rows">
-            <Row label="Posted" value={formatMoney(wallet.postedBalance)} hint="Completed movements" />
-            <Row label="Reserved for payouts" value={formatMoney(wallet.reservedPayouts)} hint="Held until a payout resolves" />
-            {isTutor && <Row label="Pending earnings" value={formatMoney(wallet.pendingEarnings)} hint="Not spendable or payable yet" />}
-            {isTutor && <Row label="Earned this month" value={formatMoney(wallet.earningsThisMonth)} />}
-            {isTutor && <Row label="Total paid out" value={formatMoney(wallet.totalPaidOut)} />}
-          </div>
+          )}
         </section>
       )}
-      <TopupRequestPanel returnTo={returnTo} unavailable={Boolean(error) && !wallet} open={topupOpen} onClose={() => setTopupOpen(false)} onWaiting={setWaiting} onLatest={setLatestTopup} />
-      <section className="panel wallet-recent" aria-label="Recent activity">
-        <div className="wallet-recent-head">
-          <h2>Recent activity</h2>
-          <Link className="wallet-viewall" href="/wallet/transactions">View all</Link>
+      <TopupRequestPanel returnTo={returnTo} unavailable={Boolean(error) && !wallet} />
+      <section className="panel" aria-labelledby="more-wallet-heading">
+        <h2 id="more-wallet-heading">More from your wallet</h2>
+        <div className="button-row">
+          <Link className="button button-quiet" href="/wallet/transactions">Transaction history</Link>
+          <Link className="button button-quiet" href="/disputes">Disputes</Link>
+          {isTutor && <Link className="button button-quiet" href="/wallet/payout-accounts">Payout accounts</Link>}
+          {isTutor && <Link className="button button-quiet" href="/wallet/payouts">Payouts</Link>}
+          {isAdmin && <Link className="button button-quiet" href="/admin/disputes">Review disputes</Link>}
+          {isAdmin && <Link className="button button-quiet" href="/demo/finance">Demo provider controls</Link>}
         </div>
-        {latestTopup?.status === "PENDING" && (
-          <Link className="wallet-tx" href={`/wallet/topups/${latestTopup.id}${returnTo ? `?returnToBookingId=${returnTo}` : ""}`}>
-            <span>
-              Top-up request
-              <small>{formatTime(latestTopup.createdAt)}</small>
-            </span>
-            <span className="wallet-tx-amount">
-              <StatusBadge value="PENDING" />
-              <strong>{formatMoney(latestTopup.amount)}</strong>
-            </span>
-          </Link>
-        )}
-        {recent.length === 0 && latestTopup?.status !== "PENDING" ? (
-          <p className="tutor-card-meta">No transactions yet.</p>
-        ) : (
-          recent.map((tx) => (
-            <Link key={tx.id} className="wallet-tx" href={`/wallet/transactions/${tx.id}`}>
-              <span>
-                {titleCase(tx.type)}
-                <small>{formatTime(tx.createdAt)}</small>
-              </span>
-              <strong className={tx.direction === "IN" ? "status-good" : ""}>
-                {tx.direction === "IN" ? "+" : "-"}{formatMoney(tx.amount)}
-              </strong>
-            </Link>
-          ))
-        )}
       </section>
     </>
   );

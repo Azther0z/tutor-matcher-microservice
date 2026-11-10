@@ -108,7 +108,7 @@ function ReceiptsPanel() {
                 <tr key={receipt.id}>
                   <td>{formatTime(receipt.createdAt)}</td>
                   <td>{titleCase(receipt.category)}</td>
-                  <td>{titleCase(receipt.channel)} <span className="status-text status-muted">Simulated</span></td>
+                  <td>{titleCase(receipt.channel)} <span className="badge">Simulated</span></td>
                   <td><StatusBadge value={receipt.status} />{receipt.deliveredAt && <><br /><span className="small-muted">{formatTime(receipt.deliveredAt)}</span></>}</td>
                 </tr>
               ))}
@@ -124,7 +124,7 @@ function ReceiptsPanel() {
 export function NotificationsPage() {
   return (
     <>
-      <header className="section-heading"><h1>Notifications</h1><p>Choose what you’re told about and review what was delivered.</p></header>
+      <header className="section-heading"><p className="eyebrow">NOTIFICATIONS</p><h1>Notifications</h1><p>Choose what you’re told about and review what was delivered.</p></header>
       <Notice kind="info">Demonstration only. Notifications here are simulated and nothing is sent outside this app.</Notice>
       <PreferencesPanel />
       <ReceiptsPanel />

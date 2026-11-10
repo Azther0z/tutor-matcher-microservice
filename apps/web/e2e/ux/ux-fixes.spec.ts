@@ -412,9 +412,9 @@ test.describe("dead ends and outage states", () => {
 test.describe("accessibility basics (UX-24, UX-26, UX-27, UX-28)", () => {
   test("pages have their own titles, a skip link and a main target", async ({ page }) => {
     await page.goto("/login");
-    await expect(page).toHaveTitle("Log in | Tutor Matcher");
+    await expect(page).toHaveTitle("Log in · Tutor Matcher");
     await page.goto("/signup");
-    await expect(page).toHaveTitle("Create account | Tutor Matcher");
+    await expect(page).toHaveTitle("Create account · Tutor Matcher");
     await page.goto("/");
     await expect(page).toHaveTitle("Tutor Matcher");
     await page.keyboard.press("Tab");
