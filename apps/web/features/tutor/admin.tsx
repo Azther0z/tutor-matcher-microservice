@@ -157,13 +157,11 @@ function DetailContent({ submissionId }: { submissionId: string }) {
           {submission.rejectionReason && (
             <Notice kind="error">{submission.rejectionReason}</Notice>
           )}
-          {submission.activation === "PENDING" && submission.state === "APPROVED" && (
-            <Notice kind="info">
-              Approval is saved. Auth activation is pending, so the applicant
-              cannot use Tutor access yet.
+          {!open && action.error && (
+            <Notice kind="error" requestId={action.requestId}>
+              {action.error}
             </Notice>
           )}
-          {!open && <ActionMessages action={action} />}
           <div className="slot-footer flush">
             <button
               className="button button-quiet"
