@@ -780,3 +780,7 @@ fieldset.field legend { font-size: 14px; font-weight: 500; padding: 0; margin-bo
 .site-header .account-menu a.current { background: #202020; color: #fff; }
 .account-menu hr { margin: 6px 0; border-top-color: #27272a; }
 .admin-menu { min-width: 200px; }
+.account-menu { padding: 6px 0; overflow: hidden; }
+.site-header .account-menu a, .site-header .account-menu button { border-radius: 0; padding: 10px 16px; }
+.account-menu-head { padding: 10px 16px 12px; }
+.account-menu hr { margin: 6px 0; }
