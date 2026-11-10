@@ -441,7 +441,7 @@ fieldset.field legend { font-size: 14px; font-weight: 500; padding: 0; margin-bo
 .tutor-card .verified-badge { flex: none; }
 .tutor-card .tutor-card-meta { margin: 0; font-size: 13px; color: var(--muted); }
 .tutor-card { position: relative; transition: border-color 0.15s, background 0.15s; }
-.tutor-card:hover, .tutor-card:focus-within { border-color: var(--amber); }
+.tutor-card:hover { background: #0b0b0b; }
 .tutor-card h2 a::after { content: ""; position: absolute; inset: 0; border-radius: inherit; }
 .tutor-card h2 a:focus-visible { outline: none; }
 .tutor-card:has(h2 a:focus-visible) { outline: 3px solid var(--amber); outline-offset: 2px; }
