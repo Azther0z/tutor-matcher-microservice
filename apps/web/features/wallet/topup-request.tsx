@@ -36,6 +36,8 @@ export function TopupRequestPanel({ returnTo, unavailable }: { returnTo: string 
   const [latest, setLatest] = useState<Topup | null>(null);
   const [loaded, setLoaded] = useState(false);
   const inFlight = useRef(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [confirmed, setConfirmed] = useState<string | null>(null);
 
   const loadLatest = useCallback(async () => {
     try {
@@ -53,6 +55,25 @@ export function TopupRequestPanel({ returnTo, unavailable }: { returnTo: string 
   const normalized = normalizeAmount(amount);
   const waiting = latest?.status === "PENDING";
 
+  function confirmAmount(event?: React.FormEvent) {
+    event?.preventDefault();
+    if (!normalized) {
+      setFields({ amount: "Enter an amount from 0.01 to 100,000.00 with at most two decimal places." });
+      return;
+    }
+    setFields({});
+    setConfirmed(normalized);
+    setKey(newIdempotencyKey());
+  }
+  function changeAmount() {
+    setConfirmed(null);
+    setSlip(null);
+    if (preview) URL.revokeObjectURL(preview);
+    setPreview(null);
+    setFields({});
+    if (fileRef.current) fileRef.current.value = "";
+  }
+
   function chooseSlip(file: File | undefined) {
     setFields((current) => ({ ...current, slip: "" }));
     if (preview) URL.revokeObjectURL(preview);
@@ -69,7 +90,7 @@ export function TopupRequestPanel({ returnTo, unavailable }: { returnTo: string 
     if (inFlight.current || unavailable || waiting) return;
     setError(null);
     const problems: Record<string, string> = {};
-    if (!normalized) problems.amount = "Enter an amount from 0.01 to 100,000.00 with at most two decimal places.";
+    if (!confirmed) problems.amount = "Confirm the amount first.";
     if (!slip) problems.slip = "Attach the transfer slip image.";
     setFields(problems);
     if (Object.keys(problems).length) return;
@@ -79,10 +100,10 @@ export function TopupRequestPanel({ returnTo, unavailable }: { returnTo: string 
       const slipImage = await toBase64(slip as File);
       const created = await api<Topup>("/wallet/topups", {
         method: "POST", idempotencyKey: key,
-        body: { amount: normalized, slipImage, slipContentType: (slip as File).type, ...(returnTo ? { returnToBookingId: returnTo } : {}) },
+        body: { amount: confirmed, slipImage, slipContentType: (slip as File).type, ...(returnTo ? { returnToBookingId: returnTo } : {}) },
       });
       setLatest(created);
-      setAmount(""); setSlip(null); setPreview(null); setKey(newIdempotencyKey());
+      setAmount(""); setConfirmed(null); setSlip(null); setPreview(null); setKey(newIdempotencyKey());
     } catch (e) {
       setFields(fieldErrors(e));
       setError(failureOf(e, "We couldn’t send the request. Your balance has not changed."));
@@ -109,32 +130,57 @@ export function TopupRequestPanel({ returnTo, unavailable }: { returnTo: string 
         </div>
       ) : (
         <>
-          <p className="tutor-card-meta">Enter an amount, scan the QR code to transfer it, then attach your slip. Your balance is credited when an admin approves it.</p>
+          <p className="tutor-card-meta">Confirm an amount, scan the QR code to transfer it, then attach your slip. Your balance is credited when an admin approves it.</p>
           <ErrorNotice failure={error} />
-          <form className="form topup-form" onSubmit={submit} noValidate aria-busy={pending}>
-            <div className="topup-fields">
-            <Field id="amount" label="Amount (THB)" inputMode="decimal" autoComplete="off" placeholder="e.g. 500.00" value={amount}
-              error={fields.amount ?? fields.amount_amount} disabled={unavailable || pending}
-              onChange={(e) => { setAmount(e.target.value); setKey(newIdempotencyKey()); }} />
-            <div className="field">
-              <label htmlFor="slip">Transfer slip</label>
-              <input id="slip" name="slip" type="file" accept="image/png,image/jpeg,image/webp" disabled={unavailable || pending}
-                onChange={(e) => chooseSlip(e.target.files?.[0])} aria-invalid={Boolean(fields.slip)} />
-              <span className="field-hint">PNG, JPEG or WebP, up to 2 MB.</span>
-              {fields.slip && <span className="field-error">{fields.slip}</span>}
-              {preview && (
-                <img className="slip-preview" src={preview} alt="Selected transfer slip" />
-              )}
-            </div>
-            <button className="button" disabled={pending || unavailable || !loaded}>{pending ? "Sending…" : "Send top-up request"}</button>
-            </div>
-            {normalized && (
+          {!confirmed ? (
+            <form className="topup-step" onSubmit={confirmAmount} noValidate>
+              <Field id="amount" label="Amount (THB)" inputMode="decimal" autoComplete="off" placeholder="e.g. 500.00" value={amount}
+                error={fields.amount ?? fields.amount_amount} disabled={unavailable}
+                onChange={(e) => { setAmount(e.target.value); setFields({}); }} />
+              <div className="topup-quick" role="group" aria-label="Quick amounts">
+                {["100", "300", "500", "1000"].map((value) => (
+                  <button type="button" key={value} className="topup-chip" onClick={() => { setAmount(value); setFields({}); }}>
+                    {Number(value).toLocaleString("en-US")}
+                  </button>
+                ))}
+              </div>
+              <button className="button" disabled={unavailable || !loaded || !normalized}>Confirm amount</button>
+            </form>
+          ) : (
+            <form className="topup-form" onSubmit={submit} noValidate aria-busy={pending}>
+              <div className="topup-fields">
+                <div className="summary-rows">
+                  <div>
+                    <span>Amount</span>
+                    <strong>
+                      THB {confirmed}{" "}
+                      <button type="button" className="topup-change" onClick={changeAmount} disabled={pending}>Change</button>
+                    </strong>
+                  </div>
+                </div>
+                <div className="field">
+                  <span className="field-label">Transfer slip</span>
+                  <input ref={fileRef} id="slip" name="slip" type="file" hidden accept="image/png,image/jpeg,image/webp" disabled={unavailable || pending}
+                    onChange={(e) => chooseSlip(e.target.files?.[0])} aria-label="Transfer slip" />
+                  <div className="slip-pick">
+                    <button type="button" className="button button-quiet" disabled={unavailable || pending} onClick={() => fileRef.current?.click()}>
+                      {slip ? "Change file" : "Choose file"}
+                    </button>
+                    <span className="small-muted">{slip ? slip.name : "PNG, JPEG or WebP, up to 2 MB"}</span>
+                  </div>
+                  {fields.slip && <span className="field-error">{fields.slip}</span>}
+                  {preview && (
+                    <img className="slip-preview" src={preview} alt="Selected transfer slip" />
+                  )}
+                </div>
+                <button className="button" disabled={pending || unavailable || !loaded || !slip}>{pending ? "Sending…" : "Send top-up request"}</button>
+              </div>
               <figure className="promptpay-qr">
-                <img src={`https://promptpay.io/${PROMPTPAY_ID}/${normalized}.png`} alt={`PromptPay QR code for THB ${normalized}`} width={240} height={240} />
-                <figcaption>Scan to transfer <strong>THB {normalized}</strong></figcaption>
+                <img src={`https://promptpay.io/${PROMPTPAY_ID}/${confirmed}.png`} alt={`PromptPay QR code for THB ${confirmed}`} width={240} height={240} />
+                <figcaption>Scan to transfer <strong>THB {confirmed}</strong></figcaption>
               </figure>
-            )}
-          </form>
+            </form>
+          )}
         </>
       )}
     </section>
