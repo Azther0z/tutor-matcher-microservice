@@ -74,7 +74,7 @@ function ReviewCard({
               aria-label="Report this review"
               onClick={() => setReporting(true)}
             >
-              !
+              <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" aria-hidden="true"><path d="M3 1.5a.75.75 0 0 1 .75.75v.4c.9-.5 1.9-.65 3.1-.3 1.4.4 2.5.4 4.4-.3a.5.5 0 0 1 .7.46v6.1a.5.5 0 0 1-.3.46c-2.1.9-3.6.9-5.2.45-1-.3-1.8-.2-2.7.25V14a.75.75 0 0 1-1.5 0V2.25A.75.75 0 0 1 3 1.5Z"/></svg>
             </button>
           ) : (
             <Link
@@ -83,7 +83,7 @@ function ReviewCard({
               aria-label="Sign in to report this review"
               href={`/login?returnTo=${encodeURIComponent(`/tutors/${review.tutorId}`)}`}
             >
-              !
+              <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" aria-hidden="true"><path d="M3 1.5a.75.75 0 0 1 .75.75v.4c.9-.5 1.9-.65 3.1-.3 1.4.4 2.5.4 4.4-.3a.5.5 0 0 1 .7.46v6.1a.5.5 0 0 1-.3.46c-2.1.9-3.6.9-5.2.45-1-.3-1.8-.2-2.7.25V14a.75.75 0 0 1-1.5 0V2.25A.75.75 0 0 1 3 1.5Z"/></svg>
             </Link>
           )}
         </span>
