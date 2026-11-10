@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { use, useCallback, useEffect, useRef, useState } from "react";
+import { Fragment, use, useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Notice } from "@/components/field";
 import { Avatar } from "@/components/avatar";
@@ -33,16 +33,18 @@ type ThreadPage = {
   nextCursor: string | null;
 };
 
-/** "11 Nov, 03:58" in Bangkok time, short enough for a chat bubble. */
-function shortTime(value: string) {
-  return new Intl.DateTimeFormat("en-GB", {
-    timeZone: "Asia/Bangkok",
-    day: "numeric",
-    month: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-    hourCycle: "h23",
-  }).format(new Date(value));
+const dayFormat = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Bangkok" });
+const clockFormat = new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Bangkok", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
+const dayLabelFormat = new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Bangkok", weekday: "short", day: "numeric", month: "short" });
+const dayKey = (value: string) => dayFormat.format(new Date(value));
+const clock = (value: string) => clockFormat.format(new Date(value));
+
+/** "Today", "Yesterday" or "Wed, 11 Nov": the label chat apps put between days. */
+function dayLabel(value: string) {
+  const day = dayKey(value);
+  if (day === dayFormat.format(new Date())) return "Today";
+  if (day === dayFormat.format(new Date(Date.now() - 86400000))) return "Yesterday";
+  return dayLabelFormat.format(new Date(value));
 }
 
 function Inbox() {
@@ -280,15 +282,31 @@ function Thread({ userId }: { userId: string }) {
             {thread.items.length === 0 && (
               <p className="chat-empty">No messages yet. Say hello below.</p>
             )}
-            {thread.items.map((message) => (
-              <article
-                key={message.id}
-                className={`message-bubble ${message.senderUserId === account?.id ? "own" : ""}`}
-              >
-                <p>{message.content}</p>
-                <time dateTime={message.createdAt}>{shortTime(message.createdAt)}</time>
-              </article>
-            ))}
+            {thread.items.map((message, index) => {
+              const previous = thread.items[index - 1];
+              const next = thread.items[index + 1];
+              const own = message.senderUserId === account?.id;
+              const newDay = !previous || dayKey(previous.createdAt) !== dayKey(message.createdAt);
+              // A run of messages from one person in the same minute shows its time once, after the last one.
+              const lastOfRun =
+                !next ||
+                next.senderUserId !== message.senderUserId ||
+                clock(next.createdAt) !== clock(message.createdAt) ||
+                dayKey(next.createdAt) !== dayKey(message.createdAt);
+              const joinsPrevious =
+                !newDay && previous?.senderUserId === message.senderUserId;
+              return (
+                <Fragment key={message.id}>
+                  {newDay && <div className="chat-day">{dayLabel(message.createdAt)}</div>}
+                  <div className={`chat-line ${own ? "own" : ""}${joinsPrevious ? " joined" : ""}`}>
+                    <article className={`message-bubble ${own ? "own" : ""}`}>
+                      <p>{message.content}</p>
+                    </article>
+                    {lastOfRun && <time dateTime={message.createdAt}>{clock(message.createdAt)}</time>}
+                  </div>
+                </Fragment>
+              );
+            })}
           </div>
           <form className="chat-composer" onSubmit={send}>
             <input

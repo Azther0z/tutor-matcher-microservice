@@ -750,3 +750,11 @@ fieldset.field legend { font-size: 14px; font-weight: 500; padding: 0; margin-bo
 .chat-composer input::placeholder { color: #75757d; }
 .chat-composer input:focus, .chat-composer input:focus-visible { background: #212125; }
 .chat-send:disabled { background: #1d1d20; color: #5f5f66; }
+.thread { padding-right: 6px; }
+.chat-day { align-self: center; margin: 12px 0 4px; padding: 3px 12px; border-radius: 6px; background: rgba(255, 255, 255, 0.06); color: var(--muted); font-size: 12px; }
+.chat-line { display: flex; align-items: flex-end; gap: 6px; max-width: 100%; margin-top: 8px; }
+.chat-line.joined { margin-top: -5px; }
+.chat-line.own { flex-direction: row-reverse; align-self: flex-end; }
+.chat-line time { flex: none; font-size: 11px; color: var(--muted); padding-bottom: 2px; }
+.chat-line.own time { text-align: right; }
+.chat-line .message-bubble, .chat-line .message-bubble.own { align-self: auto; max-width: min(520px, 78%); }
