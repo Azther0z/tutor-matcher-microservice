@@ -191,8 +191,8 @@ function NewBookingContent() {
   if (!valid)
     return (
       <section className="panel">
-        <h1>Choose lesson times again</h1>
-        <p>This booking link is incomplete or invalid.</p>
+        <h1 style={{ fontSize: 22 }}>Choose lesson times again</h1>
+        <p className="tutor-card-meta">This booking link is incomplete or invalid.</p>
         <Link className="button" href="/discover">
           Find a tutor
         </Link>
@@ -209,34 +209,40 @@ function NewBookingContent() {
     : null;
   return (
     <>
-      <header className="section-heading">
+      <header className="page-heading">
         <h1>Review your lesson</h1>
-        <p>
-          Creating the booking holds these times briefly while you pay from your
-          wallet.
-        </p>
       </header>
-      {loading && <p role="status">Loading lesson summary…</p>}
+      {loading && <p role="status" className="tutor-card-meta">Loading lesson summary…</p>}
       {error && <Notice kind="error">{error}</Notice>}
       <ActionMessages action={createAction} />
       {createAction.notice && <p><Link className="text-link" href="/bookings">View your bookings</Link></p>}
       {summary && (
-        <section className="panel">
+        <section className="panel booking-new">
           {!slotsAvailable && <Notice kind="error">Some selected times are no longer available. Choose your lesson times again.</Notice>}
-          <h2>{summary.subject.name}</h2>
-          <p>With {summary.tutor.displayName}</p>
-          <dl className="detail-list">
-            <dt>Time</dt>
-            <dd>
-              {selected.length
-                ? `${formatTime(selected[0].startsAt)} to ${new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Bangkok", timeStyle: "short" }).format(new Date(selected[selected.length - 1].endsAt))}`
-                : `${availabilityIds.length} selected half-hour slots`}
-            </dd>
-            <dt>Duration</dt>
-            <dd>{availabilityIds.length / 2} hour(s)</dd>
-            <dt>Estimated total</dt>
-            <dd>THB {estimated}</dd>
-          </dl>
+          <div className="subject-head-top">
+            <h2>{summary.subject.name}</h2>
+            <Link className="subject-tutor" href={`/tutors/${summary.tutor.id}`}>
+              With {summary.tutor.displayName}
+            </Link>
+          </div>
+          <div className="summary-rows">
+            <div>
+              <span>Time</span>
+              <strong>
+                {selected.length
+                  ? `${formatTime(selected[0].startsAt)} to ${new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Bangkok", timeStyle: "short" }).format(new Date(selected[selected.length - 1].endsAt))}`
+                  : `${availabilityIds.length} selected half-hour slots`}
+              </strong>
+            </div>
+            <div>
+              <span>Duration</span>
+              <strong>{availabilityIds.length / 2} hour(s)</strong>
+            </div>
+            <div>
+              <span>Estimated total</span>
+              <strong>THB {estimated}</strong>
+            </div>
+          </div>
           <form className="form" onSubmit={submit}>
             <div className="field">
               <label htmlFor="description">
@@ -250,16 +256,21 @@ function NewBookingContent() {
                 disabled={createAction.pending || createAction.uncertain}
               />
             </div>
-            <div className="button-row">
-              <button className="button" disabled={createAction.pending || createAction.uncertain || !slotsAvailable}>
-                {createAction.pending ? "Holding times…" : "Hold these times"}
-              </button>
-              <Link
-                className="button button-quiet"
-                href={`/tutors/${tutorId}/subjects/${subjectId}`}
-              >
-                Choose different times
-              </Link>
+            <div className="slot-footer">
+              <span className="tutor-card-meta">
+                Holding these times keeps them for you briefly while you pay from your wallet.
+              </span>
+              <span className="button-row">
+                <Link
+                  className="button button-quiet"
+                  href={`/tutors/${tutorId}/subjects/${subjectId}`}
+                >
+                  Choose different times
+                </Link>
+                <button className="button" disabled={createAction.pending || createAction.uncertain || !slotsAvailable}>
+                  {createAction.pending ? "Holding times…" : "Hold these times"}
+                </button>
+              </span>
             </div>
           </form>
         </section>

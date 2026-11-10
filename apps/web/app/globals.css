@@ -571,3 +571,11 @@ fieldset.field legend { font-size: 14px; font-weight: 500; padding: 0; margin-bo
 .review-report-btn { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border: 1px solid #f87171; border-radius: 6px; background: transparent; color: #f87171; text-decoration: none; cursor: pointer; padding: 0; }
 .review-report-btn:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.28); }
 .review-reported { font-size: 12px; color: var(--muted); }
+.booking-new { display: grid; gap: 16px; padding: 18px; }
+.booking-new h2 { margin: 0; font-size: 22px; }
+.booking-new .form { gap: 14px; }
+.booking-new .field label { font-size: 14px; }
+.summary-rows { display: grid; border-top: 1px solid var(--line); }
+.summary-rows > div { display: flex; justify-content: space-between; gap: 16px; padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+.summary-rows span { color: var(--muted); }
+.summary-rows > div:last-child strong { font-size: 16px; }
