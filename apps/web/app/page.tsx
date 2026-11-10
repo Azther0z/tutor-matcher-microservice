@@ -1,36 +1,34 @@
 import Link from "next/link";
 
-const paths = [
-  { tag: "STEP 1", title: "Search approved tutors", text: "Browse online tutors who have been reviewed and approved by our team." },
-  { tag: "STEP 2", title: "Book a half-hour slot", text: "Pick the times that suit you and see the estimated total before you confirm." },
-  { tag: "STEP 3", title: "Learn and review", text: "Message your tutor, finish the lesson, and leave a review to help the next learner." },
+const steps = [
+  { title: "Search tutors", text: "Browse online tutors who our team has reviewed and approved." },
+  { title: "Book a time", text: "Pick a day and a half-hour slot, and see the total before you confirm." },
+  { title: "Learn and review", text: "Message your tutor, join the lesson, then leave a review." },
 ];
 
 export default function HomePage() {
   return (
     <>
-      <section className="hero" aria-labelledby="hero-title">
-        <h1 id="hero-title">Make your next lesson <em>count.</em></h1>
-        <p className="hero-lede">Meet tutors who understand how you learn. Build a steady rhythm, ask better questions, and make progress you can see.</p>
+      <section className="home-hero" aria-labelledby="hero-title">
+        <h1 id="hero-title">Find a tutor and book your next lesson</h1>
+        <p>Approved tutors, online lessons, and prices you can see before you book.</p>
         <form className="hero-search" action="/discover" role="search">
           <label className="sr-only" htmlFor="hero-q">What do you want to learn?</label>
           <input id="hero-q" name="q" type="search" placeholder="What do you want to learn?" autoComplete="off" />
           <button className="button" type="submit">Search</button>
         </form>
-        <div className="actions">
-          <Link className="button button-outline" href="/signup">Get started <span aria-hidden="true">→</span></Link>
-          <Link className="button button-quiet" href="/teach/application">Become a tutor</Link>
-          <Link className="text-link" href="/login">I already have an account</Link>
+        <div className="home-links">
+          <Link className="text-link" href="/discover">Browse all tutors</Link>
+          <Link className="text-link" href="/teach/application">Become a tutor</Link>
         </div>
-        <p className="hero-footnote">Every new account starts with student access.</p>
       </section>
 
-      <section className="feature-band" aria-labelledby="how-title">
-        <h2 id="how-title">How Tutor Matcher works</h2>
-        <div className="card-grid">
-          {paths.map((item) => (
-            <article className="path-card" key={item.tag}>
-              <span className="tiny-label">{item.tag}</span>
+      <section className="home-steps" aria-labelledby="how-title">
+        <h2 id="how-title">How it works</h2>
+        <div className="home-step-grid">
+          {steps.map((item, index) => (
+            <article className="panel home-step" key={item.title}>
+              <span className="home-step-no">{index + 1}</span>
               <h3>{item.title}</h3>
               <p>{item.text}</p>
             </article>
@@ -38,13 +36,16 @@ export default function HomePage() {
         </div>
       </section>
 
-      <aside className="promo-banner" aria-label="Get started">
-        <strong>Not sure where to start? Browse tutors for free.</strong>
-        <span className="promo-actions">
-          <Link className="button button-ghost" href="/discover">Find tutors</Link>
-          <Link className="button button-light" href="/signup">Create account</Link>
+      <section className="panel home-cta" aria-label="Get started">
+        <span>
+          <strong>New here?</strong>
+          <small>Every account starts with student access.</small>
         </span>
-      </aside>
+        <span className="home-cta-actions">
+          <Link className="text-link" href="/login">Log in</Link>
+          <Link className="button" href="/signup">Create account</Link>
+        </span>
+      </section>
     </>
   );
 }
