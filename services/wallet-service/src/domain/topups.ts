@@ -1,3 +1,5 @@
+import fs from 'node:fs/promises';
+import path from 'node:path';
 import type { Pool } from 'pg';
 import type { Actor } from '../auth';
 import type { Tx } from '../db';
@@ -15,13 +17,13 @@ import { status as grpcStatus } from '@grpc/grpc-js';
 interface TopupRow {
   id: string; user_id: string; amount_satang: string; status: 'PENDING' | 'SUCCEEDED' | 'FAILED' | 'UNKNOWN'; provider_reference: string;
   operation_id: string; return_to_booking_id: string | null; synthetic: boolean; created_at: Date; confirmed_at: Date | null;
-  manual: boolean; slip_content_type: string | null; slip_uploaded_at: Date | null; decision_reason: string | null; decided_at: Date | null;
+  manual: boolean; slip_url: string | null; slip_content_type: string | null; slip_uploaded_at: Date | null; decision_reason: string | null; decided_at: Date | null;
   op_status: string; op_resource_type: string; op_resource_id: string; op_resource_url: string;
 }
 
 // The slip image itself is never selected here: it is large and is served only by getSlip.
 const COLUMNS = `t.id, t.user_id, t.amount_satang, t.status, t.provider_reference, t.operation_id, t.return_to_booking_id, t.synthetic, t.created_at, t.confirmed_at,
-                 t.manual, t.slip_content_type, t.slip_uploaded_at, t.decision_reason, t.decided_at`;
+                 t.manual, t.slip_url, t.slip_content_type, t.slip_uploaded_at, t.decision_reason, t.decided_at`;
 const SELECT = `SELECT ${COLUMNS}, o.status AS op_status, o.resource_type AS op_resource_type, o.resource_id AS op_resource_id, o.resource_url AS op_resource_url
                 FROM topups t JOIN wallet_operations o ON o.id = t.operation_id`;
 
@@ -39,7 +41,7 @@ export function topupView(row: TopupRow) {
     paymentRepresentation: row.manual
       ? `PromptPay transfer of THB ${money(amount).amount}, reviewed by an admin from the attached slip`
       : `SIMULATED DEMONSTRATION ONLY - NOT PAYABLE | top-up ${row.id} | THB ${money(amount).amount} | provider reference ${row.provider_reference}`,
-    slip: row.slip_uploaded_at && row.slip_content_type ? { contentType: row.slip_content_type, uploadedAt: row.slip_uploaded_at.toISOString() } : null,
+    slip: row.slip_uploaded_at && row.slip_content_type ? { contentType: row.slip_content_type, uploadedAt: row.slip_uploaded_at.toISOString(), url: row.slip_url ?? `/api/admin/topups/${row.id}/slip` } : null,
     decisionReason: row.decision_reason,
     decidedAt: row.decided_at ? row.decided_at.toISOString() : null,
     returnToBookingId: row.return_to_booking_id,
@@ -51,6 +53,12 @@ export function topupView(row: TopupRow) {
 
 const MAX_SLIP_BYTES = 2 * 1024 * 1024;
 const SLIP_TYPES = ['image/png', 'image/jpeg', 'image/webp'] as const;
+const EXTENSION: Record<string, string> = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp' };
+
+/** Where slip files live: the service's own uploads directory, or SLIP_DIR (a mounted volume in Compose). */
+export const slipDirectory = (): string => process.env.SLIP_DIR || path.resolve(__dirname, '../../uploads/slips');
+/** The file name is derived from the request id and type, never from anything the user sent. */
+const slipFile = (id: string, contentType: string): string => path.join(slipDirectory(), `${id}.${EXTENSION[contentType]}`);
 
 /** The first bytes of a real image of the claimed type, so a renamed file is not stored as a slip. */
 function matchesType(bytes: Buffer, contentType: string): boolean {
@@ -87,16 +95,25 @@ export async function createTopup(tx: Tx, actor: Actor, body: TopupRequest, now:
 
   const id = newId();
   const operationId = newId();
-  await createOperation(tx, {
-    id: operationId, kind: 'wallet.topup', initiatorUserId: actor.userId, affectedUserId: actor.userId,
-    resourceType: 'topup', resourceId: id, resourceUrl: `/api/wallet/topups/${id}`, now,
-  });
-  await tx.query(
-    `INSERT INTO topups (id, user_id, amount_satang, provider_reference, operation_id, return_to_booking_id, synthetic, manual,
-                         slip_image, slip_content_type, slip_uploaded_at, created_at)
-     VALUES ($1, $2, $3, $4, $5, $6, false, true, $7, $8, $9, $9)`,
-    [id, actor.userId, amount, newId(), operationId, body.returnToBookingId ?? null, bytes, body.slipContentType, now],
-  );
+  const file = slipFile(id, body.slipContentType);
+  // The image goes to disk first; the row stores only the URL it is served from. A failed insert removes the file again.
+  await fs.mkdir(slipDirectory(), { recursive: true });
+  await fs.writeFile(file, bytes as Buffer, { flag: 'wx', mode: 0o640 });
+  try {
+    await createOperation(tx, {
+      id: operationId, kind: 'wallet.topup', initiatorUserId: actor.userId, affectedUserId: actor.userId,
+      resourceType: 'topup', resourceId: id, resourceUrl: `/api/wallet/topups/${id}`, now,
+    });
+    await tx.query(
+      `INSERT INTO topups (id, user_id, amount_satang, provider_reference, operation_id, return_to_booking_id, synthetic, manual,
+                           slip_url, slip_content_type, slip_uploaded_at, created_at)
+       VALUES ($1, $2, $3, $4, $5, $6, false, true, $7, $8, $9, $9)`,
+      [id, actor.userId, amount, newId(), operationId, body.returnToBookingId ?? null, `/api/admin/topups/${id}/slip`, body.slipContentType, now],
+    );
+  } catch (error) {
+    await fs.rm(file, { force: true });
+    throw error;
+  }
   const { rows } = await tx.query<TopupRow>(`${SELECT} WHERE t.id = $1`, [id]);
   return { status: 201, body: topupView(rows[0]), headers: { Location: `/api/wallet/topups/${id}` } };
 }
@@ -111,12 +128,21 @@ export async function listReviewTopups(pool: Pool, filter: { status?: string }, 
   return { rows, total };
 }
 
-/** The slip bytes, for an admin reviewing the request. */
+/** The slip image, for an admin reviewing the request: read from the uploads directory (or the legacy database copy). */
 export async function getSlip(pool: Pool, topupId: string): Promise<{ contentType: string; bytes: Buffer }> {
-  const { rows } = await pool.query<{ slip_image: Buffer | null; slip_content_type: string | null }>(
-    'SELECT slip_image, slip_content_type FROM topups WHERE id = $1 AND manual', [topupId]);
-  if (!rows[0]?.slip_image || !rows[0].slip_content_type) throw notFound('NOT_FOUND', 'Slip not found');
-  return { contentType: rows[0].slip_content_type, bytes: rows[0].slip_image };
+  const { rows } = await pool.query<{ slip_url: string | null; slip_image: Buffer | null; slip_content_type: string | null }>(
+    'SELECT slip_url, slip_image, slip_content_type FROM topups WHERE id = $1 AND manual', [topupId]);
+  const row = rows[0];
+  if (!row?.slip_content_type) throw notFound('NOT_FOUND', 'Slip not found');
+  if (row.slip_url) {
+    try {
+      return { contentType: row.slip_content_type, bytes: await fs.readFile(slipFile(topupId, row.slip_content_type)) };
+    } catch {
+      throw notFound('NOT_FOUND', 'The slip file is missing');
+    }
+  }
+  if (row.slip_image) return { contentType: row.slip_content_type, bytes: row.slip_image };
+  throw notFound('NOT_FOUND', 'Slip not found');
 }
 
 /** Approve credits the wallet exactly once; reject records the reason and credits nothing. A decided request is final. */

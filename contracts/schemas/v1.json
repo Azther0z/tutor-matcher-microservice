@@ -2483,6 +2483,12 @@
                 },
                 "uploadedAt": {
                   "$ref": "#/$defs/Timestamp"
+                },
+                "url": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 2048,
+                  "pattern": "^/api/"
                 }
               },
               "required": [

@@ -342,6 +342,8 @@ services:
       dockerfile: infra/docker/workspace.Dockerfile
       args:
         WORKSPACE: services/wallet-service
+    volumes:
+    - wallet-uploads:/app/services/wallet-service/uploads
     environment:
       ACTOR_ASSERTION_PUBLIC_KEY: ${ACTOR_ASSERTION_PUBLIC_KEY:?supply actor verification key}
       DEMO_MODE: 'true'
@@ -533,5 +535,6 @@ networks:
     internal: true
 volumes:
   postgres-data: {}
+  wallet-uploads: {}
   mongo-data: {}
   rabbitmq-data: {}

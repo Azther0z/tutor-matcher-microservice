@@ -39,7 +39,7 @@ export type Topup = {
   manual?: boolean;
   providerReference: string;
   paymentRepresentation: string;
-  slip?: { contentType: string; uploadedAt: string } | null;
+  slip?: { contentType: string; uploadedAt: string; url?: string } | null;
   decisionReason?: string | null;
   decidedAt?: string | null;
   /** Present on the admin review list. */
