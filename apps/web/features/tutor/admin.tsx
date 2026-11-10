@@ -57,7 +57,9 @@ function QueueContent() {
             <p className="tutor-card-meta">No requests in this queue.</p>
           )}
           <div className="tx-list">
-            {resource.data.items.map((item) => (
+            {[...resource.data.items]
+              .sort((a, b) => (b.submittedAt ?? "").localeCompare(a.submittedAt ?? ""))
+              .map((item) => (
               <Link
                 key={item.id}
                 className="panel tutor-card tx-card"
