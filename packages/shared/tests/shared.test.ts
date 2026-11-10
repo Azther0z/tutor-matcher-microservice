@@ -157,3 +157,13 @@ test("protobuf adapters normalize snake case and encode the common error trailer
   assert.equal(mapped.status, 422);
   assert.equal(mapped.code, "INVALID_ARGUMENT");
 });
+
+test("a database pool timeout is a retryable 503 and any other unknown error stays a 500", () => {
+  const busy = toHttpError(new Error("Connection terminated due to connection timeout"), "8eac4f52-9255-44c6-bb5a-8238bc1b8092");
+  assert.equal(busy.status, 503);
+  assert.equal(busy.body.code, "DEPENDENCY_UNAVAILABLE");
+  assert.equal(busy.body.retryable, true);
+  const unknown = toHttpError(new Error("boom"), "8eac4f52-9255-44c6-bb5a-8238bc1b8092");
+  assert.equal(unknown.status, 500);
+  assert.equal(unknown.body.code, "INTERNAL_ERROR");
+});
