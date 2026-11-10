@@ -17,11 +17,12 @@ export function StarRatingFilter({ value, labelId, onChange }: { value: number; 
           <span className="star-cell" key={star}>
             <span className="star-glyph star-base" aria-hidden="true">★</span>
             <span className="star-glyph star-fill" aria-hidden="true" style={{ width: fill(star) }}>★</span>
-            {[star - 0.5, star].map((half) => (
+            {/* The API accepts 1 to 5 in half steps, so the first star has no half: its whole width means 1. */}
+            {(star === 1 ? [1] : [star - 0.5, star]).map((half) => (
               <button
                 key={half}
                 type="button"
-                className={`star-hit ${half === star ? "star-hit-right" : "star-hit-left"}`}
+                className={`star-hit ${star === 1 ? "star-hit-whole" : half === star ? "star-hit-right" : "star-hit-left"}`}
                 aria-label={`${half} stars and up`}
                 aria-pressed={value === half}
                 onMouseEnter={() => setHover(half)}
