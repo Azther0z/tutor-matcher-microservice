@@ -245,8 +245,10 @@ fieldset.field legend { font-size: 14px; font-weight: 500; padding: 0; margin-bo
 .notice { padding: 10px 14px; border-radius: 8px; font-size: 14px; margin: 0 0 16px; border: 1px solid transparent; }
 .notice-info { background: rgba(139, 92, 246, 0.1); border-color: rgba(139, 92, 246, 0.3); color: #ddd6fe; }
 .notice-success { background: var(--success-bg); border-color: rgba(80, 200, 120, 0.3); color: var(--success); }
-.notice-error { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 12px; background: rgba(255, 99, 71, 0.07); border-color: rgba(255, 99, 71, 0.28); color: var(--ink); line-height: 1.45; }
-.notice-error > .request-id { flex-basis: 100%; margin: 0; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11.5px; color: var(--muted); opacity: 1; }
+.notice-error { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 4px 14px; overflow: hidden; background: rgba(255, 99, 71, 0.07); border-color: rgba(255, 99, 71, 0.28); color: var(--ink); line-height: 1.45; }
+.notice-error > .request-id { grid-column: 1; margin: 0; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11.5px; color: var(--muted); opacity: 1; }
+.notice-error > .button.button-quiet { grid-column: 2; grid-row: 1 / span 2; align-self: stretch; margin: -10px -14px -10px 0; min-height: 0; padding: 0 20px; border: 0; border-left: 1px solid rgba(255, 99, 71, 0.28); border-radius: 0; background: transparent; color: var(--ink); font-size: 14px; font-weight: 500; }
+.notice-error > .button.button-quiet:hover { background: rgba(255, 255, 255, 0.06); }
 .notice .button.button-quiet { min-height: 30px; padding: 3px 12px; border: 1px solid rgba(255, 255, 255, 0.18); border-radius: 6px; background: transparent; color: var(--ink); font-size: 13px; font-weight: 500; }
 .notice .button.button-quiet:hover { background: rgba(255, 255, 255, 0.06); }
 .notice a, .notice .text-link { color: inherit; text-decoration: underline; }
