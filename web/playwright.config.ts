@@ -7,7 +7,7 @@ const testPort = 3127;
 const localBaseURL = `http://localhost:${testPort}`;
 
 export default defineConfig({
-  testDir: "./e2e/identity",
+  testDir: "./e2e",
   fullyParallel: true,
   reporter: "list",
   use: {

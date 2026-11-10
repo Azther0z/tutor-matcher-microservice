@@ -11,9 +11,9 @@
     "node": ">=22"
   },
   "scripts": {
-    "build": "npm run build -w @tutor-matcher/shared && npm run build -w auth-service && npm run build -w web",
+    "build": "npm run build -w @tutor-matcher/shared && npm run build -w auth-service -w wallet-service -w notification-service && npm run build -w web",
     "typecheck": "npm run build -w @tutor-matcher/shared && npm run typecheck --workspaces --if-present",
-    "lint": "eslint shared/src auth-service/src web",
+    "lint": "eslint shared/src auth-service/src wallet-service/src notification-service/src web",
     "format": "prettier --write package.json tsconfig.base.json eslint.config.mjs scripts",
     "format:check": "prettier --check package.json tsconfig.base.json eslint.config.mjs scripts",
     "test": "npm run test --workspaces --if-present && node --test tests/*.test.cjs",
@@ -29,7 +29,10 @@
     "prepare:hosted": "node scripts/prepare-hosted.mjs",
     "smoke:browser": "node scripts/smoke-browser.mjs",
     "smoke:outbox": "node scripts/smoke-outbox.mjs",
-    "routes:check": "node scripts/generate-traefik-routes.mjs --check"
+    "routes:check": "node scripts/generate-traefik-routes.mjs --check",
+    "dev:wallet": "npm run dev -w wallet-service",
+    "dev:notification": "npm run dev -w notification-service",
+    "smoke:p-broker": "node scripts/smoke-p-broker.mjs"
   },
   "devDependencies": {
     "@eslint/js": "9.39.5",
