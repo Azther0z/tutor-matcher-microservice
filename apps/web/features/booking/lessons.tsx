@@ -9,33 +9,25 @@ import type { Booking, BookingPage } from "./types";
 
 function LessonCard({ booking, confirmable, onDone }: { booking: Booking; confirmable: boolean; onDone: () => void }) {
   const action = useAction(onDone);
+  const meeting = booking.meeting.state === "READY" ? "Link ready" : booking.meeting.state === "MISSING" ? "No link yet" : booking.meeting.state === "PROVISIONING" ? "Being prepared" : "Closed";
   return (
     <article className="panel tutor-card">
       <StatusBadge value={booking.status} corner />
-      <div className="stat-line">
-        <span>{formatTime(booking.startsAt)}</span>
-      </div>
-      <h2>
+      <h3 className="lesson-title">
         <Link href={`/bookings/${booking.id}`}>{booking.subject.name}</Link>
-      </h2>
-      <p className="tutor-card-meta">
-        Student: {booking.studentDisplayName}, <strong>{formatMoney(booking.amount)}</strong>, Online
-      </p>
+      </h3>
+      <p className="tutor-card-meta">{booking.studentDisplayName}, {formatTime(booking.startsAt)}</p>
+      <p className="tutor-card-meta">{formatMoney(booking.amount)}, Online, meeting: {meeting.toLowerCase()}</p>
       {booking.description && <p className="tutor-card-meta">“{booking.description}”</p>}
-      <p className="tutor-card-meta">
-        Meeting: {booking.meeting.state === "READY" ? "link ready" : booking.meeting.state === "MISSING" ? "no link yet, add one on the booking page" : booking.meeting.state === "PROVISIONING" ? "being prepared" : "closed"}
-      </p>
       <ActionMessages action={action} />
       {confirmable && (
-        <div className="button-row" style={{ position: "relative", zIndex: 2 }}>
-          <button
-            className="button"
-            disabled={action.pending}
-            onClick={() => void action.run(`/bookings/${booking.id}/confirm-completion`, undefined, "POST", booking.revision)}
-          >
-            {action.pending ? "Confirming…" : "Confirm lesson completed"}
-          </button>
-        </div>
+        <button
+          className="button"
+          disabled={action.pending}
+          onClick={() => void action.run(`/bookings/${booking.id}/confirm-completion`, undefined, "POST", booking.revision)}
+        >
+          {action.pending ? "Confirming…" : "Confirm completed"}
+        </button>
       )}
     </article>
   );
@@ -47,8 +39,8 @@ function LessonList({ path, empty, confirmable }: { path: string; empty: string;
   return (
     <>
       <ResourceState loading={resource.loading} error={resource.error} failure={resource.failure} retry={resource.reload} />
-      {resource.data?.items.length === 0 && <p className="empty-state">{empty}</p>}
-      <div className="account-grid">
+      {resource.data?.items.length === 0 && <p className="tutor-card-meta">{empty}</p>}
+      <div className="tx-list">
         {resource.data?.items.map((booking) => (
           <LessonCard key={booking.id} booking={booking} confirmable={confirmable} onDone={resource.reload} />
         ))}
@@ -61,20 +53,12 @@ function LessonList({ path, empty, confirmable }: { path: string; empty: string;
 export function LessonsPage() {
   return (
     <RequireCapability capability="TUTOR">
+      <header className="page-heading"><h1>Your lessons</h1></header>
       <TutorNavigation />
-      <header className="section-heading">
-        <h1>Your lessons</h1>
-        <p>Confirm lessons once they have ended so your earnings can start clearing, and see what is coming up.</p>
-      </header>
-      <section className="panel">
-        <h2>Needs your confirmation</h2>
-        <p>These lessons have ended. Confirm the ones that took place.</p>
-        <LessonList path="/bookings/tutor/needs-confirmation" empty="Nothing is waiting for your confirmation." confirmable />
-      </section>
-      <section className="panel">
-        <h2>Upcoming lessons</h2>
-        <LessonList path="/bookings/tutor/upcoming" empty="No upcoming lessons yet. Open availability so students can book you." confirmable={false} />
-      </section>
+      <h2 className="list-title first">Needs your confirmation</h2>
+      <LessonList path="/bookings/tutor/needs-confirmation" empty="Nothing is waiting for your confirmation." confirmable />
+      <h2 className="list-title">Upcoming</h2>
+      <LessonList path="/bookings/tutor/upcoming" empty="No upcoming lessons yet. Open availability so students can book you." confirmable={false} />
     </RequireCapability>
   );
 }
