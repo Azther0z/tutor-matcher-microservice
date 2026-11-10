@@ -588,3 +588,7 @@ fieldset.field legend { font-size: 14px; font-weight: 500; padding: 0; margin-bo
 .booking-meeting .field label { font-size: 13px; color: var(--muted); }
 .booking-meeting .field input { padding: 8px 12px; border-radius: 8px; font-size: 14px; }
 .legal-modal-body .summary-rows span { color: var(--muted); }
+.tooltip-wrap { position: relative; display: inline-flex; }
+.tooltip-wrap .button:disabled { cursor: not-allowed; }
+.tooltip-wrap::after { content: attr(data-tip); position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%); padding: 6px 10px; border-radius: 6px; background: #1c1c1f; border: 1px solid var(--line-strong); color: var(--ink); font-size: 13px; white-space: nowrap; pointer-events: none; opacity: 0; transition: opacity 0.12s; z-index: 5; }
+.tooltip-wrap:hover::after { opacity: 1; }

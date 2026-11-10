@@ -407,9 +407,6 @@ function BookingDetailContent({ bookingId }: { bookingId: string }) {
               <strong>{formatMoney(booking.amount)}</strong>
             </div>
           </div>
-          {booking.meeting.state === "PROVISIONING" && (
-            <Notice kind="info">Meeting access is being prepared.</Notice>
-          )}
           {isTutor && booking.meeting.canEdit && (
             <form
               className="booking-meeting"
@@ -464,6 +461,13 @@ function BookingDetailContent({ bookingId }: { bookingId: string }) {
               )}
             </span>
             <span className="button-row">
+              {booking.meeting.state === "PROVISIONING" && (
+                <span className="tooltip-wrap" data-tip="Meeting access is being prepared.">
+                  <button className="button" disabled aria-disabled="true">
+                    Join lesson
+                  </button>
+                </span>
+              )}
               {booking.meeting.canJoin && booking.meeting.effectiveUrl && (
                 <a
                   className="button"
