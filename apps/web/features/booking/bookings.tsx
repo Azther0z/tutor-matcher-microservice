@@ -59,7 +59,7 @@ function BookingProgress({ booking }: { booking: Booking }) {
       role="img"
       aria-label={cancelled ? "Booking cancelled" : `Step ${reached + 1} of ${STEPS.length}: ${STEPS[reached]}`}
     >
-      <div className="booking-progress-track" aria-hidden="true">
+      <div className={`booking-progress-track${cancelled ? " is-cut" : ""}`} aria-hidden="true">
         <span style={{ width: `${fill}%` }} />
         {live && (
           <span
