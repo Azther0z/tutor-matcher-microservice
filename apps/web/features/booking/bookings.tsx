@@ -37,22 +37,21 @@ function HoldCountdown({ expiresAt, onExpired }: { expiresAt: string; onExpired:
 
 function BookingCard({ booking }: { booking: Booking }) {
   return (
-    <article className="panel">
+    <article className="panel tutor-card">
       <div className="stat-line">
         <StatusBadge value={booking.status} />
         <span>{formatTime(booking.startsAt)}</span>
       </div>
-      <h2>{booking.subject.name}</h2>
-      <p>
+      <h2>
+        <Link href={`/bookings/${booking.id}`}>{booking.subject.name}</Link>
+      </h2>
+      <p className="tutor-card-meta">
         {booking.studentUserId ? `Student: ${booking.studentDisplayName}, ` : ""}
         Tutor: {booking.tutorDisplayName}
       </p>
-      <p>
+      <p className="tutor-card-meta">
         <strong>{formatMoney(booking.amount)}</strong>, Online
       </p>
-      <Link className="button" href={`/bookings/${booking.id}`}>
-        View booking
-      </Link>
     </article>
   );
 }
@@ -84,13 +83,8 @@ function BookingsContent() {
   }, [load]);
   return (
     <>
-      <header className="section-heading">
-        <p className="eyebrow">YOUR LESSONS</p>
+      <header className="page-heading">
         <h1>Your bookings</h1>
-        <p>
-          Review upcoming lessons, payments, meeting access, and completed
-          lessons.
-        </p>
       </header>
       {account?.capabilities.includes("TUTOR") && (
         <div className="view-switch" role="group" aria-label="Booking view">
