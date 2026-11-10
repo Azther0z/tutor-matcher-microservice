@@ -488,9 +488,6 @@ export function SubjectDetails({
                 <p className="tutor-card-meta">
                   Choose 1 to 8 back-to-back half-hour slots. Times are Asia/Bangkok.
                 </p>
-                {data.slots.length === 0 && (
-                  <p className="empty-state">No free slots on this date.</p>
-                )}
                 <div className="slot-grid" role="group" aria-label="Available half-hour slots">
                   {Array.from({ length: 48 }, (_, i) => {
                     const label = `${String(Math.floor(i / 2)).padStart(2, "0")}:${i % 2 ? "30" : "00"}`;
