@@ -1,0 +1,61 @@
+sequenceDiagram
+    autonumber
+    actor S as Student (web UI)
+    participant G as API Gateway (Traefik)
+    participant A as Auth
+    participant B as Booking
+    participant T as Tutor
+    participant W as Wallet
+    participant Q as RabbitMQ
+    participant N as Notification
+
+    Note over S,N: REST = solid arrow, gRPC = labelled "gRPC", event = labelled "AMQP", local DB step = note box
+
+    rect rgb(255, 236, 236)
+    Note over S,A: Phase 1 · Authenticate
+    S->>G: REST POST /api/auth/login
+    G->>A: REST (public route)
+    A-->>S: 200 Bearer session token
+    end
+
+    rect rgb(255, 244, 230)
+    Note over S,T: Phase 2 · Hold the slots
+    S->>G: REST POST /api/bookings (Bearer token, Idempotency-Key)
+    G->>A: REST forward-auth: verify session, account state, capability
+    A-->>G: signed actor assertion (60 s, RS256)
+    G->>B: REST request + actor assertion + gateway credential
+    B->>T: gRPC GetBookableSubject (subject, hourly rate)
+    T-->>B: subject snapshot
+    B->>A: gRPC LookupAccounts (student, tutor display names)
+    A-->>B: names, account status
+    Note over B: Local DB transaction (PostgreSQL booking_db):<br/>lock slots, validate consecutive 30 min block,<br/>insert booking PAYMENT_DUE, slots OPEN to HELD
+    B-->>S: 201 booking, ETag = revision, hold 15 min
+    end
+
+    rect rgb(235, 245, 255)
+    Note over S,W: Phase 3 · Pay from the wallet
+    S->>G: REST POST /api/bookings/{id}/confirm-payment (If-Match, Idempotency-Key)
+    G->>A: REST forward-auth (same as step 5)
+    G->>B: REST request + actor assertion
+    Note over B: Local DB transaction: save payment attempt<br/>and immutable charge command, then commit
+    B->>W: gRPC ApplyLessonCharge (outside any DB transaction)
+    Note over W: Local DB transaction (PostgreSQL wallet_db):<br/>row lock, ledger entry once per operation id
+    alt Charge applied
+        W-->>B: APPLIED (transaction id)
+        Note over B: One local transaction: booking CONFIRMED,<br/>slots HELD to BOOKED, reminders scheduled,<br/>outbox row booking.confirmed
+        B-->>S: 200 confirmed booking
+    else Wallet balance too low
+        W-->>B: DECLINED
+        B-->>S: 402 INSUFFICIENT_BALANCE (top up, pay again before hold ends)
+    else Response lost or Wallet down
+        B-->>S: 202 pending operation
+        Note over B,W: Recovery worker repeats the same operation id,<br/>after the hold expires it calls gRPC ResolveOrCloseLessonCharge
+    end
+    end
+
+    rect rgb(243, 235, 255)
+    Note over B,N: Phase 4 · Notify both people (asynchronous, after commit)
+    B-)Q: AMQP publish booking.confirmed (outbox worker, stable event id)
+    Q-)N: AMQP deliver event
+    Note over N: Dedupe event, create email and push jobs<br/>for student and tutor (simulated delivery)
+    end
