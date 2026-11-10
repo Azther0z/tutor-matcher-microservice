@@ -607,10 +607,11 @@ fieldset.field legend { font-size: 14px; font-weight: 500; padding: 0; margin-bo
 .booking-progress li.is-crossed { color: #f87171; }
 .booking-progress li.is-crossed i { background: #f87171; border-color: #f87171; color: #0a0a0a; }
 .booking-progress-track { overflow: visible; }
-.booking-progress-live { position: absolute; top: 0; height: 100%; background: linear-gradient(90deg, rgba(74, 222, 128, 0) 0%, #4ade80 50%, rgba(74, 222, 128, 0) 100%) 0 0 / 200% 100%; animation: progress-shine 1.6s linear infinite; }
 .booking-progress li.is-live { color: var(--ink); }
 .booking-progress li.is-live i { border-color: #4ade80; animation: progress-pulse 1.6s ease-out infinite; }
-@keyframes progress-shine { from { background-position: 200% 0; } to { background-position: -100% 0; } }
 @keyframes progress-pulse { 0% { box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.5); } 100% { box-shadow: 0 0 0 9px rgba(74, 222, 128, 0); } }
-@media (prefers-reduced-motion: reduce) { .booking-progress-live, .booking-progress li.is-live i { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .booking-progress-live::after, .booking-progress li.is-live i { animation: none; } }
 .booking-progress-cut { position: absolute; top: 0; height: 100%; background: #f87171; }
+.booking-progress-live { position: absolute; top: 0; height: 100%; overflow: hidden; background: rgba(74, 222, 128, 0.22); }
+.booking-progress-live::after { content: ""; position: absolute; top: 0; left: -40%; width: 40%; height: 100%; background: linear-gradient(90deg, rgba(74, 222, 128, 0), #4ade80); animation: progress-run 1.5s ease-in infinite; }
+@keyframes progress-run { from { left: -40%; } to { left: 100%; } }
