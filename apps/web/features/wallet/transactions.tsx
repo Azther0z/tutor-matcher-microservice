@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { use, useCallback, useEffect, useState } from "react";
 import { LoadError } from "@/components/field";
+import { Dropdown } from "@/components/dropdown";
 import { api, failureOf, type Failure } from "@/lib/api";
 import { Pager, StatusBadge } from "./common";
 import { formatMoney, formatTime, titleCase } from "./format";
@@ -34,10 +35,10 @@ export function TransactionsPage() {
       <section className="panel">
         <div className="field">
           <label htmlFor="type">Type</label>
-          <select id="type" value={type} onChange={(e) => setType(e.target.value)}>
-            <option value="">All types</option>
-            {TRANSACTION_TYPES.map((value) => <option key={value} value={value}>{titleCase(value)}</option>)}
-          </select>
+          <Dropdown id="type" value={type} onValueChange={setType} options={[
+            { value: "", label: "All types" },
+            ...TRANSACTION_TYPES.map((value) => ({ value, label: titleCase(value) })),
+          ]} />
         </div>
         <LoadError failure={error} onRetry={() => void load(1)} backHref="/wallet" backLabel="Back to wallet"/>
         {pending && !result && <p role="status">Loading transactions…</p>}

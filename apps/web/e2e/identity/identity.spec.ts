@@ -246,7 +246,11 @@ test("admin can restore a suspended account with reason and revision", async ({ 
     return route.fulfill({ status: 200, headers: { ETag: '"8"' }, contentType: "application/json", body: JSON.stringify({ ...detail, user: { ...user, status: "ACTIVE", revision: "8" }, revision: "8" }) });
   });
   await page.goto(`/admin/users/${user.id}`);
-  await page.getByLabel("Account action").selectOption("RESTORE");
+  await page.getByLabel("Account action").click();
+  await expect(page.getByRole("option", { name: "Choose an action", exact: true })).toHaveAttribute("aria-disabled", "true");
+  await page.getByLabel("Account action").press("Home");
+  await page.getByLabel("Account action").press("Enter");
+  await expect(page.getByLabel("Account action")).toHaveText("Restore access");
   await page.getByLabel("Reason (required)").fill("Access review completed");
   await page.getByRole("button", { name: "Record action" }).click();
   await expect(page.getByText(/Restored accounts must log in again/)).toBeVisible();

@@ -21,14 +21,28 @@ const definitions = JSON.parse(readFileSync(definitionsPath, "utf8"));
 const authorization = `Basic ${Buffer.from(`${adminUser}:${adminPassword}`).toString("base64")}`;
 const vhost = encodeURIComponent("/");
 
+// The broker reports healthy before its management listener accepts connections (first boot of a new volume),
+// so a refused or timed-out connection is retried for up to about two minutes. An HTTP error is never retried.
 async function send(method, path, body) {
-  const response = await fetch(`${base}/api/${path}`, {
-    method,
-    headers: { authorization, "content-type": "application/json" },
-    body: JSON.stringify(body),
-    signal: AbortSignal.timeout(10_000),
-  });
-  if (!response.ok) throw new Error(`${method} ${path} returned ${response.status}`);
+  const attempts = 60;
+  for (let attempt = 1; ; attempt++) {
+    let response;
+    try {
+      response = await fetch(`${base}/api/${path}`, {
+        method,
+        headers: { authorization, "content-type": "application/json" },
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(10_000),
+      });
+    } catch (error) {
+      if (attempt >= attempts) throw error;
+      if (attempt === 1) console.log("Waiting for the RabbitMQ management API...");
+      await new Promise((resolve) => setTimeout(resolve, 2_000));
+      continue;
+    }
+    if (!response.ok) throw new Error(`${method} ${path} returned ${response.status}`);
+    return;
+  }
 }
 const put = (path, body) => send("PUT", path, body);
 const post = (path, body) => send("POST", path, body);

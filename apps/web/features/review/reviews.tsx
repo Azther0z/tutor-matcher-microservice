@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Field, Notice } from "@/components/field";
+import { Dropdown } from "@/components/dropdown";
 import { RequireAuth, useAuth } from "@/lib/auth-context";
 import {
   ActionMessages,
@@ -256,13 +257,9 @@ function ReviewWriterContent({ bookingId }: { bookingId: string }) {
                 <form className="form" onSubmit={(event) => void submit(event)}>
                   <div className="field">
                     <label htmlFor="rating">Rating</label>
-                    <select id="rating" name="rating" defaultValue="5">
-                      {[5, 4, 3, 2, 1].map((rating) => (
-                        <option key={rating} value={rating}>
-                          {rating} out of 5
-                        </option>
-                      ))}
-                    </select>
+                    <Dropdown id="rating" name="rating" defaultValue="5" options={
+                      [5, 4, 3, 2, 1].map((rating) => ({ value: String(rating), label: `${rating} out of 5` }))
+                    } />
                   </div>
                   <Field
                     id="headline"

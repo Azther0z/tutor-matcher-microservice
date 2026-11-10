@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Field, Notice, focusFirstInvalid } from "@/components/field";
+import { Dropdown } from "@/components/dropdown";
 import { useAuth } from "@/lib/auth-context";
 import { ReviewList } from "../review/reviews";
 import {
@@ -174,33 +175,29 @@ export function Discover() {
           <div className="field-set">
             <div className="field">
               <label htmlFor="learningArea">Learning area</label>
-              <select
+              <Dropdown
                 id="learningArea"
                 name="learningArea"
                 defaultValue={query.get("learningArea") ?? ""}
-              >
-                <option value="">All learning areas</option>
-                {areas.data?.items.map((area) => (
-                  <option key={area.id} value={area.id}>
-                    {area.label}
-                  </option>
-                ))}
-              </select>
+                options={[
+                  { value: "", label: "All learning areas" },
+                  ...(areas.data?.items.map((area) => ({ value: area.id, label: area.label })) ?? []),
+                ]}
+              />
             </div>
             <div className="field">
               <label htmlFor="minRating">Minimum rating</label>
-              <select
+              <Dropdown
                 id="minRating"
                 name="minRating"
                 defaultValue={query.get("minRating") ?? ""}
-              >
-                <option value="">Any rating</option>
-                {[1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5].map((rating) => (
-                  <option key={rating} value={rating}>
-                    {rating} {rating === 1 ? "star" : "stars"} &amp; up
-                  </option>
-                ))}
-              </select>
+                options={[
+                  { value: "", label: "Any rating" },
+                  ...[1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5].map((rating) => ({
+                    value: String(rating), label: `${rating} ${rating === 1 ? "star" : "stars"} & up`,
+                  })),
+                ]}
+              />
             </div>
           </div>
           <div className="field-set">
@@ -235,16 +232,17 @@ export function Discover() {
             </div>
             <div className="field">
               <label htmlFor="sort">Sort subjects</label>
-              <select
+              <Dropdown
                 id="sort"
                 name="sort"
                 defaultValue={query.get("sort") ?? "RECOMMENDED"}
-              >
-                <option value="RECOMMENDED">Recommended</option>
-                <option value="PRICE_ASC">Price: low to high</option>
-                <option value="PRICE_DESC">Price: high to low</option>
-                <option value="TOP_RATED">Top rated</option>
-              </select>
+                options={[
+                  { value: "RECOMMENDED", label: "Recommended" },
+                  { value: "PRICE_ASC", label: "Price: low to high" },
+                  { value: "PRICE_DESC", label: "Price: high to low" },
+                  { value: "TOP_RATED", label: "Top rated" },
+                ]}
+              />
             </div>
           </div>
           <div className="button-row">

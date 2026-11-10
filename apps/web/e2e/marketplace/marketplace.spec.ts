@@ -595,7 +595,8 @@ test("moderation shows private reporter and full review, then sends reason and r
   await page.goto("/admin/review-flags");
   await expect(page.getByText("Reported by Jamie Reporter")).toBeVisible();
   await expect(page.getByText("Reported tutor reply")).toBeVisible();
-  await page.getByLabel("Moderation decision").selectOption("HIDE");
+  await page.getByLabel("Moderation decision").click();
+  await page.getByRole("option", { name: "Hide whole review and reply", exact: true }).click();
   await page
     .getByLabel("Moderation reason")
     .fill("The full review violates the content policy.");

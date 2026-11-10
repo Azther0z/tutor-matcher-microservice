@@ -73,7 +73,8 @@ test.describe("wallet and top-up", () => {
     ])));
     await page.goto("/wallet/transactions");
     await expect(page.getByRole("cell", { name: "Top Up" })).toBeVisible();
-    await page.getByLabel("Type").selectOption("REFUND");
+    await page.getByLabel("Type").click();
+    await page.getByRole("option", { name: "Refund", exact: true }).click();
     await expect.poll(() => seen.some((call) => call.url.includes("type=REFUND"))).toBe(true);
   });
 });
@@ -97,11 +98,13 @@ test.describe("tutor payouts", () => {
     await page.goto("/wallet/payout-accounts");
     await expect(page.getByText("Default", { exact: true })).toBeVisible();
 
-    await page.getByLabel("Bank").selectOption("KBANK");
+    await page.getByLabel("Bank").click();
+    await page.getByRole("option", { name: "Kasikornbank", exact: true }).click();
     await page.getByLabel("Account holder name").fill("Taylor Tutor");
     await page.getByLabel("Account number").fill("123-4-56789-0");
     await page.getByRole("button", { name: "Add account" }).click();
     await expect(page.getByText("Payout account added.")).toBeVisible();
+    await expect(page.getByLabel("Bank")).toHaveText("Choose a bank");
     expect(created[0].body).toMatchObject({ bankCode: "KBANK", accountHolderName: "Taylor Tutor", accountNumber: "123-4-56789-0", makeDefault: false });
     expect(created[0].headers["idempotency-key"]).toBeTruthy();
 
@@ -120,7 +123,8 @@ test.describe("tutor payouts", () => {
     await page.route(/\/api\/payout-accounts\/banks$/, (route) => json(route, 200, { items: [{ code: "KBANK", name: "Kasikornbank" }] }));
     const created = await record(page, /\/api\/payout-accounts$/, (route) => json(route, 201, account(IDS.account, true)));
     await page.goto("/wallet/payout-accounts");
-    await page.getByLabel("Bank").selectOption("KBANK");
+    await page.getByLabel("Bank").click();
+    await page.getByRole("option", { name: "Kasikornbank", exact: true }).click();
     await page.getByLabel("Account holder name").fill("Taylor Tutor");
     await page.getByLabel("Account number").fill("12345");
     await page.getByRole("button", { name: "Add account" }).click();
@@ -226,7 +230,8 @@ test.describe("demonstration provider controls", () => {
     await page.goto("/demo/finance");
     await page.getByLabel("Top-up or payout ID").fill(IDS.topup);
     await page.getByLabel("Provider reference").fill(IDS.provider);
-    await page.getByLabel("Outcome").selectOption("SUCCEEDED");
+    await page.getByLabel("Outcome").click();
+    await page.getByRole("option", { name: "Succeeded", exact: true }).click();
     await page.getByRole("button", { name: "Record outcome" }).click();
     await expect(page.getByText(/Recorded\./)).toBeVisible();
     expect(posted[0].body).toEqual({ outcome: "SUCCEEDED", providerReference: IDS.provider });
@@ -237,7 +242,8 @@ test.describe("demonstration provider controls", () => {
     await signIn(page, ["STUDENT", "ADMIN"]);
     await page.route(/\/api\/demo\/payouts\//, (route) => json(route, 403, { code: "DEMO_DISABLED", message: "Demo provider controls are disabled", requestId: IDS.operation, retryable: false, fields: [] }));
     await page.goto("/demo/finance");
-    await page.getByLabel("Resource").selectOption("payouts");
+    await page.getByLabel("Resource").click();
+    await page.getByRole("option", { name: "Payout", exact: true }).click();
     await page.getByLabel("Top-up or payout ID").fill(IDS.payout);
     await page.getByLabel("Provider reference").fill(IDS.provider);
     await page.getByRole("button", { name: "Record outcome" }).click();

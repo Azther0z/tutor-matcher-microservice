@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { use, useCallback, useEffect, useState } from "react";
 import { Field, Notice } from "@/components/field";
+import { Dropdown } from "@/components/dropdown";
 import { ApiError, api, errorMessage, fieldErrors, newIdempotencyKey } from "@/lib/api";
 import { DemoBanner, Pager, StatusBadge, useOperation } from "./common";
 import { formatMoney, formatTime, normalizeAmount } from "./format";
@@ -51,10 +52,10 @@ function CreatePayout({ accounts, available, onCreated }: { accounts: PayoutAcco
       {error && <Notice kind="error">{error}</Notice>}
       <div className="field">
         <label htmlFor="payoutAccountId">Payout account</label>
-        <select id="payoutAccountId" value={accountId} onChange={(e) => { setAccountId(e.target.value); setKey(newIdempotencyKey()); }}>
-          {accounts.map((account) => <option key={account.id} value={account.id}>{account.maskedAccountNumber} · {account.accountHolderName}{account.isDefault ? " (default)" : ""}</option>)}
-        </select>
-        {fields.payoutAccountId && <span className="field-error">{fields.payoutAccountId}</span>}
+        <Dropdown id="payoutAccountId" value={accountId} aria-invalid={Boolean(fields.payoutAccountId)} aria-describedby={fields.payoutAccountId ? "payoutAccountId-error" : undefined} onValueChange={(value) => { setAccountId(value); setKey(newIdempotencyKey()); }} options={
+          accounts.map((account) => ({ value: account.id, label: `${account.maskedAccountNumber} · ${account.accountHolderName}${account.isDefault ? " (default)" : ""}` }))
+        } />
+        {fields.payoutAccountId && <span className="field-error" id="payoutAccountId-error">{fields.payoutAccountId}</span>}
       </div>
       <Field id="amount" label="Amount (THB)" inputMode="decimal" autoComplete="off" value={amount} error={fields.amount} onChange={(e) => { setAmount(e.target.value); setKey(newIdempotencyKey()); }} />
       <button className="button" disabled={pending}>{pending ? "Requesting…" : "Request payout"}</button>

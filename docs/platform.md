@@ -22,6 +22,20 @@ Supply stable runtime credentials through approved process environment injection
 
 For a completely new disposable demo, `COMPOSE_PROJECT_NAME=<new-isolated-project> npm run local -- up` generates credentials in process memory and starts the foreground Compose session. It never writes or prints them. Do not use that mode for data that must survive container recreation: the generated values are not recoverable after the process exits. `npm run local -- restart` restarts existing containers without replacing their environment. Set the same project name for every command. `stop`, `ps`, `logs` and `down` are supported; `down` never includes `--volumes`. Dispose of synthetic storage only with a separately reviewed explicit command.
 
+### One-shot demo
+
+`npm run demo` starts everything that has source in this repository (Auth, Tutor, Review, Wallet, Notification, Traefik, web, PostgreSQL, MongoDB, RabbitMQ), seeds the synthetic demo accounts and one approved demo tutor, then checks the web app, sign-in and tutor discovery through the gateway. It is safe to run again. Unlike `npm run local -- up`, it keeps its credentials: missing runtime values are generated once into its own git-ignored `.env.demo` (never printed; your `.env` is not read or changed), so `npm run demo -- down` followed by `npm run demo` keeps the data. Use the Compose project `tutor-matcher-demo` (override with `COMPOSE_PROJECT_NAME`).
+
+| Command                        | Effect                                                         |
+| ------------------------------ | -------------------------------------------------------------- |
+| `npm run demo`                 | Build, start, seed and verify                                  |
+| `npm run demo -- status`       | Show containers and the live checks                            |
+| `npm run demo -- logs`         | Follow logs                                                    |
+| `npm run demo -- down`         | Stop and remove containers; volumes are kept                   |
+| `npm run demo -- reset --yes`  | Also delete this demo's database volumes                       |
+
+The demo accounts are `admin.demo@example.test`, `student.demo@example.test` and `candidate.demo@example.test` (the approved Mathematics tutor). Their shared password is `AUTH_DEMO_PASSWORD` in `.env.demo`. Booking and Messaging start only when `BOOKING_IMAGE` and `MESSAGING_IMAGE` point at real images; the `:pending` defaults are placeholders, so those pages show their unavailable state without them.
+
 Wallet and Notification have workspace scripts (`npm run dev:wallet`, `npm run dev:notification`). Their tests need a disposable PostgreSQL (`WALLET_TEST_DATABASE_URL`) and a MongoDB replica set (`TEST_MONGO_URI`); never point them at an application database. Local Compose provisions their RabbitMQ users with the one-shot `rabbitmq-provision` job (`infra/docker/rabbitmq-provision.mjs`); in Swarm run it once before the owner workers start.
 
 The `target` profile contains the remaining owner services and MongoDB replica set. It requires real owner-supplied images and migration procedures; `:pending` images deliberately cannot impersonate implemented services. Mongo initialization creates one read/write owner per database. PostgreSQL initialization is for new volumes only; existing legacy volumes require a reviewed migration, never a volume deletion workaround.

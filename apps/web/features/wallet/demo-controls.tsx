@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Field, Notice } from "@/components/field";
+import { Dropdown } from "@/components/dropdown";
 import { api, ApiError, errorMessage, fieldErrors, newIdempotencyKey } from "@/lib/api";
 import { DemoBanner, StatusBadge } from "./common";
 import { formatMoney } from "./format";
@@ -54,20 +55,20 @@ export function DemoFinancePage() {
           {error && <Notice kind="error">{error}</Notice>}
           <div className="field">
             <label htmlFor="kind">Resource</label>
-            <select id="kind" value={kind} onChange={(e) => changed(setKind)(e.target.value as Kind)}>
-              <option value="topups">Top-up</option>
-              <option value="payouts">Payout</option>
-            </select>
+            <Dropdown id="kind" value={kind} onValueChange={(value) => changed(setKind)(value as Kind)} options={[
+              { value: "topups", label: "Top-up" },
+              { value: "payouts", label: "Payout" },
+            ]} />
           </div>
           <Field id="resourceId" label="Top-up or payout ID" autoComplete="off" value={resourceId} error={fields.resourceId} onChange={(e) => changed(setResourceId)(e.target.value)} />
           <Field id="providerReference" label="Provider reference" autoComplete="off" value={providerReference} error={fields.providerReference} onChange={(e) => changed(setProviderReference)(e.target.value)} />
           <div className="field">
             <label htmlFor="outcome">Outcome</label>
-            <select id="outcome" value={outcome} onChange={(e) => changed(setOutcome)(e.target.value as Outcome)}>
-              <option value="SUCCEEDED">Succeeded</option>
-              <option value="FAILED">Failed</option>
-              <option value="UNKNOWN">Unknown</option>
-            </select>
+            <Dropdown id="outcome" value={outcome} onValueChange={(value) => changed(setOutcome)(value as Outcome)} options={[
+              { value: "SUCCEEDED", label: "Succeeded" },
+              { value: "FAILED", label: "Failed" },
+              { value: "UNKNOWN", label: "Unknown" },
+            ]} />
           </div>
           <button className="button" disabled={pending}>{pending ? "Recording…" : "Record outcome"}</button>
         </form>

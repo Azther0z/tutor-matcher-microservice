@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { RequireAuth } from "@/lib/auth-context";
 import { Field, Notice } from "@/components/field";
+import { Dropdown } from "@/components/dropdown";
 import {
   ActionMessages,
   bangkokTime,
@@ -32,20 +33,15 @@ function QueueContent() {
       </header>
       <div className="field">
         <label htmlFor="request-status">Submission status</label>
-        <select
+        <Dropdown
           id="request-status"
           value={status}
-          onChange={(event) => {
+          onValueChange={(value) => {
             setPage(1);
-            setStatus(event.target.value);
+            setStatus(value);
           }}
-        >
-          {["PENDING", "APPROVED", "REJECTED", "CANCELLED", "ALL"].map(
-            (value) => (
-              <option key={value}>{value}</option>
-            ),
-          )}
-        </select>
+          options={["PENDING", "APPROVED", "REJECTED", "CANCELLED", "ALL"].map((value) => ({ value, label: value }))}
+        />
       </div>
       <ResourceState
         loading={resource.loading}
@@ -174,14 +170,15 @@ function DetailContent({ submissionId }: { submissionId: string }) {
             <form className="form" onSubmit={(event) => void review(event)}>
               <div className="field">
                 <label htmlFor="decision">Decision</label>
-                <select
+                <Dropdown
                   id="decision"
                   value={decision}
-                  onChange={(event) => setDecision(event.target.value)}
-                >
-                  <option value="APPROVE">Approve</option>
-                  <option value="REJECT">Reject</option>
-                </select>
+                  onValueChange={setDecision}
+                  options={[
+                    { value: "APPROVE", label: "Approve" },
+                    { value: "REJECT", label: "Reject" },
+                  ]}
+                />
               </div>
               <Field
                 id="reason"

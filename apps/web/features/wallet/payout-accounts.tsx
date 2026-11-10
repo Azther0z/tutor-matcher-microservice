@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { Field, Notice } from "@/components/field";
+import { Dropdown } from "@/components/dropdown";
 import { api, errorMessage, fieldErrors, newIdempotencyKey } from "@/lib/api";
 import { DemoBanner } from "./common";
 import type { Bank, Paged, PayoutAccount } from "./types";
@@ -46,11 +47,11 @@ function AddAccount({ banks, onAdded, full }: { banks: Bank[]; onAdded: () => vo
       {error && <Notice kind="error">{error}</Notice>}
       <div className="field">
         <label htmlFor="bankCode">Bank</label>
-        <select id="bankCode" value={bankCode} aria-invalid={Boolean(fields.bankCode)} onChange={(e) => changed(setBankCode)(e.target.value)}>
-          <option value="">Choose a bank</option>
-          {banks.map((bank) => <option key={bank.code} value={bank.code}>{bank.name}</option>)}
-        </select>
-        {fields.bankCode && <span className="field-error">{fields.bankCode}</span>}
+        <Dropdown id="bankCode" value={bankCode} aria-invalid={Boolean(fields.bankCode)} aria-describedby={fields.bankCode ? "bankCode-error" : undefined} onValueChange={changed(setBankCode)} options={[
+          { value: "", label: "Choose a bank" },
+          ...banks.map((bank) => ({ value: bank.code, label: bank.name })),
+        ]} />
+        {fields.bankCode && <span className="field-error" id="bankCode-error">{fields.bankCode}</span>}
       </div>
       <Field id="accountHolderName" label="Account holder name" maxLength={200} value={holder} error={fields.accountHolderName} onChange={(e) => changed(setHolder)(e.target.value)} />
       <Field id="accountNumber" label="Account number" inputMode="numeric" autoComplete="off" value={number} error={fields.accountNumber} onChange={(e) => changed(setNumber)(e.target.value)} />

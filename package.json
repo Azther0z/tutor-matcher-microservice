@@ -23,6 +23,7 @@
     "dev:gateway": "docker compose up api-gateway",
     "dev:web": "npm run dev -w @tutor-matcher/web",
     "local": "node scripts/local.mjs",
+    "demo": "node scripts/demo.mjs",
     "test:db": "node scripts/test-postgres.mjs",
     "config:check": "node scripts/check-manifests.mjs",
     "test:integrated": "node scripts/smoke-identity.mjs",

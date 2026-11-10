@@ -294,9 +294,8 @@ export async function runLiveSmoke({
         exact: true,
       }),
     ).toBeVisible();
-    await adminPage
-      .getByLabel("Decision", { exact: true })
-      .selectOption("REJECT");
+    await adminPage.getByLabel("Decision", { exact: true }).click();
+    await adminPage.getByRole("option", { name: "Reject", exact: true }).click();
     await adminPage
       .getByLabel("Reason (required for rejection)", { exact: true })
       .fill("Synthetic revision rejected during the browser smoke.");

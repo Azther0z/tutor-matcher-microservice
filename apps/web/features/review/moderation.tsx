@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { RequireAuth } from "@/lib/auth-context";
 import { Field, Notice } from "@/components/field";
+import { Dropdown } from "@/components/dropdown";
 import {
   ActionMessages,
   bangkokTime,
@@ -71,11 +72,11 @@ function FlagCard({
             <label htmlFor={`decision-${item.flag.id}`}>
               Moderation decision
             </label>
-            <select id={`decision-${item.flag.id}`} name="decision">
-              <option value="KEEP">Keep review public</option>
-              <option value="HIDE">Hide whole review and reply</option>
-              <option value="REMOVE">Remove whole review and reply</option>
-            </select>
+            <Dropdown id={`decision-${item.flag.id}`} name="decision" options={[
+              { value: "KEEP", label: "Keep review public" },
+              { value: "HIDE", label: "Hide whole review and reply" },
+              { value: "REMOVE", label: "Remove whole review and reply" },
+            ]} />
           </div>
           <Field
             id={`reason-${item.flag.id}`}

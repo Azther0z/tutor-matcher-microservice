@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { use, useCallback, useEffect, useState } from "react";
 import { Field, LoadError, Notice } from "@/components/field";
+import { Dropdown } from "@/components/dropdown";
 import { api, apiResponse, errorMessage, failureOf, fieldErrors, newIdempotencyKey, type Failure } from "@/lib/api";
 import { Pager, StatusBadge } from "./common";
 import { formatMoney, formatTime, titleCase } from "./format";
@@ -165,9 +166,9 @@ export function AdminDisputesPage() {
       <section className="panel">
         <div className="field">
           <label htmlFor="status">Status</label>
-          <select id="status" value={status} onChange={(e) => setStatus(e.target.value as DisputeStatus | "")}>
-            {STATUS_FILTERS.map((value) => <option key={value} value={value}>{value ? titleCase(value) : "All statuses"}</option>)}
-          </select>
+          <Dropdown id="status" value={status} onValueChange={(value) => setStatus(value as DisputeStatus | "")} options={
+            STATUS_FILTERS.map((value) => ({ value, label: value ? titleCase(value) : "All statuses" }))
+          } />
         </div>
         {error && <Notice kind="error">{error}</Notice>}
         {!result && !error && <p role="status">Loading…</p>}

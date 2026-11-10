@@ -94,5 +94,23 @@ if (workspace === "auth-service") {
       await new Promise((resolve) => child.once("exit", resolve));
     }
   }
+} else if (workspace === "wallet-service") {
+  const { createApp } =
+    await import("../services/wallet-service/dist/http/app.js");
+  const { startGrpcServer } =
+    await import("../services/wallet-service/dist/grpc/server.js");
+  if (typeof createApp !== "function" || typeof startGrpcServer !== "function")
+    throw new Error("Wallet HTTP or gRPC factory unavailable");
+  console.log(
+    "Wallet production dependencies, HTTP factory and gRPC server module load.",
+  );
+} else if (workspace === "notification-service") {
+  const { createApp } =
+    await import("../services/notification-service/dist/http/app.js");
+  if (typeof createApp !== "function")
+    throw new Error("Notification HTTP factory unavailable");
+  console.log("Notification production dependencies and HTTP factory load.");
 } else
-  throw new Error("Choose auth-service, tutor-service, review-service or web");
+  throw new Error(
+    "Choose auth-service, tutor-service, review-service, wallet-service, notification-service or web",
+  );
