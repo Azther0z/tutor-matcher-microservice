@@ -34,6 +34,7 @@
     "test:marketplace": "npm run build -w @tutor-matcher/shared && npm test -w @tutor-matcher/tutor-service && npm test -w @tutor-matcher/review-service",
     "loadtest:prepare": "node loadtest/prepare-marketplace.mjs",
     "test:marketplace:integrated": "node loadtest/marketplace-integration.mjs",
+    "loadtest:booking-race": "node loadtest/competing-bookings.mjs",
     "dev:wallet": "npm run dev -w @tutor-matcher/wallet-service",
     "dev:booking": "npm run dev -w @tutor-matcher/booking-service",
     "dev:messaging": "npm run dev -w @tutor-matcher/messaging-service",

@@ -1,0 +1,41 @@
+{
+  "measuredAt": "2026-11-10T13:06:00.000Z",
+  "testedRevision": "3e95054",
+  "stack": "npm run demo (Docker Compose), one container per service, the full Traefik gateway path",
+  "host": "MacBook, 12 CPUs, Docker VM with 7.75 GiB memory",
+  "replicas": "One instance of every service. Scaling to several replicas was not part of this project, so no replica comparison is claimed.",
+  "resourceLimits": "No per-service CPU or memory caps.",
+  "real": [
+    "Traefik gateway",
+    "Auth/PostgreSQL",
+    "Tutor/MongoDB",
+    "Review/MongoDB",
+    "Booking/PostgreSQL (real service, real gRPC availability calls)",
+    "Wallet",
+    "Notification",
+    "Messaging",
+    "RabbitMQ"
+  ],
+  "fixtures": [],
+  "catalogue": "5 approved demo tutors, 5 subjects, read-only search; no accounts or subjects were created for the k6 runs",
+  "runs": [
+    {
+      "type": "steady",
+      "profile": "50 virtual users for 30 s",
+      "summary": "live-steady.json",
+      "text": "live-steady.txt"
+    },
+    {
+      "type": "stress",
+      "profile": "ramp 10, 25, 50, 100 users over 80 s",
+      "summary": "live-stress.json",
+      "text": "live-stress.txt"
+    },
+    {
+      "type": "concurrency",
+      "profile": "20 students book one slot at once, then 10 same-key replays",
+      "summary": "booking-race.json"
+    }
+  ],
+  "notes": "Capacity limit was not reached: both k6 runs passed every threshold at the highest load tried. Signing up 20 students at once returned HTTP 500 for about a quarter of requests (Auth pool max 10 with a 2 s connect timeout is the likely cause, not yet confirmed), so the race test signs students up four at a time."
+}

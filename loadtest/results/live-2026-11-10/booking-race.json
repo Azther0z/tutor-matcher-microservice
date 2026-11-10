@@ -1,0 +1,32 @@
+{
+  "measuredAt": "2026-11-10T13:12:01.544Z",
+  "base": "http://127.0.0.1:8080",
+  "slotDate": "2026-11-13",
+  "round1": {
+    "contenders": 20,
+    "wallClockMs": 133,
+    "byStatus": {
+      "201": 1,
+      "409": 19
+    },
+    "fastestMs": 100,
+    "slowestMs": 132,
+    "winners": 1,
+    "serverErrors": 0,
+    "pass": true
+  },
+  "round2": {
+    "sameKeyRequests": 10,
+    "byStatus": {
+      "201": 10
+    },
+    "fastestMs": 38,
+    "slowestMs": 40,
+    "distinctBookings": 1,
+    "pass": true
+  },
+  "cleanupStatuses": [
+    200,
+    200
+  ]
+}
