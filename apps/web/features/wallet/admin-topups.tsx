@@ -16,6 +16,7 @@ const TABS = [["PENDING", "Waiting"], ["SUCCEEDED", "Approved"], ["FAILED", "Rej
 function SlipImage({ topupId }: { topupId: string }) {
   const [src, setSrc] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
+  const [open, setOpen] = useState(false);
   useEffect(() => {
     let url: string | null = null;
     let cancelled = false;
@@ -27,7 +28,18 @@ function SlipImage({ topupId }: { topupId: string }) {
   }, [topupId]);
   if (failed) return <p className="small-muted">The slip image could not be loaded.</p>;
   if (!src) return <p className="small-muted" role="status">Loading slip…</p>;
-  return <a href={src} target="_blank" rel="noreferrer"><img className="slip-image" src={src} alt="Transfer slip" /></a>;
+  return (
+    <>
+      <button type="button" className="slip-open" onClick={() => setOpen(true)} aria-label="View slip full size">
+        <img className="slip-image" src={src} alt="Transfer slip" />
+      </button>
+      {open && (
+        <LegalModal open title="Transfer slip" onClose={() => setOpen(false)} actions={false}>
+          <img className="slip-full" src={src} alt="Transfer slip" />
+        </LegalModal>
+      )}
+    </>
+  );
 }
 
 function RequestCard({ topup, onDone }: { topup: Topup; onDone: () => void }) {
