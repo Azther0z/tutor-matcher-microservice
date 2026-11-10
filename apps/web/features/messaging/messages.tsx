@@ -175,10 +175,11 @@ function Thread({ userId }: { userId: string }) {
         ? "ADMIN"
         : "STUDENT";
   const [thread, setThread] = useState<ThreadPage | null>(null);
-  const [pending, setPending] = useState(false);
+  type Outgoing = { id: string; content: string; key: string; createdAt: string; status: "sending" | "failed" };
+  const [outbox, setOutbox] = useState<Outgoing[]>([]);
+  const queue = useRef<Promise<void>>(Promise.resolve());
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
-  const [key, setKey] = useState(newIdempotencyKey());
   const scroller = useRef<HTMLDivElement>(null);
   const [lookedUp, setLookedUp] = useState("");
   const [draft, setDraft] = useState("");
@@ -225,28 +226,42 @@ function Thread({ userId }: { userId: string }) {
   useEffect(() => {
     const node = scroller.current;
     if (node) node.scrollTop = node.scrollHeight;
-  }, [thread?.items.length]);
-  async function send(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const content = draft.trim();
-    if (!content || pending) return;
-    setPending(true);
-    setError("");
-    setNotice("");
+  }, [thread?.items.length, outbox.length]);
+  // Messages appear at once as "sending" and are delivered in order in the background. A failure marks only that message.
+  async function deliver(item: Outgoing) {
     try {
       await api<Message>("/messages", {
         method: "POST",
-        body: { recipientId: userId, view, content },
-        idempotencyKey: key,
+        body: { recipientId: userId, view, content: item.content },
+        idempotencyKey: item.key,
       });
-      setDraft("");
-      setKey(newIdempotencyKey());
       await load();
-    } catch (caught) {
-      setError(errorMessage(caught, "We couldn’t send your message."));
-    } finally {
-      setPending(false);
+      setOutbox((current) => current.filter((entry) => entry.id !== item.id));
+    } catch {
+      setOutbox((current) => current.map((entry) => (entry.id === item.id ? { ...entry, status: "failed" } : entry)));
     }
+  }
+  function enqueue(item: Outgoing) {
+    queue.current = queue.current.then(() => deliver(item));
+  }
+  function send(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const content = draft.trim();
+    if (!content) return;
+    const item: Outgoing = { id: newIdempotencyKey(), content, key: newIdempotencyKey(), createdAt: new Date().toISOString(), status: "sending" };
+    setOutbox((current) => [...current, item]);
+    setDraft("");
+    setNotice("");
+    enqueue(item);
+  }
+  function retry(id: string) {
+    const item = outbox.find((entry) => entry.id === id);
+    if (!item) return;
+    setOutbox((current) => current.map((entry) => (entry.id === id ? { ...entry, status: "sending" } : entry)));
+    enqueue({ ...item, status: "sending" });
+  }
+  function discard(id: string) {
+    setOutbox((current) => current.filter((entry) => entry.id !== id));
   }
   if (!isUuid(userId))
     return (
@@ -279,7 +294,7 @@ function Thread({ userId }: { userId: string }) {
       {thread && (
         <section className="panel chat">
           <div className="thread" ref={scroller} aria-live="polite">
-            {thread.items.length === 0 && (
+            {thread.items.length === 0 && outbox.length === 0 && (
               <p className="chat-empty">No messages yet. Say hello below.</p>
             )}
             {thread.items.map((message, index) => {
@@ -300,6 +315,22 @@ function Thread({ userId }: { userId: string }) {
                 </Fragment>
               );
             })}
+            {outbox.map((item) => (
+              <div key={item.id} className={`chat-line own pending ${item.status}`}>
+                <article className={`message-bubble own ${item.status === "failed" ? "is-failed" : "is-sending"}`}>
+                  <p>{item.content}</p>
+                </article>
+                {item.status === "sending" ? (
+                  <time>Sending</time>
+                ) : (
+                  <span className="chat-failed">
+                    Not sent
+                    <button type="button" onClick={() => retry(item.id)}>Retry</button>
+                    <button type="button" onClick={() => discard(item.id)}>Delete</button>
+                  </span>
+                )}
+              </div>
+            ))}
           </div>
           <form className="chat-composer" onSubmit={send}>
             <input
@@ -313,7 +344,7 @@ function Thread({ userId }: { userId: string }) {
               value={draft}
               onChange={(event) => setDraft(event.target.value)}
             />
-            <button className="chat-send" disabled={pending || !draft.trim()} aria-label="Send message" title="Send">
+            <button className="chat-send" disabled={!draft.trim()} aria-label="Send message" title="Send">
               <svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d="M17.5 2.5 8.75 11.25M17.5 2.5l-5.5 15-3.25-6.25L2.5 8 17.5 2.5Z" />
               </svg>
