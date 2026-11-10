@@ -8,6 +8,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Field, Notice, focusFirstInvalid } from "@/components/field";
 import { Dropdown } from "@/components/dropdown";
+import { Avatar } from "@/components/avatar";
 import { LessonCalendar } from "@/components/lesson-calendar";
 import { useAuth } from "@/lib/auth-context";
 import type { Booking, BookingPage } from "@/features/booking/types";
@@ -330,7 +331,7 @@ export function TutorProfile({ tutorId }: { tutorId: string }) {
   const tutor = resource.data;
   return (
     <>
-      {!tutor && <h1 className="page-title">Tutor profile</h1>}
+      {!tutor && <header className="page-heading"><h1>Tutor profile</h1></header>}
       <ResourceState
         loading={resource.loading}
         error={resource.error}
@@ -339,36 +340,50 @@ export function TutorProfile({ tutorId }: { tutorId: string }) {
       />
       {tutor && (
         <>
-          <section className="panel">
-            <h1>{tutor.displayName}</h1>
-            <h2>{tutor.headline}</h2>
-            <p style={{ whiteSpace: "pre-wrap" }}>{tutor.bio}</p>
+          <section className="panel booking-new">
+            <div className="chat-head">
+              <Avatar name={tutor.displayName} src={tutor.avatarUrl} size={56} />
+              <div className="booking-title">
+                <h2>
+                  {tutor.displayName} <VerifiedBadge />
+                </h2>
+                <p className="tutor-card-meta">{tutor.headline}</p>
+              </div>
+            </div>
+            {tutor.bio && <p className="submission-bio full">{tutor.bio}</p>}
             {tutor.introVideoUrl && (
-              <a
-                className="text-link"
-                href={tutor.introVideoUrl}
-                rel="noreferrer"
-                target="_blank"
-              >
-                Watch introduction video
-              </a>
+              <div className="slot-footer flush">
+                <span />
+                <a
+                  className="button button-quiet"
+                  href={tutor.introVideoUrl}
+                  rel="noreferrer"
+                  target="_blank"
+                >
+                  Watch intro video
+                </a>
+              </div>
             )}
           </section>
-          <h2>Online subjects</h2>
-          {tutor.subjects.length === 0 && <p>No subjects published yet.</p>}
+          <h2 className="list-title">Online subjects</h2>
+          {tutor.subjects.length === 0 && (
+            <p className="tutor-card-meta">No subjects published yet.</p>
+          )}
           <div className="account-grid">
             {tutor.subjects.map((subject) => (
-              <section className="panel" key={subject.id}>
-                <h3>{subject.name}</h3>
-                <p>{subject.description}</p>
-                <p>THB {subject.hourlyRate}/hour</p>
-                <Link
-                  className="button"
-                  href={`/tutors/${tutor.id}/subjects/${subject.id}`}
-                >
-                  View availability
-                </Link>
-              </section>
+              <Link
+                className="panel tutor-card"
+                key={subject.id}
+                href={`/tutors/${tutor.id}/subjects/${subject.id}`}
+              >
+                <strong>{subject.name}</strong>
+                <p className="tutor-card-desc">{subject.description}</p>
+                <div className="tutor-card-foot">
+                  <div className="tutor-card-price">
+                    <strong>THB {subject.hourlyRate}/hour</strong>
+                  </div>
+                </div>
+              </Link>
             ))}
           </div>
           <ReviewList tutorId={tutor.id} />

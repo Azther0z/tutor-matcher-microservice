@@ -896,3 +896,6 @@ fieldset.field legend { font-size: 14px; font-weight: 500; padding: 0; margin-bo
 .booking-new [role="status"] .button { min-height: 30px; padding: 4px 12px; font-size: 13px; }
 .slot-footer.flush > .button-quiet:first-child { margin-left: -14px; }
 .submission-card .summary-rows > div strong { font-weight: 500; }
+a.tutor-card { color: var(--ink); text-decoration: none; }
+a.tutor-card:hover { background: #0b0b0b; }
+.booking-title h2 .verified, .booking-title h2 svg { vertical-align: middle; }
