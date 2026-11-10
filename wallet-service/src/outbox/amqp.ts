@@ -25,7 +25,14 @@ export class AmqpBroker implements Broker {
       const reset = () => { this.channel = undefined; this.connection = undefined; this.connecting = undefined; };
       connection.on('close', reset);
       connection.on('error', reset);
-      const channel = await connection.createConfirmChannel();
+      let channel: ConfirmChannel;
+      try {
+        channel = await connection.createConfirmChannel();
+      } catch (error) {
+        // Do not leak a half-open connection on every failed attempt.
+        await connection.close().catch(() => undefined);
+        throw error;
+      }
       channel.on('close', reset);
       channel.on('error', reset);
       channel.on('return', (message) => { if (message.properties.messageId) this.returned.add(message.properties.messageId); });
@@ -38,16 +45,13 @@ export class AmqpBroker implements Broker {
     return this.connecting;
   }
 
+  /**
+   * Proves the broker is reachable under Wallet's own credentials. It deliberately does not inspect the queue: a
+   * passive declare needs `configure` access, which would also let Wallet delete or purge Notification's queue.
+   * Routing is proven where it matters, by the `mandatory` publish below, which rejects an unroutable event.
+   */
   async verifyTopology(): Promise<void> {
-    const connection = this.connection ?? (await this.connect(), this.connection!);
-    // A passive declare of a missing queue closes its channel, so use a throwaway one.
-    const probe = await connection.createChannel();
-    probe.on('error', () => undefined);
-    try {
-      await probe.checkQueue(REQUIRED_QUEUE);
-    } finally {
-      await probe.close().catch(() => undefined);
-    }
+    await this.connect();
   }
 
   async publish(envelope: Envelope): Promise<void> {

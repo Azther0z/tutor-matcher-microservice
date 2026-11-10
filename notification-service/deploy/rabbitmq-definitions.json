@@ -1,5 +1,5 @@
 {
-  "_comment": "Versioned Tutor Matcher topology (ADR-0019, ADR-0024). Import with `rabbitmqctl import_definitions`. Users and passwords are NOT here: create one broker user per producer (auth, tutor, booking, wallet, review, messaging) plus notification from SOPS/age runtime secrets, with the same names used below. RabbitMQ verifies the AMQP user_id property against the connected user, which is what Notification checks.",
+  "_comment": "Notification needs write on its queues and read on both exchanges because queue.bind requires write on the queue and read on the source exchange. Versioned Tutor Matcher topology (ADR-0019, ADR-0024). Import with `rabbitmqctl import_definitions`. Users and passwords are NOT here: create one broker user per producer (auth, tutor, booking, wallet, review, messaging) plus notification from SOPS/age runtime secrets, with the same names used below. RabbitMQ verifies the AMQP user_id property against the connected user, which is what Notification checks.",
   "vhosts": [{ "name": "/" }],
   "exchanges": [
     { "name": "tutor-matcher.events", "vhost": "/", "type": "topic", "durable": true, "auto_delete": false, "internal": false, "arguments": {} },
@@ -23,7 +23,7 @@
     { "user": "wallet", "vhost": "/", "configure": "^$", "write": "^tutor-matcher\\.events$", "read": "^$" },
     { "user": "review", "vhost": "/", "configure": "^$", "write": "^tutor-matcher\\.events$", "read": "^$" },
     { "user": "messaging", "vhost": "/", "configure": "^$", "write": "^tutor-matcher\\.events$", "read": "^$" },
-    { "user": "notification", "vhost": "/", "configure": "^(tutor-matcher\\.events|tutor-matcher\\.dead|notification\\.events\\.v1(\\.dead)?)$", "write": "^tutor-matcher\\.dead$", "read": "^(notification\\.events\\.v1(\\.dead)?|tutor-matcher\\.events)$" }
+    { "user": "notification", "vhost": "/", "configure": "^(tutor-matcher\\.events|tutor-matcher\\.dead|notification\\.events\\.v1(\\.dead)?)$", "write": "^(tutor-matcher\\.dead|notification\\.events\\.v1(\\.dead)?)$", "read": "^(notification\\.events\\.v1(\\.dead)?|tutor-matcher\\.events|tutor-matcher\\.dead)$" }
   ],
   "topic_permissions": [
     { "user": "auth", "vhost": "/", "exchange": "tutor-matcher.events", "write": "^v1\\.auth\\.", "read": "^$" },

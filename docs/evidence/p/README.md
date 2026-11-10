@@ -11,7 +11,8 @@ This records what was built, how to repeat it, and, just as important, what was 
 | Node | v24.15.0 locally. The Dockerfiles use `node:22-alpine`, which has **not** been built or run |
 | PostgreSQL used for tests | 18.6 (throwaway local cluster). `compose.yaml` pins `postgres:16-alpine` |
 | MongoDB used for tests | 8.2.7, single-member replica set. `compose.yaml` pins `mongo:7` and is a standalone server today |
-| RabbitMQ / Traefik / Docker | **not available locally; nothing was run against them** (the Docker daemon is not running) |
+| RabbitMQ used for broker checks | 4.4.0 (Homebrew, throwaway node with the management plugin). `compose.yaml` pins `rabbitmq:4.3.6-management`; that exact image was **not** run |
+| Traefik / Docker | **not available locally; nothing was run against them** (the Docker daemon is not running) |
 
 ## What was delivered
 
@@ -62,14 +63,25 @@ The tests `DROP SCHEMA public` in the Wallet test database and clear collections
 | Producer outage recovery, consumer crash/redelivery, failed-job retry, stale reminder suppression | Proven against doubles; **not** against a real RabbitMQ |
 | Restored financial records resume without duplicate movements | **Not run** (no backup/restore exercise yet) |
 
+## Real-broker results (`npm run smoke:p-broker`, 10 November 2026)
+
+18 checks pass against a disposable RabbitMQ 4.4.0 and a MongoDB replica set, using the real `docker/rabbitmq-provision.mjs`, Wallet's `AmqpBroker` and Notification's `EventConsumer`: provisioned producer users have no management tag; Notification asserts the provisioned topology and consumes as a restricted user; a Wallet publish resolves on a routed confirm and is durably accepted as publisher `wallet`; a repeated publish adds no second delivery; Wallet cannot publish under another producer's prefix, declare queues or inspect Notification's queue; the broker rejects a spoofed `user_id`; a transient storage failure is redelivered then accepted; an unbound queue makes publish fail as UNROUTABLE and publishing recovers once Notification reinstalls the topology; publishing during a broker stop does not report success, resumes after restart, and the event is accepted exactly once.
+
+The real broker found four defects that the fake-channel tests could not:
+
+1. The provisioning job failed on first start: RabbitMQ refuses topic permissions on an exchange that does not exist, and the job runs before any owner declares it. It now declares the exchanges, queues and bindings first.
+2. The `notification` user could not bind its queues (`queue.bind` needs write on the queue and read on the source exchange). The definitions were corrected.
+3. `EventConsumer` leaked its connection when topology setup failed and spawned a new connect loop on every close, which multiplied into thousands of connections. It now closes the half-open connection and runs one loop (`notification-service/test/connect.test.ts` fails on the old code).
+4. Wallet's passive queue check needs `configure` access, which would let Wallet delete Notification's queue. The check now only proves connectivity; routing is proven by the `mandatory` publish.
+
 ## Not run, and why this matters
 
-- **No RabbitMQ.** `AmqpBroker` (publisher confirms, `mandatory` return, `user_id`) and `EventConsumer` (topology, ack/nack) are exercised only through interfaces and a fake channel. The wire behaviour, the `topic_permissions` regexes and whether a passive queue check is allowed without `read` permission are unverified. Run the cases below once a broker is up.
+- **Not on the pinned image.** The checks above ran on 4.4.0, not `rabbitmq:4.3.6-management`, and not through Compose. Wallet's outbox publisher was not driven against the real broker (its recovery tests use a fake broker); only `AmqpBroker` was.
 - **No real peers.** Booking, Auth and Tutor are not implemented yet; every cross-service test uses a typed double or an in-process gRPC server built from the real `.proto` files.
 - **Version skew.** Tests ran on PostgreSQL 18 and MongoDB 8; compose pins 16 and 7. Nothing used a version-specific feature, but this is unproven.
 - **No load or scalability measurement.** Not part of P's handoff.
 
-Cases to run when RabbitMQ exists (from `contracts/recovery.md`): business commit while the broker is down then publish; broker confirm with the queue absent (expect the mandatory return and a retryable outbox row); consumer killed after durable accept and before ack; two Notification workers sharing an expired lease.
+Still to run on a real broker (from `contracts/recovery.md`): the Wallet outbox publisher against it (business commit while the broker is down, then publish); consumer killed after durable accept and before ack; two Notification workers sharing an expired lease. Producer outage and bounded redelivery are covered above.
 
 ## Open items
 

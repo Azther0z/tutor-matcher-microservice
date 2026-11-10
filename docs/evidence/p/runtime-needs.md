@@ -35,7 +35,7 @@ Names follow `compose.yaml`. Any secret may instead be a mounted file through `<
 
 Auth declares the versioned topology (identical arguments to Notification's, so both may assert it) and keeps the bootstrap `auth` user. `docker/rabbitmq-provision.mjs` then creates one restricted user for every producer whose `RABBITMQ_<NAME>_PASSWORD` is supplied, using the permissions in `notification-service/deploy/rabbitmq-definitions.json` (write only to `tutor-matcher.events`, only under `v1.<producer>.`, no declare rights). Local Compose runs it as the one-shot `rabbitmq-provision` job. In Swarm it is a rollout step before owner workers start: run it once with the same variables. Tutor, Booking, Review and Messaging owners add their own password variable to be provisioned. The script is tested against a stub management API only.
 
-Unverified against a real broker: publisher confirms with `mandatory`, the `topic_permissions` regexes, and whether Wallet's passive queue check works without `read` permission.
+Verified against a real RabbitMQ 4.4.0 by `npm run smoke:p-broker` (see the evidence README): confirms with `mandatory`, the permission and topic-permission regexes, and `user_id` verification. Wallet cannot do a passive queue check, so its broker check is connectivity only. The script declares the topology itself because topic permissions need the exchange to exist. Not run on the pinned `4.3.6` image.
 
 ## Dependencies
 

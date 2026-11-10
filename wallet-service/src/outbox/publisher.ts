@@ -4,7 +4,7 @@ import type { Envelope } from '../domain/outbox';
 import type { Clock } from '../time';
 
 export interface Broker {
-  /** Throws unless the exchange and the required durable queue exist. Readiness must not pass otherwise. */
+  /** Throws unless the broker is reachable. Queue routing is proven by `publish`, not here. */
   verifyTopology(): Promise<void>;
   /** Resolves only after a *routed* publisher confirm. A nack, an unroutable return or a lost channel throws. */
   publish(envelope: Envelope): Promise<void>;

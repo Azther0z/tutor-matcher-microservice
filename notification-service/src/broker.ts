@@ -44,38 +44,52 @@ export class EventConsumer {
   private attempts = new Map<string, number>();
   private ready = false;
   private stopped = false;
+  private starting = false;
 
   constructor(private readonly url: string, private readonly acceptor: EventAcceptor, private readonly options: ConsumerOptions = {}) {}
 
   isReady(): boolean { return this.ready; }
 
+  /** Connects with bounded backoff. Only one connect loop ever runs, however many times the connection drops. */
   async start(): Promise<void> {
-    for (let attempt = 1; !this.stopped; attempt += 1) {
-      try {
-        await this.connect();
-        return;
-      } catch (error) {
-        console.warn(`[Notification] RabbitMQ not ready (${(error as Error).message}); retrying`);
-        await new Promise((resolve) => setTimeout(resolve, Math.min(15_000, 1000 * 2 ** Math.min(attempt, 4))));
+    if (this.starting) return;
+    this.starting = true;
+    try {
+      for (let attempt = 1; !this.stopped; attempt += 1) {
+        try {
+          await this.connect();
+          return;
+        } catch (error) {
+          console.warn(`[Notification] RabbitMQ not ready (${(error as Error).message}); retrying`);
+          await new Promise((resolve) => setTimeout(resolve, Math.min(15_000, 1000 * 2 ** Math.min(attempt, 4))));
+        }
       }
+    } finally {
+      this.starting = false;
     }
   }
 
   private async connect(): Promise<void> {
     const connection = await amqp.connect(this.url);
-    const reconnect = () => {
+    connection.on('error', () => undefined);
+    let channel: Channel;
+    try {
+      channel = await connection.createChannel();
+      await installTopology(channel);
+      await channel.prefetch(10);
+      await channel.consume(QUEUE, (message) => { if (message) void this.onMessage(channel, message); }, { noAck: false });
+    } catch (error) {
+      // A half-open connection would leak on every retry; the caller's backoff loop owns the next attempt.
+      await connection.close().catch(() => undefined);
+      throw error;
+    }
+    connection.on('close', () => {
       if (this.stopped) return;
       this.ready = false;
       this.channel = undefined;
       console.error('[Notification] RabbitMQ connection lost; reconnecting');
       setTimeout(() => void this.start(), 2000).unref();
-    };
-    connection.on('close', reconnect);
-    connection.on('error', () => undefined);
-    const channel = await connection.createChannel();
-    await installTopology(channel);
-    await channel.prefetch(10);
-    await channel.consume(QUEUE, (message) => { if (message) void this.onMessage(channel, message); }, { noAck: false });
+    });
     this.connection = connection;
     this.channel = channel;
     this.ready = true;

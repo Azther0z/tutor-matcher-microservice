@@ -48,6 +48,12 @@ test("provisions only producers with a supplied password and never touches auth"
     assert.equal(result.code, 0, result.output);
     const urls = requests.map((request) => `${request.method} ${request.url}`);
     assert.deepEqual(urls, [
+      "PUT /api/exchanges/%2F/tutor-matcher.events",
+      "PUT /api/exchanges/%2F/tutor-matcher.dead",
+      "PUT /api/queues/%2F/notification.events.v1",
+      "PUT /api/queues/%2F/notification.events.v1.dead",
+      "POST /api/bindings/%2F/e/tutor-matcher.events/q/notification.events.v1",
+      "POST /api/bindings/%2F/e/tutor-matcher.dead/q/notification.events.v1.dead",
       "PUT /api/users/wallet",
       "PUT /api/permissions/%2F/wallet",
       "PUT /api/topic-permissions/%2F/wallet",
@@ -55,10 +61,12 @@ test("provisions only producers with a supplied password and never touches auth"
       "PUT /api/permissions/%2F/notification",
     ]);
     assert.ok(requests.every((request) => request.authorization === `Basic ${Buffer.from("auth:admin-secret").toString("base64")}`));
-    const wallet = requests[2].body;
+    const queue = requests.find((request) => request.url === "/api/queues/%2F/notification.events.v1").body;
+    assert.deepEqual(queue.arguments, { "x-dead-letter-exchange": "tutor-matcher.dead", "x-dead-letter-routing-key": "notification.invalid" });
+    const wallet = requests.find((request) => request.url === "/api/topic-permissions/%2F/wallet").body;
     assert.equal(wallet.exchange, "tutor-matcher.events");
     assert.equal(wallet.write, "^v1\\.wallet\\.");
-    assert.equal(requests[1].body.configure, "^$", "a producer may not declare topology");
+    assert.equal(requests.find((request) => request.url === "/api/permissions/%2F/wallet").body.configure, "^$", "a producer may not declare topology");
     assert.match(result.output, /Not provisioned.*tutor, booking, review, messaging/);
     assert.ok(!result.output.includes("wallet-secret"), "passwords are never printed");
   });
@@ -68,7 +76,7 @@ test("fails when the management API rejects a call", async () => {
   await withBroker(async (port) => {
     const result = await run({ RABBITMQ_AUTH_PASSWORD: "admin-secret", RABBITMQ_WALLET_PASSWORD: "wallet-secret" }, port);
     assert.notEqual(result.code, 0);
-    assert.match(result.output, /PUT users\/wallet returned 403/);
+    assert.match(result.output, /PUT exchanges\/%2F\/tutor-matcher.events returned 403/);
   }, 403);
 });
 

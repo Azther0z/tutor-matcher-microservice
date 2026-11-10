@@ -31,7 +31,8 @@
     "smoke:outbox": "node scripts/smoke-outbox.mjs",
     "routes:check": "node scripts/generate-traefik-routes.mjs --check",
     "dev:wallet": "npm run dev -w wallet-service",
-    "dev:notification": "npm run dev -w notification-service"
+    "dev:notification": "npm run dev -w notification-service",
+    "smoke:p-broker": "node scripts/smoke-p-broker.mjs"
   },
   "devDependencies": {
     "@eslint/js": "9.39.5",
