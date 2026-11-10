@@ -242,10 +242,11 @@ fieldset.field legend { font-size: 14px; font-weight: 500; padding: 0; margin-bo
 .dropdown-option[aria-disabled="true"], .dropdown-empty { color: var(--muted); opacity: 0.6; cursor: not-allowed; }
 .dropdown-empty { padding: 12px; }
 
-.notice { padding: 13px 16px; border-radius: 8px; font-size: 14px; margin: 0 0 16px; border: 1px solid transparent; }
+.notice { padding: 10px 14px; border-radius: 8px; font-size: 14px; margin: 0 0 16px; border: 1px solid transparent; }
 .notice-info { background: rgba(139, 92, 246, 0.1); border-color: rgba(139, 92, 246, 0.3); color: #ddd6fe; }
 .notice-success { background: var(--success-bg); border-color: rgba(80, 200, 120, 0.3); color: var(--success); }
-.notice-error { background: var(--danger-bg); border-color: rgba(255, 99, 71, 0.35); color: var(--danger); }
+.notice-error { background: rgba(255, 99, 71, 0.07); border-color: rgba(255, 99, 71, 0.28); color: var(--ink); line-height: 1.45; }
+.notice-error .request-id { color: var(--muted); opacity: 1; }
 .notice a, .notice .text-link { color: inherit; text-decoration: underline; }
 .form + .notice, .notice + .notice { margin-top: 16px; }
 .request-id { display: block; margin-top: 6px; font-size: 12px; opacity: 0.85; overflow-wrap: anywhere; }
