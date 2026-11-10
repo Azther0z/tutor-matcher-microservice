@@ -6,10 +6,10 @@ import { useCallback, useEffect, useState } from "react";
 import { ErrorNotice } from "@/components/field";
 import { useAuth } from "@/lib/auth-context";
 import { api, failureOf, type Failure } from "@/lib/api";
-import { DemoBanner } from "./common";
+import { DemoBanner, StatusBadge } from "./common";
 import { TopupRequestPanel } from "./topup-request";
 import { formatMoney, formatTime, titleCase } from "./format";
-import type { Paged, WalletOverview, WalletTransaction } from "./types";
+import type { Paged, Topup, WalletOverview, WalletTransaction } from "./types";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 
@@ -36,6 +36,7 @@ export function WalletOverviewPage() {
   const [error, setError] = useState<Failure | null>(null);
   const [loading, setLoading] = useState(true);
   const [waiting, setWaiting] = useState(false);
+  const [latestTopup, setLatestTopup] = useState<Topup | null>(null);
   const [topupOpen, setTopupOpen] = useState(Boolean(returnTo));
   const [recent, setRecent] = useState<WalletTransaction[]>([]);
   const isTutor = account?.capabilities.includes("TUTOR") ?? false;
@@ -88,13 +89,25 @@ export function WalletOverviewPage() {
           </div>
         </section>
       )}
-      <TopupRequestPanel returnTo={returnTo} unavailable={Boolean(error) && !wallet} open={topupOpen} onClose={() => setTopupOpen(false)} onWaiting={setWaiting} />
+      <TopupRequestPanel returnTo={returnTo} unavailable={Boolean(error) && !wallet} open={topupOpen} onClose={() => setTopupOpen(false)} onWaiting={setWaiting} onLatest={setLatestTopup} />
       <section className="panel wallet-recent" aria-label="Recent activity">
         <div className="wallet-recent-head">
           <h2>Recent activity</h2>
           <Link className="wallet-viewall" href="/wallet/transactions">View all</Link>
         </div>
-        {recent.length === 0 ? (
+        {latestTopup?.status === "PENDING" && (
+          <Link className="wallet-tx" href={`/wallet/topups/${latestTopup.id}${returnTo ? `?returnToBookingId=${returnTo}` : ""}`}>
+            <span>
+              Top-up request
+              <small>{formatTime(latestTopup.createdAt)}</small>
+            </span>
+            <span className="wallet-tx-amount">
+              <StatusBadge value="PENDING" />
+              <strong>{formatMoney(latestTopup.amount)}</strong>
+            </span>
+          </Link>
+        )}
+        {recent.length === 0 && latestTopup?.status !== "PENDING" ? (
           <p className="tutor-card-meta">No transactions yet.</p>
         ) : (
           recent.map((tx) => (

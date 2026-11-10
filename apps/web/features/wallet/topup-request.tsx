@@ -1,12 +1,10 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ErrorNotice, Field, Notice } from "@/components/field";
 import { LegalModal } from "@/components/legal-modal";
-import { StatusBadge } from "./common";
 import { api, failureOf, fieldErrors, newIdempotencyKey, type Failure } from "@/lib/api";
-import { formatMoney, formatTime, normalizeAmount } from "./format";
+import { normalizeAmount } from "./format";
 import type { Topup } from "./types";
 
 const PROMPTPAY_ID = "0000000000";
@@ -27,7 +25,7 @@ function toBase64(file: File): Promise<string> {
  * Add funds by PromptPay: enter an amount, scan the QR to transfer, attach the slip and send the request. An admin approves
  * or rejects it; only one request can wait for review at a time.
  */
-export function TopupRequestPanel({ returnTo, unavailable, open, onClose, onWaiting }: { returnTo: string | null; unavailable: boolean; open: boolean; onClose: () => void; onWaiting?: (waiting: boolean) => void }) {
+export function TopupRequestPanel({ returnTo, unavailable, open, onClose, onWaiting, onLatest }: { returnTo: string | null; unavailable: boolean; open: boolean; onClose: () => void; onWaiting?: (waiting: boolean) => void; onLatest?: (latest: Topup | null) => void }) {
   const [amount, setAmount] = useState("");
   const [slip, setSlip] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -57,6 +55,7 @@ export function TopupRequestPanel({ returnTo, unavailable, open, onClose, onWait
   const normalized = normalizeAmount(amount);
   const waiting = latest?.status === "PENDING";
   useEffect(() => { onWaiting?.(waiting); }, [waiting, onWaiting]);
+  useEffect(() => { onLatest?.(latest); }, [latest, onLatest]);
 
   function confirmAmount(event?: React.FormEvent) {
     event?.preventDefault();
@@ -119,33 +118,6 @@ export function TopupRequestPanel({ returnTo, unavailable, open, onClose, onWait
     <>
       {returnTo && <Notice kind="info">After an admin approves your top-up you can return to your booking.</Notice>}
       {unavailable && <Notice kind="info">Adding funds is unavailable until your wallet loads.</Notice>}
-      {loaded && latest && (
-        <section className="panel booking-new topup-card" aria-label="Latest top-up request">
-          <StatusBadge value={latest.status === "SUCCEEDED" ? "APPROVED" : latest.status === "FAILED" ? "REJECTED" : "PENDING"} corner />
-          <div className="booking-title">
-            <h2>Top-up request, {formatMoney(latest.amount)}</h2>
-            <p className="tutor-card-meta">Sent {formatTime(latest.createdAt)}</p>
-          </div>
-          {latest.status === "FAILED" && latest.decisionReason && (
-            <div className="summary-rows">
-              <div>
-                <span>Reason</span>
-                <strong className="summary-note">{latest.decisionReason}</strong>
-              </div>
-            </div>
-          )}
-          <div className="slot-footer flush">
-            <span className="tutor-card-meta">
-              {waiting
-                ? "You can send another top-up request after this one is approved or rejected."
-                : "You can send a new top-up request any time."}
-            </span>
-            <Link className="button button-quiet" href={`/wallet/topups/${latest.id}${returnTo ? `?returnToBookingId=${returnTo}` : ""}`}>
-              View request
-            </Link>
-          </div>
-        </section>
-      )}
       <LegalModal
         open={open && !waiting}
         title={confirmed ? "Transfer and attach slip" : "Add funds"}
