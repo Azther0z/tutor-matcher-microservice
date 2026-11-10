@@ -884,3 +884,6 @@ fieldset.field legend { font-size: 14px; font-weight: 500; padding: 0; margin-bo
 .submission-card .summary-rows > div:last-child strong { font-size: 14px; }
 .submission-card .summary-rows a { font-size: 14px; color: var(--ink); text-decoration: none; }
 .submission-card .summary-rows a:hover { text-decoration: underline; }
+.submission-bio.full { -webkit-line-clamp: unset; display: block; }
+.summary-rows .mono-id { font-size: 12px; font-weight: 400; color: var(--muted); }
+.submission-card .summary-rows strong.mono-id { font-size: 12px; }
