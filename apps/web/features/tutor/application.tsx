@@ -156,9 +156,9 @@ function DraftRow({
   });
   const busy = action.pending || action.uncertain;
   return (
-    <div className="panel tutor-card">
+    <div className="draft-row">
       <strong>{draft.headline || "Untitled draft"}</strong>
-      <div className="button-row draft-actions">
+      <div className="button-row">
         <button type="button" className="button button-quiet" onClick={onEdit}>
           Edit
         </button>
@@ -395,7 +395,7 @@ function ApplicationContent({ profile = false }: { profile?: boolean }) {
             </section>
           )}
           <h2 className="list-title">Drafts</h2>
-          <div className="tx-list">
+          <div className="draft-list">
             {workspace.drafts.map((draft) => (
               <DraftRow
                 key={`${draft.id}:${draft.revision}`}
@@ -404,17 +404,18 @@ function ApplicationContent({ profile = false }: { profile?: boolean }) {
                 onEdit={() => setEditing(draft.id)}
               />
             ))}
-            <button
-              type="button"
-              className="panel tutor-card draft-card draft-new"
-              onClick={() => setEditing("new")}
-            >
-              <strong>
-                {workspace.tutorId
-                  ? "New profile revision"
-                  : "New application draft"}
-              </strong>
-            </button>
+            <div className="draft-row">
+              <span className="tutor-card-meta">
+                {workspace.drafts.length === 0 ? "No drafts yet." : ""}
+              </span>
+              <button
+                type="button"
+                className="button button-quiet"
+                onClick={() => setEditing("new")}
+              >
+                {workspace.tutorId ? "New profile revision" : "New application draft"}
+              </button>
+            </div>
           </div>
           {editing === "new" && (
             <DraftEditor

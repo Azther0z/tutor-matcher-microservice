@@ -866,3 +866,7 @@ fieldset.field legend { font-size: 14px; font-weight: 500; padding: 0; margin-bo
 .panel.booking-new > h3 { margin: 0; font-size: 16px; font-weight: 500; }
 .tutor-card > .draft-actions { justify-content: flex-end; margin-top: 4px; }
 .tutor-card .draft-actions .button { min-height: 34px; padding: 6px 14px; font-size: 13px; }
+.draft-list { display: grid; border-top: 1px solid var(--line); margin-bottom: 8px; }
+.draft-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.draft-row strong { font-size: 15px; font-weight: 500; }
+.draft-row .button { min-height: 34px; padding: 6px 14px; font-size: 13px; }
