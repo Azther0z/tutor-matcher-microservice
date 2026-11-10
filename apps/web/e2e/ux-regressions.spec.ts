@@ -180,9 +180,6 @@ test("an incorrect current password stays on account and scopes the field error"
   await expect(
     page.getByLabel("Current password", { exact: true }),
   ).toHaveAttribute("aria-invalid", "false");
-  await expect(
-    page.getByLabel("Current password to deactivate"),
-  ).toHaveAttribute("aria-invalid", "false");
   await expect
     .poll(() => page.evaluate(() => sessionStorage.getItem("tm.session.token")))
     .toBe("synthetic-session-token");

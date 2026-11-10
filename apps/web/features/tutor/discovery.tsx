@@ -116,6 +116,8 @@ export function Discover() {
       const value = String(form.get(key) ?? "").trim();
       if (value) next.set(key, value);
     }
+    // Sort lives in the results bar, outside this form.
+    if (query.get("sort")) next.set("sort", query.get("sort") as string);
     const problems = priceProblems(next.get("minRate"), next.get("maxRate"));
     setPriceErrors(problems);
     if (problems.min || problems.max) {
@@ -124,118 +126,153 @@ export function Discover() {
     }
     router.push(`/discover?${next}`);
   }
+  const apply = (updates: Record<string, string | null>) => {
+    const next = new URLSearchParams(query.toString());
+    for (const [key, value] of Object.entries(updates)) {
+      if (value) next.set(key, value);
+      else next.delete(key);
+    }
+    next.delete("page");
+    router.push(`/discover?${next}`);
+  };
+  const rating = Number(query.get("minRating") ?? 0);
+  const format = query.get("format") ?? "";
+  const resultCount = resource.data?.pagination.totalItems ?? 0;
   return (
     <>
-      <header className="section-heading">
-        <p className="eyebrow">LEARN SOMETHING NEW</p>
-        <h1>Find your tutor</h1>
-        <p>
-          Browse approved tutors and online subjects. Times are shown in Bangkok
-          time.
-        </p>
+      <header className="search-hero">
+        <p className="eyebrow">TUTOR SEARCH</p>
+        <h1>Find a tutor</h1>
+        <p>Filter by subject, tutor, price, rating and format, then open a tutor to see more.</p>
       </header>
-      <section className="panel">
-        <h2>Search subjects</h2>
-        {searchDown && (
-          <Notice kind="error" requestId={resource.failure?.requestId}>
-            {resource.failure?.outage
-              ? resource.failure.message
-              : "Search is unavailable right now."}{" "}
-            <button className="button button-quiet" onClick={reloadCatalogue}>
-              Try again
-            </button>
-          </Notice>
-        )}
-        <form
-          key={query.toString()}
-          className="form"
-          onSubmit={filter}
-          noValidate
-        >
-          <fieldset
-            className="plain-fieldset form"
-            disabled={searchDown || areas.loading}
-          >
-          <div className="field-set">
-            <Field
-              id="search-keyword"
-              name="q"
-              label="Keyword"
-              maxLength={200}
-              defaultValue={query.get("q") ?? ""}
-            />
-            <Field
-              id="search-tutor"
-              name="tutorName"
-              label="Tutor name"
-              maxLength={200}
-              defaultValue={query.get("tutorName") ?? ""}
-            />
-          </div>
-          <div className="field-set">
-            <div className="field">
-              <label htmlFor="learningArea">Learning area</label>
-              <Dropdown
-                id="learningArea"
-                name="learningArea"
-                defaultValue={query.get("learningArea") ?? ""}
-                options={[
-                  { value: "", label: "All learning areas" },
-                  ...(areas.data?.items.map((area) => ({ value: area.id, label: area.label })) ?? []),
-                ]}
-              />
-            </div>
-            <div className="field">
-              <label htmlFor="minRating">Minimum rating</label>
-              <Dropdown
-                id="minRating"
-                name="minRating"
-                defaultValue={query.get("minRating") ?? ""}
-                options={[
-                  { value: "", label: "Any rating" },
-                  ...[1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5].map((rating) => ({
-                    value: String(rating), label: `${rating} ${rating === 1 ? "star" : "stars"} & up`,
-                  })),
-                ]}
-              />
-            </div>
-          </div>
-          <div className="field-set">
-            <Field
-              id="minimum-rate"
-              name="minRate"
-              label="Minimum hourly rate (THB)"
-              inputMode="decimal"
-              defaultValue={query.get("minRate") ?? ""}
-              error={priceErrors.min}
-            />
-            <Field
-              id="maximum-rate"
-              name="maxRate"
-              label="Maximum hourly rate (THB)"
-              inputMode="decimal"
-              defaultValue={query.get("maxRate") ?? ""}
-              error={priceErrors.max}
-            />
-          </div>
-          {range.data && (
-            <p className="muted">
-              Published rates: THB {range.data.minimum.amount} to{" "}
-              {range.data.maximum.amount} per hour.
-            </p>
+      <div className="search-layout">
+        <aside className="search-side" aria-label="Filters">
+          {searchDown && (
+            <Notice kind="error" requestId={resource.failure?.requestId}>
+              {resource.failure?.outage
+                ? resource.failure.message
+                : "Search is unavailable right now."}{" "}
+              <button className="button button-quiet" onClick={reloadCatalogue}>
+                Try again
+              </button>
+            </Notice>
           )}
-          <div className="field-set">
-            <div className="field">
-              <span className="field-label">Lesson format</span>
-              <p className="static-value">Online lessons</p>
-              <input type="hidden" name="format" value="ONLINE" />
-            </div>
-            <div className="field">
-              <label htmlFor="sort">Sort subjects</label>
+          <form key={query.toString()} className="form" onSubmit={filter} noValidate>
+            <fieldset className="plain-fieldset" disabled={searchDown || areas.loading}>
+              <Field
+                id="search-keyword"
+                name="q"
+                label="Keyword"
+                placeholder="Subject or topic"
+                maxLength={200}
+                defaultValue={query.get("q") ?? ""}
+              />
+              <Field
+                id="search-tutor"
+                name="tutorName"
+                label="Tutor name"
+                placeholder="First or last name"
+                maxLength={200}
+                defaultValue={query.get("tutorName") ?? ""}
+              />
+              <div className="field">
+                <label htmlFor="learningArea">Learning area</label>
+                <Dropdown
+                  id="learningArea"
+                  name="learningArea"
+                  defaultValue={query.get("learningArea") ?? ""}
+                  onValueChange={(value) => apply({ learningArea: value })}
+                  options={[
+                    { value: "", label: "All learning areas" },
+                    ...(areas.data?.items.map((area) => ({ value: area.id, label: area.label })) ?? []),
+                  ]}
+                />
+              </div>
+              <div className="field">
+                <span className="field-label" id="rating-label">Minimum rating</span>
+                <div className="star-picker" role="group" aria-labelledby="rating-label">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      type="button"
+                      className={`star ${star <= rating ? "on" : ""}`}
+                      aria-label={`${star} ${star === 1 ? "star" : "stars"} and up`}
+                      aria-pressed={rating === star}
+                      onClick={() => apply({ minRating: rating === star ? null : String(star) })}
+                    >
+                      ★
+                    </button>
+                  ))}
+                </div>
+                <span className="field-hint">{rating ? `${rating} ${rating === 1 ? "star" : "stars"} & up` : "Any rating"}</span>
+                <input type="hidden" name="minRating" value={query.get("minRating") ?? ""} />
+              </div>
+              <div className="field-set">
+                <Field
+                  id="minimum-rate"
+                  name="minRate"
+                  label="Min price (THB/hr)"
+                  inputMode="decimal"
+                  defaultValue={query.get("minRate") ?? ""}
+                  error={priceErrors.min}
+                />
+                <Field
+                  id="maximum-rate"
+                  name="maxRate"
+                  label="Max price (THB/hr)"
+                  inputMode="decimal"
+                  defaultValue={query.get("maxRate") ?? ""}
+                  error={priceErrors.max}
+                />
+              </div>
+              {range.data && (
+                <p className="field-hint">
+                  Published rates: THB {range.data.minimum.amount} to {range.data.maximum.amount} per hour.
+                </p>
+              )}
+              <div className="field">
+                <span className="field-label" id="format-label">Format</span>
+                <div className="pill-toggle" role="group" aria-labelledby="format-label">
+                  <button type="button" className={format === "" ? "on" : ""} aria-pressed={format === ""} onClick={() => apply({ format: null })}>Any</button>
+                  <button type="button" className={format === "ONLINE" ? "on" : ""} aria-pressed={format === "ONLINE"} onClick={() => apply({ format: "ONLINE" })}>Online</button>
+                </div>
+                <span className="field-hint">Lessons are online.</span>
+                <input type="hidden" name="format" value={format} />
+              </div>
+              <button className="button">Search</button>
+              <Link className="button button-outline clear-filters" href="/discover">
+                Clear filters
+              </Link>
+            </fieldset>
+          </form>
+        </aside>
+        <section className="search-results" aria-live="polite">
+          <div className="recommend-banner">
+            <strong>Recommended tutors</strong>
+            {account ? (
+              preferences.error ? (
+                <span>
+                  Your learning preferences could not load. These recommendations use ratings and availability.{" "}
+                  <button className="text-link" onClick={() => void preferences.reload()}>Retry preferences</button>
+                </span>
+              ) : (
+                <span>Ranked by rating and upcoming availability, with your learning areas first.</span>
+              )
+            ) : (
+              <span>
+                Ranked by rating and upcoming availability. <Link className="text-link" href="/login?returnTo=/discover">Log in</Link> to get recommendations based on your learning areas.
+              </span>
+            )}
+          </div>
+          <div className="result-bar">
+            <span className="muted">{resource.data ? `${resultCount} ${resultCount === 1 ? "subject" : "subjects"} found` : ""}</span>
+            <label className="sort-control">
+              <span>Sort</span>
               <Dropdown
                 id="sort"
                 name="sort"
                 defaultValue={query.get("sort") ?? "RECOMMENDED"}
+                onValueChange={(value) => apply({ sort: value === "RECOMMENDED" ? null : value })}
                 options={[
                   { value: "RECOMMENDED", label: "Recommended" },
                   { value: "PRICE_ASC", label: "Price: low to high" },
@@ -243,46 +280,23 @@ export function Discover() {
                   { value: "TOP_RATED", label: "Top rated" },
                 ]}
               />
-            </div>
+            </label>
           </div>
-          <div className="button-row">
-            <button className="button">Search</button>
-            <Link className="text-link" href="/discover">
-              Clear filters
-            </Link>
-          </div>
-          </fieldset>
-        </form>
-        {preferences.error && (
-          <Notice kind="info">
-            Your learning preferences could not load. These recommendations use
-            ratings and availability.{" "}
-            <button
-              className="button button-quiet"
-              onClick={() => void preferences.reload()}
-            >
-              Retry preferences
-            </button>
-          </Notice>
-        )}
-      </section>
-      <ResourceState
-        loading={
-          !ready || resource.loading || Boolean(account && preferences.loading)
-        }
-        error={searchDown ? "" : resource.error}
-        failure={resource.failure}
-        retry={() => void resource.reload()}
-      />
-      {resource.data && !resource.loading && (
-        <>
-          <h2>Available subjects</h2>
-          {resource.data.items.length === 0 && (
-            <p className="empty-state">
-              No subjects match these filters. Try a different search.
-            </p>
-          )}
-          <div className="account-grid">
+          <ResourceState
+            loading={!ready || resource.loading || Boolean(account && preferences.loading)}
+            error={searchDown ? "" : resource.error}
+            failure={resource.failure}
+            retry={() => void resource.reload()}
+          />
+          {resource.data && !resource.loading && (
+            <>
+              {resource.data.items.length === 0 && (
+                <div className="empty-state">
+                  <h2>No tutors match these filters</h2>
+                  <p>Try a different search, or clear the filters.</p>
+                </div>
+              )}
+              <div className="account-grid">
             {resource.data.items.map((item) => (
               <article className="panel" key={item.subject.id}>
                 <p className="eyebrow">ONLINE SUBJECT</p>
@@ -327,9 +341,11 @@ export function Discover() {
               </article>
             ))}
           </div>
-          <Pager pagination={resource.data.pagination} onPage={navigate} />
-        </>
-      )}
+              <Pager pagination={resource.data.pagination} onPage={navigate} />
+            </>
+          )}
+        </section>
+      </div>
     </>
   );
 }

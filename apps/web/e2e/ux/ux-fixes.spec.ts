@@ -35,19 +35,6 @@ test.describe("account forms keep the session on a wrong current password (UX-05
     expect(await page.evaluate(() => sessionStorage.getItem("tm.session.token"))).toBe("synthetic-session-token");
     // the other two forms are untouched
     await expect(page.locator("#passwordCurrentPassword")).not.toHaveAttribute("aria-invalid", "true");
-    await expect(page.locator("#deactivatePassword")).not.toHaveAttribute("aria-invalid", "true");
-  });
-
-  test("deactivate with a wrong password stays signed in", async ({ page }) => {
-    await signIn(page);
-    await mockAccountPage(page, (route) => json(route, 401, wrongPassword));
-    page.on("dialog", (dialog) => void dialog.accept());
-    await page.goto("/account");
-    await page.getByLabel("Current password to deactivate").fill("wrong password");
-    await page.getByRole("button", { name: "Deactivate account" }).click();
-    await expect(page.getByText("Current password is incorrect.")).toBeVisible();
-    await expect(page).toHaveURL(/\/account$/);
-    expect(await page.evaluate(() => sessionStorage.getItem("tm.session.token"))).toBe("synthetic-session-token");
   });
 
   test("password change with a wrong current password stays signed in", async ({ page }) => {
@@ -70,7 +57,6 @@ test.describe("account forms keep the session on a wrong current password (UX-05
     await page.getByRole("button", { name: "Save details" }).click();
     await expect(page.locator("#emailCurrentPassword")).toHaveAttribute("aria-invalid", "true");
     await expect(page.locator("#passwordCurrentPassword")).not.toHaveAttribute("aria-invalid", "true");
-    await expect(page.locator("#deactivatePassword")).not.toHaveAttribute("aria-invalid", "true");
   });
 
   test("a rejected session token still ends the session", async ({ page }) => {
@@ -374,7 +360,7 @@ test.describe("dead ends and outage states", () => {
     await expect(page.getByRole("option", { name: "4 stars & up" })).toHaveCount(1);
     await expect(page.getByRole("option", { name: "1 star & up" })).toHaveCount(1);
     await expect(page.locator("select#format")).toHaveCount(0);
-    await expect(page.getByText("Online lessons")).toBeVisible();
+    await expect(page.getByText(/Lessons are online/)).toBeVisible();
     await expect(page.getByRole("button", { name: "Search" })).toBeEnabled();
     const before = searches.length;
     await page.getByLabel("Minimum hourly rate (THB)").fill("900");

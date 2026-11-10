@@ -20,6 +20,7 @@ export default function HomePage() {
         </form>
         <div className="actions">
           <Link className="button button-outline" href="/signup">Get started <span aria-hidden="true">→</span></Link>
+          <Link className="button button-quiet" href="/teach/application">Become a tutor</Link>
           <Link className="text-link" href="/login">I already have an account</Link>
         </div>
         <p className="hero-footnote">Every new account starts with student access.</p>

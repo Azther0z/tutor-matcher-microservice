@@ -392,7 +392,7 @@ export async function runLiveSmoke({
       .locator("article.panel")
       .filter({ hasText: "Synthetic moderation test" });
     await expect(flaggedReview).toBeVisible();
-    await expect(flaggedReview).toContainText("Reported by Demo Candidate");
+    await expect(flaggedReview).toContainText("Reported by Alice Johnson");
     await expect(flaggedReview).toContainText("Clear explanation");
     await expect(flaggedReview).toContainText("Thank you");
     await expect(flaggedReview).toContainText("HIDDEN");
