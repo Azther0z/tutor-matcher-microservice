@@ -94,14 +94,34 @@ export function passwordPrehash(password: string): string {
   return `TM1:${createHash('sha256').update(password, 'utf8').digest('base64url')}`;
 }
 
+// bcryptjs runs on the event loop. Many hashes at once starve every other task,
+// including the database driver, whose connect timer then fires and the request
+// fails. Letting only a few hashes run together keeps the loop responsive and
+// makes the rest wait in line.
+const MAX_CONCURRENT_HASHES = Number(process.env.AUTH_MAX_CONCURRENT_HASHES ?? 2);
+let activeHashes = 0;
+const hashQueue: Array<() => void> = [];
+
+async function withHashSlot<T>(work: () => Promise<T>): Promise<T> {
+  if (activeHashes >= MAX_CONCURRENT_HASHES) await new Promise<void>((resolve) => hashQueue.push(resolve));
+  else activeHashes += 1;
+  try {
+    return await work();
+  } finally {
+    const next = hashQueue.shift();
+    if (next) next();
+    else activeHashes -= 1;
+  }
+}
+
 export async function hashPassword(password: string): Promise<string> {
-  return bcrypt.hash(passwordPrehash(password), 12);
+  return withHashSlot(() => bcrypt.hash(passwordPrehash(password), 12));
 }
 
 export async function verifyPassword(password: string, hash: string, scheme: string): Promise<boolean> {
-  if (scheme === 'BCRYPT_SHA256_V1') return bcrypt.compare(passwordPrehash(password), hash);
+  if (scheme === 'BCRYPT_SHA256_V1') return withHashSlot(() => bcrypt.compare(passwordPrehash(password), hash));
   // Upgrade compatibility with rows created by the former bcrypt implementation.
-  return bcrypt.compare(password, hash);
+  return withHashSlot(() => bcrypt.compare(password, hash));
 }
 
 export function encryptResetMaterial(plaintext: string): { nonce: Buffer; ciphertext: Buffer; authTag: Buffer } {

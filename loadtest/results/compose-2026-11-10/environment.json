@@ -1,0 +1,27 @@
+{
+  "measuredAt": "2026-11-10",
+  "testedRevision": "5a01e2b plus the Auth hashing fix in this commit",
+  "stack": "Docker Compose project tm-lb from npm run demo, every service one container except Tutor, Traefik gateway",
+  "host": "MacBook, 12 CPUs, Docker VM 7.75 GiB, k6 on the same host",
+  "replicas": "Tutor ran as 1 and then 3 containers (docker compose up --scale tutor-service=3). All other services ran as one container.",
+  "resourceLimits": "Tutor is capped at 0.5 CPU per replica by compose.yaml. Other services are uncapped.",
+  "real": [
+    "Traefik",
+    "Auth/PostgreSQL",
+    "Tutor/MongoDB",
+    "Review/MongoDB",
+    "Booking/PostgreSQL",
+    "Wallet",
+    "Notification",
+    "Messaging",
+    "RabbitMQ"
+  ],
+  "fixtures": [],
+  "loadBalancing": "Share of Tutor traffic per replica, from each container's network receive bytes before and after the run: steady 33/33/33%, stress 33/33/33%.",
+  "excludedRuns": {
+    "cold-start-1-replica-steady": "First run after the stack started: 6.5% errors while caches and JIT were cold. The same test passed with 0% errors once warm. Kept for honesty; not used in the table.",
+    "invalid-slept-3-replica-stress": "The laptop suspended for about 15 minutes during this run, so one request took 15 minutes. Rerun under caffeinate; this file is not valid."
+  },
+  "warmUp": "Every measured run is preceded by a 10 s, 10 user warm-up.",
+  "failover": "kill-one-replica: one of three Tutor replicas was stopped 10 s into a 30 s steady run: 23 of 23061 requests failed (HTTP 502 and 504), all within about 5 s, then Traefik routed to the other two."
+}

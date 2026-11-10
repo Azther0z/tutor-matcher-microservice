@@ -26,32 +26,42 @@ Compare request throughput, p95, errors and capacity limits. Check Gateway, Tuto
 
 `results/ideal-2026-11-10/` contains separate steady and stress results from `MARKETPLACE_K6=1 npm run test:marketplace:integrated`. They use real Traefik, Auth, Tutor, Review, PostgreSQL, MongoDB and real gRPC transport. Booking availability and the Swarm discovery API are typed test fixtures. The processes run natively without per-service CPU caps; the first exploratory steady run also overlapped the workspace build. These are development diagnostics, not Q-03 acceptance or evidence of a one-versus-three replica comparison.
 
-`environment.json` records the base revision, uncommitted source fingerprint, environment, collaborators, fixtures and exit codes. Each k6 summary has a matching text output. The live-stack measurement below replaces these for the course. Nothing in this project runs more than one instance of a service, so there is no one-versus-three replica comparison.
+`environment.json` records the base revision, uncommitted source fingerprint, environment, collaborators, fixtures and exit codes. Each k6 summary has a matching text output. The Docker Compose measurement at the end of this file replaces these for the course.
 
-## Live stack measurements (2026-11-10)
+## Docker Compose measurements (2026-11-10)
 
-`results/live-2026-11-10/` holds three runs against the full stack started with `npm run demo` (revision 3e95054): real Traefik gateway, Auth, Tutor, Review, Booking, Wallet, Notification and Messaging, PostgreSQL, MongoDB and RabbitMQ. Booking is the real service, not a fixture. Each service runs as one container with no CPU caps, on one 12 CPU laptop. The runs search the five demo tutors and create no data. `environment.json` records the setup.
+`results/compose-2026-11-10/` is the course measurement. It runs the full stack from `npm run demo` (Docker Compose, Traefik gateway, real Auth, Tutor, Review, Booking, Wallet, Notification, Messaging, PostgreSQL, MongoDB, RabbitMQ) with no fixtures. Tutor is scaled with `docker compose --env-file .env.demo -p <project> --profile target up -d --scale tutor-service=3 tutor-service`. Each Tutor replica is capped at 0.5 CPU by `compose.yaml`; every other service runs as one container. k6 and the stack share one 12 CPU laptop. Each run follows a 10 s warm-up. `environment.json` has the details and the runs that were excluded and why.
 
-| Type | Load | Requests | Throughput | p95 | Errors |
+| Type | Tutor replicas | Requests | Throughput | p95 | Errors |
 |---|---|---|---|---|---|
-| Steady | 50 users, 30 s | 9,747 | 322 req/s | 313 ms | 0% |
-| Stress | ramp 10, 25, 50, 100 users, 80 s | 33,454 | 418 req/s | 286 ms | 0% |
+| Steady, 50 users, 30 s | 1 | 15,986 | 531 req/s | 172 ms | 0.00% |
+| Steady, 50 users, 30 s | 3 | 36,611 | 1,218 req/s | 98 ms | 0.00% |
+| Stress, ramp 10 to 100 users, 80 s | 1 | 40,438 | 505 req/s | 195 ms | 0.00% |
+| Stress, ramp 10 to 100 users, 80 s | 3 | 77,203 | 965 req/s | 122 ms | 0.00% |
 
-Both pass the p95 < 500 ms, errors < 1% and checks > 99% thresholds. The stress run did not find a limit: the gateway and Tutor, Review and Booking collaborators still answered within the target at 100 users. Throughput rose from 322 to 418 req/s; the slowest single request was 1.9 s in the steady run.
+All runs pass p95 < 500 ms, errors < 1% and checks > 99%. Three replicas raise steady throughput by about 2.3 times and cut p95 from 172 to 98 ms. The stress run did not reach a limit at 100 users. Stress throughput is lower than steady for three replicas because the ramp spends part of its time at low user counts.
 
-Reproduce with `SEARCH_QUERY=a MIN_RESULTS=5 TEST_TYPE=steady k6 run loadtest/marketplace-search.js`, and `TEST_TYPE=stress` for the second.
+Load balancing: each replica's network receive bytes were read before and after each run. Steady split 33/33/33%, stress 33/33/33%, so Traefik spreads requests evenly.
+
+Failover: `kill-one-replica` stops one of three replicas 10 s into a 30 s steady run. 23 of 23,061 requests failed (0.10%, HTTP 502 and 504 within about 5 s, until Traefik's 2 s health check removed the replica), and the run still passed its thresholds.
 
 ### Competing bookings
 
-`npm run loadtest:booking-race` signs up 20 synthetic students, then all of them book the same half-hour slot at the same moment. Booking locks the slot row inside one transaction, so one request wins. A second round sends the same request 10 times with the same Idempotency-Key.
+`k6 run loadtest/competing-bookings.js` (also `npm run loadtest:booking-race` as a plain Node script). 20 synthetic students book the same half-hour slot at once with different Idempotency-Keys, then one student sends the same request 10 times with the same key.
 
-| Round | Result |
+| Check | Result |
 |---|---|
-| 20 students, 1 slot | 1 x 201, 19 x 409, 0 server errors, 166 ms wall clock (repeated twice, same result) |
-| 1 student, same Idempotency-Key x 10 | 10 x 201 returning one booking |
+| Bookings that won the slot | 1 (threshold: exactly 1) |
+| Refused with 409 | 19 |
+| Server errors | 0 |
+| Duplicate bookings from the 10 same-key requests | 0 |
 
-The script cancels the bookings it made.
+The test cancels the bookings it created. Result: `booking-race-k6.json`; the earlier Node run is in `../live-2026-11-10/booking-race.json`.
 
-### Known limit found while testing
+### Auth signup under concurrency (fixed)
 
-Signing up 20 accounts at once returned HTTP 500 for roughly a quarter of the requests. Auth's PostgreSQL pool is `max: 10` with a 2 s connect timeout (`services/auth-service/src/db.ts`), which is the likely cause. It is not fixed. The race script signs students up four at a time.
+Signing up 20 accounts at once used to return HTTP 500 for 25% to 40% of requests. Cause: Auth hashes passwords with the pure JavaScript `bcryptjs` at cost 12, which runs on the event loop. Twenty hashes at once starved the PostgreSQL driver, whose connection timer (2 s, `services/auth-service/src/db.ts`) fired as `Connection terminated due to connection timeout`, and the shared error handler turned that into a generic 500. Auth now lets two hashes run at a time (`AUTH_MAX_CONCURRENT_HASHES`) and the shared error mapper returns a retryable 503 for pool timeouts instead of 500. After the change, 80 concurrent signups across four rounds all succeeded.
+
+### Earlier runs
+
+`results/live-2026-11-10/` is the same search test on a single-instance stack, `results/ideal-2026-11-10/` is the native diagnostic, and the three `.txt` files directly in `results/` come from the earlier Consul stack.

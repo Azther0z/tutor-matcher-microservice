@@ -32,9 +32,12 @@ export interface HttpErrorResponse {
 }
 
 export function toHttpError(error: unknown, requestId: string): HttpErrorResponse {
+  const poolTimeout = error instanceof Error && /connection timeout|timeout exceeded when trying to connect/i.test(error.message);
   const appError = error instanceof AppError
     ? error
-    : new AppError(500, "INTERNAL_ERROR", "An unexpected error occurred.");
+    : poolTimeout
+      ? new AppError(503, "DEPENDENCY_UNAVAILABLE", "The service is busy. Try again shortly.", undefined, true)
+      : new AppError(500, "INTERNAL_ERROR", "An unexpected error occurred.");
   const fields = appError.fields
     ? Object.entries(appError.fields).map(([path, message]) => ({
       path,

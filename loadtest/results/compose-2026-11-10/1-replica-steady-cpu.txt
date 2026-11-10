@@ -1,0 +1,44 @@
+tm-lb-tutor-service-1 50.74%
+tm-lb-api-gateway-1 34.29%
+--
+tm-lb-tutor-service-1 49.73%
+tm-lb-api-gateway-1 31.72%
+--
+tm-lb-tutor-service-1 52.18%
+tm-lb-api-gateway-1 30.55%
+--
+tm-lb-tutor-service-1 50.82%
+tm-lb-api-gateway-1 33.23%
+--
+tm-lb-tutor-service-1 50.15%
+tm-lb-api-gateway-1 34.07%
+--
+tm-lb-tutor-service-1 50.74%
+tm-lb-api-gateway-1 36.11%
+--
+tm-lb-tutor-service-1 52.70%
+tm-lb-api-gateway-1 35.01%
+--
+tm-lb-tutor-service-1 50.57%
+tm-lb-api-gateway-1 33.03%
+--
+tm-lb-tutor-service-1 49.92%
+tm-lb-api-gateway-1 32.65%
+--
+tm-lb-tutor-service-1 50.86%
+tm-lb-api-gateway-1 41.15%
+--
+tm-lb-tutor-service-1 50.45%
+tm-lb-api-gateway-1 32.22%
+--
+tm-lb-tutor-service-1 50.28%
+tm-lb-api-gateway-1 31.40%
+--
+tm-lb-tutor-service-1 50.26%
+tm-lb-api-gateway-1 33.71%
+--
+tm-lb-tutor-service-1 51.52%
+tm-lb-api-gateway-1 25.74%
+--
+tm-lb-tutor-service-1 32.38%
+tm-lb-api-gateway-1 15.65%

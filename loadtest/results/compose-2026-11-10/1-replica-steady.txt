@@ -1,0 +1,148 @@
+
+         /\      Grafana   /‾‾/  
+    /\  /  \     |\  __   /  /   
+   /  \/    \    | |/ /  /   ‾‾\ 
+  /          \   |   (  |  (‾)  |
+ / __________ \  |_|\_\  \_____/ 
+
+
+     execution: local
+        script: loadtest/marketplace-search.js
+        output: -
+
+     scenarios: (100.00%) 1 scenario, 50 max VUs, 1m0s max duration (incl. graceful stop):
+              * search: 50 looping VUs for 30s (gracefulStop: 30s)
+
+
+running (0m01.0s), 50/50 VUs, 482 complete and 0 interrupted iterations
+search   [   3% ] 50 VUs  01.0s/30s
+
+running (0m02.0s), 50/50 VUs, 1010 complete and 0 interrupted iterations
+search   [   7% ] 50 VUs  02.0s/30s
+
+running (0m03.0s), 50/50 VUs, 1532 complete and 0 interrupted iterations
+search   [  10% ] 50 VUs  03.0s/30s
+
+running (0m04.0s), 50/50 VUs, 2111 complete and 0 interrupted iterations
+search   [  13% ] 50 VUs  04.0s/30s
+
+running (0m05.0s), 50/50 VUs, 2682 complete and 0 interrupted iterations
+search   [  17% ] 50 VUs  05.0s/30s
+
+running (0m06.0s), 50/50 VUs, 3143 complete and 0 interrupted iterations
+search   [  20% ] 50 VUs  06.0s/30s
+
+running (0m07.0s), 50/50 VUs, 3696 complete and 0 interrupted iterations
+search   [  23% ] 50 VUs  07.0s/30s
+
+running (0m08.0s), 50/50 VUs, 4294 complete and 0 interrupted iterations
+search   [  27% ] 50 VUs  08.0s/30s
+
+running (0m09.0s), 50/50 VUs, 4900 complete and 0 interrupted iterations
+search   [  30% ] 50 VUs  09.0s/30s
+
+running (0m10.0s), 50/50 VUs, 5458 complete and 0 interrupted iterations
+search   [  33% ] 50 VUs  10.0s/30s
+
+running (0m11.0s), 50/50 VUs, 5971 complete and 0 interrupted iterations
+search   [  37% ] 50 VUs  11.0s/30s
+
+running (0m12.0s), 50/50 VUs, 6635 complete and 0 interrupted iterations
+search   [  40% ] 50 VUs  12.0s/30s
+
+running (0m13.0s), 50/50 VUs, 7196 complete and 0 interrupted iterations
+search   [  43% ] 50 VUs  13.0s/30s
+
+running (0m14.0s), 50/50 VUs, 7752 complete and 0 interrupted iterations
+search   [  47% ] 50 VUs  14.0s/30s
+
+running (0m15.0s), 50/50 VUs, 8300 complete and 0 interrupted iterations
+search   [  50% ] 50 VUs  15.0s/30s
+
+running (0m16.0s), 50/50 VUs, 8771 complete and 0 interrupted iterations
+search   [  53% ] 50 VUs  16.0s/30s
+
+running (0m17.0s), 50/50 VUs, 9334 complete and 0 interrupted iterations
+search   [  57% ] 50 VUs  17.0s/30s
+
+running (0m18.0s), 50/50 VUs, 9939 complete and 0 interrupted iterations
+search   [  60% ] 50 VUs  18.0s/30s
+
+running (0m19.0s), 50/50 VUs, 10451 complete and 0 interrupted iterations
+search   [  63% ] 50 VUs  19.0s/30s
+
+running (0m20.0s), 50/50 VUs, 11035 complete and 0 interrupted iterations
+search   [  67% ] 50 VUs  20.0s/30s
+
+running (0m21.0s), 50/50 VUs, 11476 complete and 0 interrupted iterations
+search   [  70% ] 50 VUs  21.0s/30s
+
+running (0m22.0s), 50/50 VUs, 11938 complete and 0 interrupted iterations
+search   [  73% ] 50 VUs  22.0s/30s
+
+running (0m23.0s), 50/50 VUs, 12536 complete and 0 interrupted iterations
+search   [  77% ] 50 VUs  23.0s/30s
+
+running (0m24.0s), 50/50 VUs, 12963 complete and 0 interrupted iterations
+search   [  80% ] 50 VUs  24.0s/30s
+
+running (0m25.0s), 50/50 VUs, 13560 complete and 0 interrupted iterations
+search   [  83% ] 50 VUs  25.0s/30s
+
+running (0m26.0s), 50/50 VUs, 13953 complete and 0 interrupted iterations
+search   [  87% ] 50 VUs  26.0s/30s
+
+running (0m27.0s), 50/50 VUs, 14439 complete and 0 interrupted iterations
+search   [  90% ] 50 VUs  27.0s/30s
+
+running (0m28.0s), 50/50 VUs, 14893 complete and 0 interrupted iterations
+search   [  93% ] 50 VUs  28.0s/30s
+
+running (0m29.0s), 50/50 VUs, 15386 complete and 0 interrupted iterations
+search   [  97% ] 50 VUs  29.0s/30s
+
+running (0m30.0s), 50/50 VUs, 15922 complete and 0 interrupted iterations
+search   [ 100% ] 50 VUs  30.0s/30s
+
+
+  █ THRESHOLDS 
+
+    checks
+    ✓ 'rate>0.99' rate=100.00%
+
+    http_req_duration
+    ✓ 'p(95)<500' p(95)=171.6ms
+
+    http_req_failed
+    ✓ 'rate<0.01' rate=0.00%
+
+
+  █ TOTAL RESULTS 
+
+    checks_total.......: 15985   531.096877/s
+    checks_succeeded...: 100.00% 15985 out of 15985
+    checks_failed......: 0.00%   0 out of 15985
+
+    ✓ target search returns complete public DTOs
+
+    HTTP
+    http_req_duration..............: avg=93.7ms  med=93.48ms p(90)=123.41ms p(95)=171.6ms  max=483.29ms
+      { expected_response:true }...: avg=93.7ms  med=93.48ms p(90)=123.41ms p(95)=171.6ms  max=483.29ms
+    http_req_failed................: 0.00%  0 out of 15986
+    http_reqs......................: 15986  531.130101/s
+
+    EXECUTION
+    iteration_duration.............: avg=94.05ms med=93.82ms p(90)=123.69ms p(95)=171.88ms max=490.08ms
+    iterations.....................: 15985  531.096877/s
+    vus............................: 50     min=50         max=50
+    vus_max........................: 50     min=50         max=50
+
+    NETWORK
+    data_received..................: 55 MB  1.8 MB/s
+    data_sent......................: 2.0 MB 66 kB/s
+
+
+
+
+running (0m30.1s), 00/50 VUs, 15985 complete and 0 interrupted iterations
+search ✓ [ 100% ] 50 VUs  30s

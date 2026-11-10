@@ -1,0 +1,130 @@
+
+         /\      Grafana   /‾‾/  
+    /\  /  \     |\  __   /  /   
+   /  \/    \    | |/ /  /   ‾‾\ 
+  /          \   |   (  |  (‾)  |
+ / __________ \  |_|\_\  \_____/ 
+
+
+     execution: local
+        script: loadtest/competing-bookings.js
+        output: -
+
+     scenarios: (100.00%) 2 scenarios, 30 max VUs, 1m10s max duration (incl. graceful stop):
+              * race: 1 iterations for each of 20 VUs (maxDuration: 30s, exec: race, gracefulStop: 30s)
+              * replay: 1 iterations for each of 10 VUs (maxDuration: 30s, exec: replay, startTime: 10s, gracefulStop: 30s)
+
+
+Run      [ 100% ] setup()
+race     [   0% ]
+replay   [   0% ]
+
+Run      [ 100% ] setup()
+race     [   0% ]
+replay   [   0% ]
+
+Run      [ 100% ] setup()
+race     [   0% ]
+replay   [   0% ]
+
+Run      [ 100% ] setup()
+race     [   0% ]
+replay   [   0% ]
+
+running (0m05.0s), 20/30 VUs, 0 complete and 0 interrupted iterations
+race     [   0% ] 20 VUs   00.1s/30s  00/20 iters, 1 per VU
+replay • [   0% ] waiting  09.9s     
+
+running (0m06.0s), 00/30 VUs, 20 complete and 0 interrupted iterations
+race   ✓ [ 100% ] 20 VUs   00.2s/30s  20/20 iters, 1 per VU
+replay • [   0% ] waiting  08.9s     
+
+running (0m07.0s), 00/30 VUs, 20 complete and 0 interrupted iterations
+race   ✓ [ 100% ] 20 VUs   00.2s/30s  20/20 iters, 1 per VU
+replay • [   0% ] waiting  07.9s     
+
+running (0m08.0s), 00/30 VUs, 20 complete and 0 interrupted iterations
+race   ✓ [ 100% ] 20 VUs   00.2s/30s  20/20 iters, 1 per VU
+replay • [   0% ] waiting  06.9s     
+
+running (0m09.0s), 00/30 VUs, 20 complete and 0 interrupted iterations
+race   ✓ [ 100% ] 20 VUs   00.2s/30s  20/20 iters, 1 per VU
+replay • [   0% ] waiting  05.9s     
+
+running (0m10.0s), 00/30 VUs, 20 complete and 0 interrupted iterations
+race   ✓ [ 100% ] 20 VUs   00.2s/30s  20/20 iters, 1 per VU
+replay • [   0% ] waiting  04.9s     
+
+running (0m11.0s), 00/30 VUs, 20 complete and 0 interrupted iterations
+race   ✓ [ 100% ] 20 VUs   00.2s/30s  20/20 iters, 1 per VU
+replay • [   0% ] waiting  03.9s     
+
+running (0m12.0s), 00/30 VUs, 20 complete and 0 interrupted iterations
+race   ✓ [ 100% ] 20 VUs   00.2s/30s  20/20 iters, 1 per VU
+replay • [   0% ] waiting  02.9s     
+
+running (0m13.0s), 00/30 VUs, 20 complete and 0 interrupted iterations
+race   ✓ [ 100% ] 20 VUs   00.2s/30s  20/20 iters, 1 per VU
+replay • [   0% ] waiting  01.9s     
+
+running (0m14.0s), 00/30 VUs, 20 complete and 0 interrupted iterations
+race   ✓ [ 100% ] 20 VUs   00.2s/30s  20/20 iters, 1 per VU
+replay • [   0% ] waiting  00.9s     
+
+running (0m15.0s), 00/30 VUs, 30 complete and 0 interrupted iterations
+race   ✓ [ 100% ] 20 VUs  00.2s/30s  20/20 iters, 1 per VU
+replay ✓ [ 100% ] 10 VUs  00.1s/30s  10/10 iters, 1 per VU
+
+
+  █ THRESHOLDS 
+
+    booking_duplicates
+    ✓ 'count==0' count=0
+
+    booking_lost
+    ✓ 'count==19' count=19
+
+    booking_server_errors
+    ✓ 'count==0' count=0
+
+    booking_won
+    ✓ 'count==1' count=1
+
+
+  █ TOTAL RESULTS 
+
+    checks_total.......: 30      1.977432/s
+    checks_succeeded...: 100.00% 30 out of 30
+    checks_failed......: 0.00%   0 out of 30
+
+    ✓ no server error
+    ✓ replay answered without error
+
+    CUSTOM
+    booking_duplicates.............: 0      0/s
+    booking_lost...................: 19     1.252374/s
+    booking_server_errors..........: 0      0/s
+    booking_won....................: 1      0.065914/s
+
+    HTTP
+    http_req_duration..............: avg=297.31ms med=157.75ms p(95)=956.36ms max=957.24ms
+      { expected_response:true }...: avg=338.67ms med=83.52ms  p(95)=956.38ms max=957.24ms
+    http_req_failed................: 24.05% 19 out of 79
+    http_reqs......................: 79     5.207239/s
+
+    EXECUTION
+    iteration_duration.............: avg=141.91ms med=167.22ms p(95)=173.61ms max=173.89ms
+    iterations.....................: 30     1.977432/s
+    vus............................: 0      min=0        max=20
+    vus_max........................: 30     min=30       max=30
+
+    NETWORK
+    data_received..................: 66 kB  4.3 kB/s
+    data_sent......................: 44 kB  2.9 kB/s
+
+
+
+
+running (0m15.2s), 00/30 VUs, 30 complete and 0 interrupted iterations
+race   ✓ [ 100% ] 20 VUs  00.2s/30s  20/20 iters, 1 per VU
+replay ✓ [ 100% ] 10 VUs  00.1s/30s  10/10 iters, 1 per VU
