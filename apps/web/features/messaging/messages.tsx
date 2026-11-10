@@ -118,7 +118,7 @@ function Inbox() {
             <Link
               className="message-row"
               key={conversation.id}
-              href={`/messages/${other?.userId}?view=${view}`}
+              href={`/messages/${other?.userId}?${new URLSearchParams({ view, ...(other?.displayName ? { name: other.displayName } : {}) })}`}
             >
               <span>
                 <strong>{other?.displayName ?? "Conversation"}</strong>
@@ -242,7 +242,7 @@ function Thread({ userId }: { userId: string }) {
   return (
     <>
       <header className="page-heading">
-        <h1>{other?.displayName ?? "New conversation"}</h1>
+        <h1>{other?.displayName ?? params.get("name")?.slice(0, 80) ?? "Conversation"}</h1>
       </header>
       {error && (
         <Notice kind="error">

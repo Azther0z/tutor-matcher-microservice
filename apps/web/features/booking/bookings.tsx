@@ -456,7 +456,7 @@ function BookingDetailContent({ bookingId }: { bookingId: string }) {
             <span className="button-row">
               <Link
                 className="button button-quiet"
-                href={`/messages/${isStudent ? booking.tutorUserId : booking.studentUserId}?view=${isStudent ? "STUDENT" : "TUTOR"}`}
+                href={`/messages/${isStudent ? booking.tutorUserId : booking.studentUserId}?${new URLSearchParams({ view: isStudent ? "STUDENT" : "TUTOR", name: isStudent ? booking.tutorDisplayName : booking.studentDisplayName })}`}
               >
                 Message {isStudent ? "tutor" : "student"}
               </Link>
