@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ErrorNotice, Field, Notice } from "@/components/field";
+import { LegalModal } from "@/components/legal-modal";
 import { api, failureOf, fieldErrors, newIdempotencyKey, type Failure } from "@/lib/api";
 import { formatMoney, formatTime, normalizeAmount } from "./format";
 import type { Topup } from "./types";
@@ -25,7 +26,7 @@ function toBase64(file: File): Promise<string> {
  * Add funds by PromptPay: enter an amount, scan the QR to transfer, attach the slip and send the request. An admin approves
  * or rejects it; only one request can wait for review at a time.
  */
-export function TopupRequestPanel({ returnTo, unavailable }: { returnTo: string | null; unavailable: boolean }) {
+export function TopupRequestPanel({ returnTo, unavailable, open, onClose }: { returnTo: string | null; unavailable: boolean; open: boolean; onClose: () => void }) {
   const [amount, setAmount] = useState("");
   const [slip, setSlip] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -104,6 +105,7 @@ export function TopupRequestPanel({ returnTo, unavailable }: { returnTo: string 
       });
       setLatest(created);
       setAmount(""); setConfirmed(null); setSlip(null); setPreview(null); setKey(newIdempotencyKey());
+      onClose();
     } catch (e) {
       setFields(fieldErrors(e));
       setError(failureOf(e, "We couldn’t send the request. Your balance has not changed."));
@@ -112,24 +114,25 @@ export function TopupRequestPanel({ returnTo, unavailable }: { returnTo: string 
   }
 
   return (
-    <section className="panel topup-panel" aria-labelledby="topup-heading">
-      <h2 id="topup-heading">Add funds with PromptPay</h2>
+    <>
       {returnTo && <Notice kind="info">After an admin approves your top-up you can return to your booking.</Notice>}
       {unavailable && <Notice kind="info">Adding funds is unavailable until your wallet loads.</Notice>}
       {loaded && latest?.status === "FAILED" && (
-        <Notice kind="error">Your last top-up of {formatMoney(latest.amount)} was rejected{latest.decisionReason ? `: ${latest.decisionReason}` : "."} You can send a new request below.</Notice>
+        <Notice kind="error">Your last top-up of {formatMoney(latest.amount)} was rejected{latest.decisionReason ? `: ${latest.decisionReason}` : "."} You can send a new request.</Notice>
       )}
       {loaded && latest?.status === "SUCCEEDED" && (
         <Notice kind="success">Your last top-up of {formatMoney(latest.amount)} was approved and added to your balance.</Notice>
       )}
-      {waiting && latest ? (
+      {waiting && latest && (
         <div className="notice notice-info" role="status">
           <strong>Your request is waiting for an admin.</strong>
-          <p>{formatMoney(latest.amount)} sent {formatTime(latest.createdAt)}. You can send another request after it is approved or rejected.</p>
-          <Link className="text-link" href={`/wallet/topups/${latest.id}${returnTo ? `?returnToBookingId=${returnTo}` : ""}`}>View request</Link>
+          <p>{formatMoney(latest.amount)} sent {formatTime(latest.createdAt)}.{" "}
+            <Link className="text-link" href={`/wallet/topups/${latest.id}${returnTo ? `?returnToBookingId=${returnTo}` : ""}`}>View request</Link>
+          </p>
         </div>
-      ) : (
-        <>
+      )}
+      <LegalModal open={open && !waiting} title="Add funds with PromptPay" onClose={onClose} actions={false}>
+        <div className="topup-body">
           <p className="tutor-card-meta">Confirm an amount, scan the QR code to transfer it, then attach your slip. Your balance is credited when an admin approves it.</p>
           <ErrorNotice failure={error} />
           {!confirmed ? (
@@ -181,8 +184,8 @@ export function TopupRequestPanel({ returnTo, unavailable }: { returnTo: string 
               </figure>
             </form>
           )}
-        </>
-      )}
-    </section>
+        </div>
+      </LegalModal>
+    </>
   );
 }

@@ -8,8 +8,8 @@ import { useAuth } from "@/lib/auth-context";
 import { api, failureOf, type Failure } from "@/lib/api";
 import { DemoBanner } from "./common";
 import { TopupRequestPanel } from "./topup-request";
-import { formatMoney } from "./format";
-import type { WalletOverview } from "./types";
+import { formatMoney, formatTime, titleCase } from "./format";
+import type { Paged, WalletOverview, WalletTransaction } from "./types";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 
@@ -35,6 +35,8 @@ export function WalletOverviewPage() {
   const [wallet, setWallet] = useState<WalletOverview | null>(null);
   const [error, setError] = useState<Failure | null>(null);
   const [loading, setLoading] = useState(true);
+  const [topupOpen, setTopupOpen] = useState(Boolean(returnTo));
+  const [recent, setRecent] = useState<WalletTransaction[]>([]);
   const isTutor = account?.capabilities.includes("TUTOR") ?? false;
   const isAdmin = account?.capabilities.includes("ADMIN") ?? false;
 
@@ -45,6 +47,9 @@ export function WalletOverviewPage() {
     finally { setLoading(false); }
   }, []);
   useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    api<Paged<WalletTransaction>>("/wallet/transactions?page=1&pageSize=6").then((page) => setRecent(page.items)).catch(() => setRecent([]));
+  }, []);
 
   return (
     <>
@@ -64,9 +69,12 @@ export function WalletOverviewPage() {
       <ErrorNotice failure={error} onRetry={() => void load()}/>
       {wallet && (
         <section className="panel wallet-balance" aria-label="Balances">
-          <div className="wallet-available">
-            <span>Available balance</span>
-            <strong>{formatMoney(wallet.availableBalance)}</strong>
+          <div className="wallet-available-row">
+            <div className="wallet-available">
+              <span>Available balance</span>
+              <strong>{formatMoney(wallet.availableBalance)}</strong>
+            </div>
+            <button type="button" className="button" onClick={() => setTopupOpen(true)} disabled={Boolean(error) && !wallet}>Top up</button>
           </div>
           <div className="summary-rows">
             <Row label="Posted" value={formatMoney(wallet.postedBalance)} hint="Completed movements" />
@@ -77,7 +85,28 @@ export function WalletOverviewPage() {
           </div>
         </section>
       )}
-      <TopupRequestPanel returnTo={returnTo} unavailable={Boolean(error) && !wallet} />
+      <TopupRequestPanel returnTo={returnTo} unavailable={Boolean(error) && !wallet} open={topupOpen} onClose={() => setTopupOpen(false)} />
+      <section className="panel wallet-recent" aria-label="Recent activity">
+        <div className="wallet-recent-head">
+          <h2>Recent activity</h2>
+          <Link className="text-link" href="/wallet/transactions">View all</Link>
+        </div>
+        {recent.length === 0 ? (
+          <p className="tutor-card-meta">No transactions yet.</p>
+        ) : (
+          recent.map((tx) => (
+            <Link key={tx.id} className="wallet-tx" href={`/wallet/transactions/${tx.id}`}>
+              <span>
+                {titleCase(tx.type)}
+                <small>{formatTime(tx.createdAt)}</small>
+              </span>
+              <strong className={tx.direction === "IN" ? "status-good" : ""}>
+                {tx.direction === "IN" ? "+" : "-"}{formatMoney(tx.amount)}
+              </strong>
+            </Link>
+          ))
+        )}
+      </section>
     </>
   );
 }

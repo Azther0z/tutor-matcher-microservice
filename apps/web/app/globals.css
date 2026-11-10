@@ -658,3 +658,13 @@ fieldset.field legend { font-size: 14px; font-weight: 500; padding: 0; margin-bo
 .slip-pick .button:hover { background: rgba(255, 255, 255, 0.1); }
 .topup-form .field .field-label { font-size: 14px; font-weight: 500; }
 .field input[type="file"][hidden] { display: none; }
+.wallet-available-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.topup-body { display: grid; gap: 14px; }
+.topup-body .promptpay-qr { justify-self: center; }
+.topup-body .topup-form { grid-template-columns: 1fr; }
+.wallet-recent { display: grid; padding: 18px; }
+.wallet-recent-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 6px; }
+.wallet-recent-head h2 { margin: 0; font-size: 18px; }
+.wallet-tx { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 0; border-top: 1px solid var(--line); color: var(--ink); text-decoration: none; font-size: 14px; }
+.wallet-tx:hover { background: #0b0b0b; }
+.wallet-tx small { display: block; margin-top: 2px; font-size: 12px; color: var(--muted); }
