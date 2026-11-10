@@ -36,6 +36,29 @@ function HoldCountdown({ expiresAt, onExpired }: { expiresAt: string; onExpired:
   return <strong role="timer">{minutes}:{String(seconds).padStart(2, "0")}</strong>;
 }
 
+const STEPS = ["Booked", "Paid", "Completed"];
+function BookingProgress({ status }: { status: Booking["status"] }) {
+  const reached = status === "PAYMENT_DUE" ? 0 : status === "CONFIRMED" ? 1 : status === "COMPLETED" ? 2 : -1;
+  const cancelled = status === "CANCELLED";
+  const fill = cancelled ? 0 : (reached / (STEPS.length - 1)) * 100;
+  return (
+    <div className={`booking-progress${cancelled ? " is-cancelled" : ""}`} role="img" aria-label={cancelled ? "Booking cancelled" : `Step ${reached + 1} of ${STEPS.length}: ${STEPS[reached]}`}>
+      <div className="booking-progress-track" aria-hidden="true">
+        <span style={{ width: `${fill}%` }} />
+      </div>
+      <ol aria-hidden="true">
+        {STEPS.map((label, index) => (
+          <li key={label} className={index <= reached ? "is-done" : ""}>
+            <i />
+            {label}
+          </li>
+        ))}
+      </ol>
+      {cancelled && <p className="booking-progress-note">This booking was cancelled.</p>}
+    </div>
+  );
+}
+
 function BookingCard({ booking }: { booking: Booking }) {
   return (
     <article className="panel tutor-card">
@@ -373,11 +396,14 @@ function BookingDetailContent({ bookingId }: { bookingId: string }) {
       {notice && <Notice kind="success">{notice}</Notice>}
       <ActionMessages action={action} />
       {!booking && !error && <p role="status" className="tutor-card-meta">Loading booking…</p>}
+      <header className="page-heading">
+        <h1>Booking</h1>
+      </header>
       {booking && (
         <section className="panel booking-new">
           <StatusBadge value={booking.status} corner />
           <div className="booking-title">
-            <h1>{booking.subject.name}</h1>
+            <h2>{booking.subject.name}</h2>
             <p className="tutor-card-meta">
               {isStudent ? "With " : "Student: "}
               <strong className="booking-who">
@@ -385,6 +411,7 @@ function BookingDetailContent({ bookingId }: { bookingId: string }) {
               </strong>
             </p>
           </div>
+          <BookingProgress status={booking.status} />
           <div className="summary-rows">
             <div>
               <span>Time</span>

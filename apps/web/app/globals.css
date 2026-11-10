@@ -595,3 +595,14 @@ fieldset.field legend { font-size: 14px; font-weight: 500; padding: 0; margin-bo
 .summary-rows > div { align-items: center; }
 .slot-footer.flush { border-top: 0; padding-top: 0; }
 .slot-footer > .button-row:first-child > .button-quiet:first-child { margin-left: -12px; }
+.booking-title h2 { margin: 0; font-size: 26px; line-height: 1.2; }
+.booking-progress { display: grid; gap: 8px; }
+.booking-progress-track { height: 4px; border-radius: 2px; background: var(--surface-2); overflow: hidden; }
+.booking-progress-track span { display: block; height: 100%; background: var(--amber); transition: width 0.3s; }
+.booking-progress ol { display: flex; justify-content: space-between; margin: 0; padding: 0; list-style: none; font-size: 13px; color: var(--muted); }
+.booking-progress li { display: flex; align-items: center; gap: 6px; }
+.booking-progress li i { width: 8px; height: 8px; border-radius: 50%; background: var(--surface-2); border: 1px solid var(--line-strong); }
+.booking-progress li.is-done { color: var(--ink); }
+.booking-progress li.is-done i { background: var(--amber); border-color: var(--amber); }
+.booking-progress.is-cancelled li, .booking-progress.is-cancelled li.is-done { color: var(--muted); }
+.booking-progress-note { margin: 0; font-size: 13px; color: #f87171; }
