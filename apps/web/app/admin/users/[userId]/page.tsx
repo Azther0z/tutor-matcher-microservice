@@ -1,37 +1,164 @@
 "use client";
 
-import Link from "next/link";
 import { use, useCallback, useEffect, useState } from "react";
 import { RequireAuth } from "@/lib/auth-context";
 import { Field, Notice } from "@/components/field";
-import { Dropdown } from "@/components/dropdown";
+import { Avatar } from "@/components/avatar";
+import { LegalModal } from "@/components/legal-modal";
+import { StatusBadge } from "@/features/wallet/common";
+import { formatTime } from "@/features/wallet/format";
 import { apiResponse, errorMessage, newIdempotencyKey } from "@/lib/api";
 import type { AccountDetail } from "@/lib/types";
 
+const ACTION_LABEL: Record<string, string> = {
+  SUSPEND: "Suspend access",
+  BAN: "Permanently ban",
+  RESTORE: "Restore access",
+};
+
 function UserDetail({ userId }: { userId: string }) {
-  const [detail, setDetail] = useState<AccountDetail | null>(null); const [etag, setEtag] = useState(""); const [loading, setLoading] = useState(true);
-  const [pending, setPending] = useState(false); const [error, setError] = useState(""); const [notice, setNotice] = useState(""); const [reasonError, setReasonError] = useState(""); const [key, setKey] = useState(newIdempotencyKey());
+  const [detail, setDetail] = useState<AccountDetail | null>(null);
+  const [etag, setEtag] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+  const [reasonError, setReasonError] = useState("");
+  const [key, setKey] = useState(newIdempotencyKey());
+  const [open, setOpen] = useState(false);
+  const [action, setAction] = useState("");
+
   const load = useCallback(async () => {
-    setLoading(true); setError("");
-    try { const r = await apiResponse<AccountDetail>(`/admin/users/${encodeURIComponent(userId)}`); setDetail(r.data); setEtag(r.headers.get("ETag") ?? `"${r.data.revision}"`); }
-    catch (e) { setError(errorMessage(e, "Could not load this account.")); }
-    finally { setLoading(false); }
+    setLoading(true);
+    setError("");
+    try {
+      const r = await apiResponse<AccountDetail>(`/admin/users/${encodeURIComponent(userId)}`);
+      setDetail(r.data);
+      setEtag(r.headers.get("ETag") ?? `"${r.data.revision}"`);
+    } catch (e) {
+      setError(errorMessage(e, "Could not load this account."));
+    } finally {
+      setLoading(false);
+    }
   }, [userId]);
   useEffect(() => { void load(); }, [load]);
+
   const status = detail?.user.status;
   const options = status === "ACTIVE" ? ["SUSPEND", "BAN"] : status === "SUSPENDED" || status === "DEACTIVATED" ? ["RESTORE", "BAN"] : [];
+
   async function transition(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault(); setPending(true); setError(""); setNotice(""); setReasonError("");
-    const form = new FormData(event.currentTarget); const action = String(form.get("action") ?? ""); const reason = String(form.get("reason") ?? "").trim();
+    event.preventDefault();
+    setPending(true);
+    setError("");
+    setNotice("");
+    setReasonError("");
+    const reason = String(new FormData(event.currentTarget).get("reason") ?? "").trim();
+    if (!action) { setError("Choose an action first."); setPending(false); return; }
     if (!reason) { setReasonError("Enter a reason for this account action."); setPending(false); return; }
     if (!options.includes(action)) { setError("That action is not available for the account’s current status."); setPending(false); return; }
-    try { const r = await apiResponse<AccountDetail>(`/admin/users/${encodeURIComponent(userId)}/restrictions`, { method: "POST", body: { action, reason }, idempotencyKey: key, ifMatch: etag }); setDetail(r.data); setEtag(r.headers.get("ETag") ?? `"${r.data.revision}"`); setKey(newIdempotencyKey()); setNotice(`Account action ${action.toLowerCase()} was recorded.`); }
-    catch (e) { setError(errorMessage(e, "Could not update account access.")); if ((e as { status?: number }).status === 412) void load(); }
-    finally { setPending(false); }
+    try {
+      const r = await apiResponse<AccountDetail>(`/admin/users/${encodeURIComponent(userId)}/restrictions`, {
+        method: "POST", body: { action, reason }, idempotencyKey: key, ifMatch: etag,
+      });
+      setDetail(r.data);
+      setEtag(r.headers.get("ETag") ?? `"${r.data.revision}"`);
+      setKey(newIdempotencyKey());
+      setNotice(`Account action ${action.toLowerCase()} was recorded. Restored accounts must log in again; revoked sessions are never revived.`);
+      setOpen(false);
+      setAction("");
+    } catch (e) {
+      setError(errorMessage(e, "Could not update account access."));
+      if ((e as { status?: number }).status === 412) void load();
+    } finally {
+      setPending(false);
+    }
   }
-  if (loading) return <p role="status">Loading account record…</p>;
-  if (!detail) return <><Notice kind="error">{error || "Account record is unavailable."}</Notice></>;
+
+  if (loading && !detail) return <p role="status" className="tutor-card-meta">Loading account record…</p>;
+  if (!detail) return <Notice kind="error">{error || "Account record is unavailable."}</Notice>;
   const user = detail.user;
-  return <><header className="section-heading"><h1>{user.firstName} {user.lastName}</h1><p>{user.email}</p></header>{error && <Notice kind="error">{error}</Notice>}{notice && <Notice kind="success">{notice} Restored accounts must log in again; revoked sessions are never revived.</Notice>}<div className="account-grid"><section className="panel"><h2>Current access</h2><div className="stat-line"><span>Status: <strong>{user.status}</strong></span><span>Revision: <strong>{user.revision}</strong></span><span>Capabilities: <strong>{user.capabilities.join(", ")}</strong></span></div><p>Restriction actions preserve existing bookings, funds, and history.</p>{options.length > 0 ? <form className="form" onSubmit={transition}><div className="field"><label htmlFor="action">Account action</label><Dropdown id="action" name="action" defaultValue="" options={[{ value: "", label: "Choose an action", disabled: true }, ...options.map((value) => ({ value, label: value === "SUSPEND" ? "Suspend access" : value === "BAN" ? "Permanently ban" : "Restore access" }))]} /></div><Field id="reason" label="Reason (required)" maxLength={500} required error={reasonError}/><button className="button" disabled={pending}>{pending ? "Saving action…" : "Record action"}</button></form> : <Notice kind="info">Banned accounts are permanent for this delivery and cannot be restored.</Notice>}</section><section className="panel"><h2>Restriction history</h2>{detail.audit.length ? <ul className="audit-list">{detail.audit.map((entry) => <li key={entry.id}><strong>{entry.action}</strong><p>{entry.reason || "No reason recorded"}</p><time dateTime={entry.occurredAt}>{new Date(entry.occurredAt).toLocaleString()}</time></li>)}</ul> : <div className="empty-state">No restriction actions have been recorded.</div>}</section></div></>;
+  const fullName = `${user.firstName} ${user.lastName}`;
+  return (
+    <>
+      <header className="page-heading"><h1>Account</h1></header>
+      {notice && <Notice kind="success">{notice}</Notice>}
+      {error && !open && <Notice kind="error">{error}</Notice>}
+      <section className="panel booking-new">
+        <StatusBadge value={user.status} corner />
+        <div className="chat-head">
+          <Avatar name={fullName} size={48} />
+          <div className="booking-title">
+            <h2>{fullName}</h2>
+            <p className="tutor-card-meta">{user.email}</p>
+          </div>
+        </div>
+        <div className="summary-rows">
+          <div>
+            <span>Capabilities</span>
+            <strong>{user.capabilities.map((value) => value.charAt(0) + value.slice(1).toLowerCase()).join(", ")}</strong>
+          </div>
+          <div>
+            <span>Revision</span>
+            <strong>{user.revision}</strong>
+          </div>
+        </div>
+        <div className="slot-footer flush">
+          <span className="tutor-card-meta">
+            {options.length > 0
+              ? "Restriction actions keep existing bookings, funds and history."
+              : "Banned accounts are permanent and cannot be restored."}
+          </span>
+          {options.length > 0 && (
+            <button type="button" className="button" onClick={() => { setError(""); setOpen(true); }}>Change access</button>
+          )}
+        </div>
+      </section>
+
+      <section className="panel wallet-recent">
+        <h2>Restriction history</h2>
+        {detail.audit.length === 0 && <p className="tutor-card-meta">No restriction actions have been recorded.</p>}
+        {detail.audit.map((entry) => (
+          <div key={entry.id} className="audit-row">
+            <span>
+              <strong>{ACTION_LABEL[entry.action] ?? entry.action}</strong>
+              <small>{entry.reason || "No reason recorded"}</small>
+            </span>
+            <time dateTime={entry.occurredAt}>{formatTime(entry.occurredAt)}</time>
+          </div>
+        ))}
+      </section>
+
+      <LegalModal
+        open={open}
+        title="Change access"
+        onClose={() => setOpen(false)}
+        actions={
+          <div className="button-row" style={{ justifyContent: "flex-end" }}>
+            <button type="button" className="button button-quiet" onClick={() => setOpen(false)}>Cancel</button>
+            <button type="submit" form="access-form" className="button" disabled={pending}>{pending ? "Saving…" : "Record action"}</button>
+          </div>
+        }
+      >
+        <form id="access-form" className="topup-step" onSubmit={transition} noValidate>
+          {error && <Notice kind="error">{error}</Notice>}
+          <div className="field">
+            <span className="field-label">Account action</span>
+            <div className="topup-quick" role="group" aria-label="Account action">
+              {options.map((value) => (
+                <button type="button" key={value} className="topup-chip" aria-pressed={action === value} onClick={() => setAction(value)}>
+                  {ACTION_LABEL[value]}
+                </button>
+              ))}
+            </div>
+          </div>
+          <Field id="reason" label="Reason (required)" maxLength={500} required error={reasonError} />
+        </form>
+      </LegalModal>
+    </>
+  );
 }
-export default function AdminUserDetailPage({ params }: { params: Promise<{ userId: string }> }) { const { userId } = use(params); return <RequireAuth admin><UserDetail userId={userId}/></RequireAuth>; }
+
+export default function AdminUserDetailPage({ params }: { params: Promise<{ userId: string }> }) {
+  const { userId } = use(params);
+  return <RequireAuth admin><UserDetail userId={userId} /></RequireAuth>;
+}

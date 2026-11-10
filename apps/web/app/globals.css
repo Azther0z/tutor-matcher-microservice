@@ -784,3 +784,11 @@ fieldset.field legend { font-size: 14px; font-weight: 500; padding: 0; margin-bo
 .site-header .account-menu a, .site-header .account-menu button { border-radius: 0; padding: 10px 16px; }
 .account-menu-head { padding: 10px 16px 12px; }
 .account-menu hr { margin: 6px 0; }
+.admin-toolbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.admin-search { width: 240px; padding: 8px 12px; font-size: 14px; }
+.topup-chip[aria-pressed="true"] { background: rgba(255, 255, 255, 0.1); border-color: var(--field-focus); }
+.audit-row { display: flex; justify-content: space-between; gap: 16px; padding: 12px 0; border-top: 1px solid var(--line); font-size: 14px; }
+.audit-row span { display: grid; gap: 2px; }
+.audit-row small { color: var(--muted); font-size: 13px; }
+.audit-row time { flex: none; font-size: 13px; color: var(--muted); }
+.wallet-recent h2 { margin: 0 0 6px; font-size: 18px; }

@@ -26,7 +26,8 @@ const STATUS_TONE: Record<string, string> = {
   PENDING: "due", UNKNOWN: "due", OPEN: "due", SKIPPED: "muted",
   CONFIRMED: "info",
   COMPLETED: "good", SUCCEEDED: "good", APPROVED: "good", DELIVERED: "good", ACTIVE: "good", IN: "good",
-  CANCELLED: "bad", FAILED: "bad", REJECTED: "bad", OUT: "muted",
+  CANCELLED: "bad", FAILED: "bad", REJECTED: "bad", BANNED: "bad", OUT: "muted",
+  SUSPENDED: "due", DEACTIVATED: "muted",
 };
 export function StatusBadge({ value, corner }: { value: string; corner?: boolean }) {
   return (
