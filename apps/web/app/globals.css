@@ -341,9 +341,8 @@ fieldset.field legend { font-size: 14px; font-weight: 500; padding: 0; margin-bo
 }
 
 /* Discovery search: filter sidebar on the left, banner, count and results on the right. */
-.search-hero { margin: 0 0 24px; padding-bottom: 20px; border-bottom: 1px solid var(--line); }
-.search-hero h1 { font-size: clamp(30px, 4vw, 40px); margin: 8px 0; }
-.search-hero p:last-child { color: var(--muted); margin: 0; }
+.search-hero { margin: 0 0 16px; }
+.search-hero h1 { font-size: 22px; margin: 0; }
 .search-layout { display: grid; grid-template-columns: 280px minmax(0, 1fr); gap: 24px; align-items: start; }
 .search-side { position: sticky; top: 92px; padding: 20px; border: 1px solid var(--line-strong); border-radius: var(--radius); background: linear-gradient(165deg, var(--surface-2), var(--surface)); }
 .search-side .plain-fieldset { gap: 14px; }

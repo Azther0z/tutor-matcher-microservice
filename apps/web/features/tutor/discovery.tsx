@@ -141,9 +141,7 @@ export function Discover() {
   return (
     <>
       <header className="search-hero">
-        <p className="eyebrow">TUTOR SEARCH</p>
         <h1>Find a tutor</h1>
-        <p>Filter by subject, tutor, price, rating and format, then open a tutor to see more.</p>
       </header>
       <div className="search-layout">
         <aside className="search-side" aria-label="Filters">
