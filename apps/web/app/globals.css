@@ -746,3 +746,7 @@ fieldset.field legend { font-size: 14px; font-weight: 500; padding: 0; margin-bo
 .chat-composer input { flex: 1; min-width: 0; height: 38px; padding: 0 14px; border: 0; border-radius: 8px; background: #27272a; color: #fff; font-size: 14px; }
 .chat-composer input::placeholder { color: #a1a1aa; }
 .chat-composer input:focus, .chat-composer input:focus-visible { outline: none; box-shadow: none; background: #2e2e32; }
+.chat-composer input { background: #1d1d20; }
+.chat-composer input::placeholder { color: #75757d; }
+.chat-composer input:focus, .chat-composer input:focus-visible { background: #212125; }
+.chat-send:disabled { background: #1d1d20; color: #5f5f66; }
