@@ -1,6 +1,6 @@
 # Demo and slide section (P): finance and notifications
 
-Status: the **UI is not built**, so this describes what can be shown today at API level and what the live demo needs once the web shell exists. Do not present the API walkthrough as the UI journey.
+Status: the finance and notification UI is built and passes browser tests against mocked responses (`web/e2e/finance`). It has **not** been shown against the running backend, so rehearse the live path before presenting. The API walkthrough below is the fallback.
 
 ## What can be shown now (API level, 5 minutes)
 
@@ -12,9 +12,9 @@ Use Postman or curl through a Gateway, or the test harness, with `DEMO_MODE=true
 4. **Race at the deadline.** Dispute versus clearing at exactly `tutorConfirmedAt + 24 h`: either a held dispute or a cleared earning, never both.
 5. **Notification receipts.** Turn off Push for wallet/payments, trigger a top-up, and show one DELIVERED Email and one SKIPPED Push. Show a password-reset email delivered with every toggle off (mandatory SYSTEM). Cancel a booking before a reminder and show it suppressed.
 
-## Needed for the live UI demo
+## Live UI path (rehearse before presenting)
 
-Wallet overview and top-up page with the labelled simulated representation and return-to-booking; transaction history; payout accounts and payout; dispute filing and admin decision with evidence; preferences and receipts; the admin finance demo control page. Label historical clearing fixtures and show new completions staying pending.
+Sign in as a student: **Wallet** (`/wallet`) shows available, posted and reserved balances. Start a top-up (the page labels the code *Not payable*; keep `?returnToBookingId=` to come back to a booking). As an admin open **Demo provider controls** (`/demo/finance`), paste the top-up ID and provider reference, and record SUCCEEDED, then watch the top-up page update. Tutor: **Payout accounts** then **Payouts**; show an UNKNOWN payout staying reserved. Student: **Disputes** to file; admin: **Admin disputes** to read the evidence, give a reason and decide. **Notifications** shows the five preference groups and simulated receipts. Label historical clearing fixtures and show new completions staying pending.
 
 ## Operational notes for the slides
 
