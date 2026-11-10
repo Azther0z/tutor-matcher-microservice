@@ -1,0 +1,34 @@
+---
+title: Local Deployment · Docker Compose
+---
+%%{init: {"theme":"base","themeVariables":{"background":"#FFFFFF","primaryColor":"#F5F5F5","primaryTextColor":"#111111","primaryBorderColor":"#10264D","lineColor":"#3B6EA8","clusterBkg":"#FFFFFF","clusterBorder":"#10264D","fontFamily":"Arial","fontSize":"18px"},"flowchart":{"nodeSpacing":15,"rankSpacing":15,"padding":6,"subGraphTitleMargin":{"top":4,"bottom":4},"htmlLabels":true}}}%%
+flowchart LR
+    subgraph entry["Web And Public API"]
+        direction TB
+        browser(["Browser"]) -->|HTTP| web["Next.js Web App<br/>localhost:3000"]
+        web -->|HTTP / REST| public["Public Traefik<br/>localhost:8080"]
+    end
+    subgraph services["Business Services"]
+        direction TB
+        auth["Auth"] ~~~ review["Review"] ~~~ messaging["Messaging"] ~~~ wallet["Wallet"]
+        tutor["Tutor"] ~~~ booking["Booking"] ~~~ notification["Notification"]
+    end
+    subgraph infra["Private Infrastructure"]
+        direction TB
+        internal["Internal Traefik<br/>*.internal:8080"] ~~~ pg[("PostgreSQL<br/><span style='font-size:14px'>Auth<br/>Booking<br/>Wallet</span>")]
+        rabbit["RabbitMQ"] ~~~ mongo[("MongoDB<br/><span style='font-size:14px'>Tutor<br/>Review<br/>Messaging<br/>Notification</span>")]
+    end
+
+    entry -->|HTTP| services
+    services <-->|gRPC / HTTP| infra
+    services -->|SQL / Mongo<br/>AMQP| infra
+
+    classDef neutral fill:#F5F5F5,stroke:#10264D,color:#10264D,stroke-width:2px
+    classDef core fill:#F5F5F5,stroke:#10264D,color:#10264D,stroke-width:2px
+    classDef storage fill:#FFFFFF,stroke:#10264D,color:#10264D,stroke-width:2px
+    class browser,web neutral
+    class public,internal,auth,tutor,booking,wallet,review,messaging,notification core
+    class pg,mongo,rabbit storage
+    style entry fill:#FFFFFF,stroke:#AAAAAA,color:#10264D
+    style services fill:#FFFFFF,stroke:#9AA7B8,stroke-width:1px,color:#10264D
+    style infra fill:#FFFFFF,stroke:#9AA7B8,stroke-width:1px,color:#10264D

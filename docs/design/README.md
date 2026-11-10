@@ -64,3 +64,11 @@ The hosted target retains Swarm/Doco-CD and persistent storage. A single-member 
 ![Hosted deployment target](assets/deployment.png)
 
 [Scalable SVG](assets/deployment.svg)
+
+## Local deployment
+
+Docker Compose deployment with public and internal Traefik routing.
+
+![Local deployment](assets/local-deployment.png)
+
+[Mermaid source](mermaid/local-deployment.mmd)
