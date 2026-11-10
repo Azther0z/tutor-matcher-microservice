@@ -922,3 +922,6 @@ a.tutor-card:hover { background: #0b0b0b; }
 .lesson-title { margin: 0; font-size: 17px; font-weight: 500; }
 .lesson-title a { color: var(--ink); text-decoration: none; }
 .lesson-title a:hover { text-decoration: underline; }
+.subject-row-main { display: grid; gap: 2px; }
+.subject-row-main small { color: var(--muted); font-size: 13px; }
+.draft-row .subject-row-main strong { white-space: normal; }
