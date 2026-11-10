@@ -241,7 +241,6 @@ fieldset.field legend { font-size: 14px; font-weight: 500; padding: 0; margin-bo
 .dropdown-option { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 38px; padding: 8px 14px; font-size: 15px; border-radius: 0; cursor: pointer; overflow-wrap: anywhere; }
 .dropdown-option > span { min-width: 0; }
 .dropdown-option > svg { flex: none; color: var(--amber); }
-.dropdown-option[aria-selected="true"] { color: var(--amber); background: rgba(139, 92, 246, 0.1); }
 .dropdown-option:hover, .dropdown-option.is-active { background: #080808; }
 .dropdown-option[aria-disabled="true"], .dropdown-empty { color: var(--muted); opacity: 0.6; cursor: not-allowed; }
 .dropdown-empty { padding: 12px; }
