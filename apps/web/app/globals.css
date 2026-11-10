@@ -435,7 +435,6 @@ fieldset.field legend { font-size: 14px; font-weight: 500; padding: 0; margin-bo
 .tutor-card { display: flex; flex-direction: column; gap: 6px; padding: 16px 18px; }
 .tutor-card h2 { margin: 0; font-size: 18px; line-height: 1.25; }
 .tutor-card h2 a { color: var(--ink); text-decoration: none; }
-.tutor-card h2 a:hover { text-decoration: underline; text-underline-offset: 3px; }
 .tutor-card .tutor-card-by { display: flex; align-items: center; gap: 6px; margin: 0; font-size: 14px; }
 .tutor-card .tutor-card-by a { color: var(--muted); text-decoration: none; font-weight: 500; }
 .tutor-card .tutor-card-by a:hover { color: var(--ink); }
