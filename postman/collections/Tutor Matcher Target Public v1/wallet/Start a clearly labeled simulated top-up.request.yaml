@@ -21,7 +21,7 @@ headers:
   value: application/json
 body:
   type: json
-  content: "{\n  \"amount\": \"100.00\"\n}"
+  content: "{\"amount\":\"100.00\",\"slipImage\":\"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR4nGNgAAIAAAUAAXpeqz8AAAAASUVORK5CYII=\",\"slipContentType\":\"image/png\"}"
 auth:
   type: bearer
   credentials:
