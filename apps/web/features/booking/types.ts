@@ -26,4 +26,4 @@ export type Booking = {
   tutorDisplayName: string;
 };
 export type BookingPage = { items: Booking[]; pagination: PageMeta };
-export type CancellationQuote = { quoteId: string; bookingId: string; actor: "STUDENT" | "TUTOR"; refund: Money; fee: Money; late: boolean; requiresWarning: boolean; bookingRevision: string; expiresAt: string };
+export type CancellationQuote = { quoteId: string; bookingId: string; actor: "STUDENT" | "TUTOR"; refund: Money; fee: Money; late: boolean; requiresWarning: boolean; bookingRevision: string; policyVersion: string; issuedAt: string; expiresAt: string };

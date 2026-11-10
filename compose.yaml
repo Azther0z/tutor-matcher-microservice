@@ -56,6 +56,8 @@ services:
       RABBITMQ_NOTIFICATION_PASSWORD: ${RABBITMQ_NOTIFICATION_PASSWORD:?supply broker producer credential}
       RABBITMQ_TUTOR_PASSWORD: ${RABBITMQ_TUTOR_PASSWORD:?supply tutor publisher password}
       RABBITMQ_REVIEW_PASSWORD: ${RABBITMQ_REVIEW_PASSWORD:?supply review publisher password}
+      RABBITMQ_BOOKING_PASSWORD: ${RABBITMQ_BOOKING_PASSWORD:?supply booking publisher password}
+      RABBITMQ_MESSAGING_PASSWORD: ${RABBITMQ_MESSAGING_PASSWORD:?supply messaging publisher password}
     volumes:
     - ./infra/docker/rabbitmq-provision.mjs:/provision/rabbitmq-provision.mjs:ro
     - ./services/notification-service/deploy/rabbitmq-definitions.json:/provision/rabbitmq-definitions.json:ro
@@ -284,13 +286,19 @@ services:
     - backend
     profiles:
     - target
-    image: ${BOOKING_IMAGE:-tutor-matcher-booking:pending}
+    image: ${BOOKING_IMAGE:-tutor-matcher-booking:local}
+    build:
+      context: .
+      dockerfile: infra/docker/workspace.Dockerfile
+      args:
+        WORKSPACE: services/booking-service
     environment:
       ACTOR_ASSERTION_PUBLIC_KEY: ${ACTOR_ASSERTION_PUBLIC_KEY:?supply actor verification key}
       DEMO_MODE: 'true'
-      HTTP_PORT: '4004'
+      PORT: '4004'
       GRPC_PORT: '50052'
       DATABASE_URL: postgresql://booking_owner:${BOOKING_DB_PASSWORD}@postgres:5432/booking_db
+      RABBITMQ_URL: amqp://booking:${RABBITMQ_BOOKING_PASSWORD:?supply booking publisher password}@rabbitmq:5672
       TUTOR_GRPC_URL: tutor-service:50053
       WALLET_GRPC_URL: wallet-service:50054
       AUTH_GRPC_URL: auth-service:50051
@@ -300,6 +308,11 @@ services:
       REVIEW_WORKLOAD_CREDENTIAL: ${REVIEW_WORKLOAD_CREDENTIAL:?supply distinct workload credential}
       NOTIFICATION_WORKLOAD_CREDENTIAL: ${NOTIFICATION_WORKLOAD_CREDENTIAL:?supply distinct workload credential}
       GATEWAY_WORKLOAD_CREDENTIAL: ${GATEWAY_WORKLOAD_CREDENTIAL:?supply distinct workload credential}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq-provision:
+        condition: service_completed_successfully
     healthcheck:
       test:
       - CMD
@@ -419,11 +432,17 @@ services:
     - backend
     profiles:
     - target
-    image: ${MESSAGING_IMAGE:-tutor-matcher-messaging:pending}
+    image: ${MESSAGING_IMAGE:-tutor-matcher-messaging:local}
+    build:
+      context: .
+      dockerfile: infra/docker/workspace.Dockerfile
+      args:
+        WORKSPACE: services/messaging-service
     environment:
       ACTOR_ASSERTION_PUBLIC_KEY: ${ACTOR_ASSERTION_PUBLIC_KEY:?supply actor verification key}
       DEMO_MODE: 'true'
       PORT: '4006'
+      RABBITMQ_URL: amqp://messaging:${RABBITMQ_MESSAGING_PASSWORD:?supply messaging publisher password}@rabbitmq:5672
       MONGO_URI: mongodb://messaging_owner:${MESSAGING_DB_PASSWORD}@mongo:27017/messaging_db?authSource=messaging_db&replicaSet=rs0
       AUTH_GRPC_URL: auth-service:50051
       TUTOR_GRPC_URL: tutor-service:50053
@@ -431,6 +450,8 @@ services:
       GATEWAY_WORKLOAD_CREDENTIAL: ${GATEWAY_WORKLOAD_CREDENTIAL:?supply distinct workload credential}
     depends_on:
       mongo-init:
+        condition: service_completed_successfully
+      rabbitmq-provision:
         condition: service_completed_successfully
     healthcheck:
       test:

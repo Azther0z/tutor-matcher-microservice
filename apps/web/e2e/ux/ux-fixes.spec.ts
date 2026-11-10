@@ -299,13 +299,14 @@ test.describe("wallet top-up (UX-17, UX-45)", () => {
 });
 
 test.describe("dead ends and outage states", () => {
-  test("the tutor navigation has no Availability link and marks the current page", async ({ page }) => {
+  test("the tutor navigation links Availability and Lessons and marks the current page", async ({ page }) => {
     await signIn(page);
     await page.route(/\/api\/profiles\/me\/tutor\/subjects/, (route) => json(route, 200, { items: [], pagination: { page: 1, pageSize: 20, totalItems: 0, totalPages: 1 } }));
     await page.route(/\/api\/discovery\/learning-areas$/, (route) => json(route, 200, { items: [] }));
     await page.goto("/teach/subjects");
     const nav = page.getByRole("navigation", { name: "Tutor workspace" });
-    await expect(nav.getByRole("link", { name: "Availability" })).toHaveCount(0);
+    await expect(nav.getByRole("link", { name: "Availability" })).toHaveAttribute("href", "/teach/availability");
+    await expect(nav.getByRole("link", { name: "Lessons" })).toHaveAttribute("href", "/teach/lessons");
     await expect(nav.getByRole("link", { name: "Subjects" })).toHaveAttribute("aria-current", "page");
     await expect(page.getByText(/in Availability/)).toHaveCount(0);
     await expect(page.getByRole("link", { name: "Apply to become a tutor" })).toHaveAttribute("href", "/teach/application");

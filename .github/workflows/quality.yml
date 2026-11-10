@@ -42,7 +42,7 @@ jobs:
           import pg from 'pg';
           const client=new pg.Client({connectionString:process.env.TEST_DATABASE_URL});
           await client.connect();
-          for(const database of ['saint_auth_unit_test','saint_browser_test','saint_outbox_test','saint_wallet_test']) await client.query(`CREATE DATABASE ${database}`);
+          for(const database of ['saint_auth_unit_test','saint_browser_test','saint_outbox_test','saint_wallet_test','saint_booking_test']) await client.query(`CREATE DATABASE ${database}`);
           await client.end();
           JS
       - name: Start a disposable MongoDB replica set
@@ -61,6 +61,7 @@ jobs:
         env:
           TEST_DATABASE_URL: postgresql://postgres@127.0.0.1:5432/saint_auth_unit_test
           WALLET_TEST_DATABASE_URL: postgresql://postgres@127.0.0.1:5432/saint_wallet_test
+          BOOKING_TEST_DATABASE_URL: postgresql://postgres@127.0.0.1:5432/saint_booking_test
           TEST_MONGO_URI: mongodb://127.0.0.1:27017/?replicaSet=rs0&directConnection=true
           TUTOR_TEST_MONGO_URI: mongodb://127.0.0.1:27017/?replicaSet=rs0
           REVIEW_TEST_MONGO_URI: mongodb://127.0.0.1:27017/?replicaSet=rs0

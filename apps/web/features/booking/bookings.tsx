@@ -4,7 +4,7 @@ import Link from "next/link";
 import { use, useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Field, Notice } from "@/components/field";
-import { StatusBadge } from "@/features/wallet/common";
+import { Pager, StatusBadge } from "@/features/wallet/common";
 import { formatMoney, formatTime } from "@/features/wallet/format";
 import { ActionMessages, useAction } from "@/features/tutor/common";
 import { RequireAuth, useAuth } from "@/lib/auth-context";
@@ -16,6 +16,24 @@ import {
 } from "@/lib/api";
 import type { SubjectPageData } from "@/features/tutor/types";
 import type { Booking, BookingPage, CancellationQuote } from "./types";
+
+/** Live countdown to the end of the 15-minute payment hold. Reloads the booking when it reaches zero. */
+function HoldCountdown({ expiresAt, onExpired }: { expiresAt: string; onExpired: () => void }) {
+  const [left, setLeft] = useState(() => new Date(expiresAt).getTime() - Date.now());
+  useEffect(() => {
+    const timer = setInterval(() => setLeft(new Date(expiresAt).getTime() - Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, [expiresAt]);
+  useEffect(() => {
+    if (left <= 0) onExpired();
+    // Fire once when the hold ends; the reloaded booking no longer renders this component.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [left <= 0]);
+  if (left <= 0) return <strong role="status">The hold has expired. Choose your lesson times again.</strong>;
+  const minutes = Math.floor(left / 60000);
+  const seconds = Math.floor((left % 60000) / 1000);
+  return <strong role="timer">{minutes}:{String(seconds).padStart(2, "0")}</strong>;
+}
 
 function BookingCard({ booking }: { booking: Booking }) {
   return (
@@ -42,6 +60,8 @@ function BookingCard({ booking }: { booking: Booking }) {
 function BookingsContent() {
   const { account } = useAuth();
   const [view, setView] = useState<"STUDENT" | "TUTOR">("STUDENT");
+  const [status, setStatus] = useState("");
+  const [page, setPage] = useState(1);
   const [result, setResult] = useState<BookingPage | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -50,7 +70,7 @@ function BookingsContent() {
     setError("");
     try {
       setResult(
-        await api<BookingPage>(`/bookings?page=1&pageSize=20&view=${view}`),
+        await api<BookingPage>(`/bookings?page=${page}&pageSize=20&view=${view}${status ? `&status=${status}` : ""}`),
       );
     } catch (caught) {
       setResult(null);
@@ -58,7 +78,7 @@ function BookingsContent() {
     } finally {
       setLoading(false);
     }
-  }, [view]);
+  }, [view, status, page]);
   useEffect(() => {
     void load();
   }, [load]);
@@ -76,18 +96,27 @@ function BookingsContent() {
         <div className="view-switch" role="group" aria-label="Booking view">
           <button
             className={`button ${view === "STUDENT" ? "" : "button-quiet"}`}
-            onClick={() => setView("STUDENT")}
+            aria-pressed={view === "STUDENT"}
+            onClick={() => { setView("STUDENT"); setPage(1); }}
           >
             As a student
           </button>
           <button
             className={`button ${view === "TUTOR" ? "" : "button-quiet"}`}
-            onClick={() => setView("TUTOR")}
+            aria-pressed={view === "TUTOR"}
+            onClick={() => { setView("TUTOR"); setPage(1); }}
           >
             As a tutor
           </button>
         </div>
       )}
+      <div className="view-switch" role="group" aria-label="Booking status">
+        {[["", "All"], ["PAYMENT_DUE", "Awaiting payment"], ["CONFIRMED", "Confirmed"], ["COMPLETED", "Completed"], ["CANCELLED", "Cancelled"]].map(([value, label]) => (
+          <button key={value} className={`button ${status === value ? "" : "button-quiet"}`} aria-pressed={status === value} onClick={() => { setStatus(value); setPage(1); }}>
+            {label}
+          </button>
+        ))}
+      </div>
       {loading && <p role="status">Loading your bookings…</p>}
       {error && (
         <Notice kind="error">
@@ -111,6 +140,7 @@ function BookingsContent() {
           <BookingCard key={booking.id} booking={booking} />
         ))}
       </div>
+      {result && <Pager meta={result.pagination} onPage={setPage} disabled={loading} />}
     </>
   );
 }
@@ -278,8 +308,10 @@ function BookingDetailContent({ bookingId }: { bookingId: string }) {
   async function command(path: string, body?: unknown, method = "POST") {
     setError("");
     setNotice("");
-    const result = await action.run(path, body, method, quote && path.endsWith("/cancel") ? quote.bookingRevision : etag.replace(/^"|"$/g, ""));
+    const result = await action.run(path, body, method, quote && /\/(tutor-)?cancel$/.test(path) ? quote.bookingRevision : etag.replace(/^"|"$/g, ""));
     if (result) setQuote(null);
+    // A rejected action may have advanced the booking (for example a declined payment), so show its current state and revision.
+    else await load();
   }
   async function requestQuote() {
     setPending(true);
@@ -370,6 +402,8 @@ function BookingDetailContent({ bookingId }: { bookingId: string }) {
                 <>
                   <dt>Payment hold expires</dt>
                   <dd>{formatTime(booking.holdExpiresAt)}</dd>
+                  <dt>Time left to pay</dt>
+                  <dd><HoldCountdown expiresAt={booking.holdExpiresAt} onExpired={() => void load()} /></dd>
                 </>
               )}
             </dl>

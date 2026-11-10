@@ -34,7 +34,7 @@ For a completely new disposable demo, `COMPOSE_PROJECT_NAME=<new-isolated-projec
 | `npm run demo -- down`         | Stop and remove containers; volumes are kept                   |
 | `npm run demo -- reset --yes`  | Also delete this demo's database volumes                       |
 
-The demo accounts are `admin.demo@example.test`, `student.demo@example.test` and `candidate.demo@example.test` (the approved Mathematics tutor). Their shared password is `AUTH_DEMO_PASSWORD` in `.env.demo`. Booking and Messaging start only when `BOOKING_IMAGE` and `MESSAGING_IMAGE` point at real images; the `:pending` defaults are placeholders, so those pages show their unavailable state without them.
+The demo accounts are `admin.demo@example.test`, `student.demo@example.test` and `candidate.demo@example.test` (the approved Mathematics tutor). Their shared password is `AUTH_DEMO_PASSWORD` in `.env.demo`. Booking (PostgreSQL `booking_db`) and Messaging (MongoDB `messaging_db`) are built from this repository and start with the rest. The demo also opens seven days of 09:00-17:00 availability for the demo tutor so discovery and booking have slots.
 
 Wallet and Notification have workspace scripts (`npm run dev:wallet`, `npm run dev:notification`). Their tests need a disposable PostgreSQL (`WALLET_TEST_DATABASE_URL`) and a MongoDB replica set (`TEST_MONGO_URI`); never point them at an application database. Local Compose provisions their RabbitMQ users with the one-shot `rabbitmq-provision` job (`infra/docker/rabbitmq-provision.mjs`); in Swarm run it once before the owner workers start.
 

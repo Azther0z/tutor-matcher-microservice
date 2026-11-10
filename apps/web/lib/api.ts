@@ -38,6 +38,8 @@ export type ApiOptions = Omit<RequestInit, "body"> & {
   body?: unknown;
   idempotencyKey?: string;
   ifMatch?: string;
+  /** Create-only precondition, for example "*" when opening a new availability slot. */
+  ifNoneMatch?: string;
   auth?: boolean;
 };
 
@@ -52,13 +54,14 @@ export function newIdempotencyKey(): string {
 }
 
 export async function apiResponse<T>(path: string, options: ApiOptions = {}): Promise<{ data: T; headers: Headers }> {
-  const { body, idempotencyKey, ifMatch, auth = true, headers: extraHeaders, ...rest } = options;
+  const { body, idempotencyKey, ifMatch, ifNoneMatch, auth = true, headers: extraHeaders, ...rest } = options;
   const headers = new Headers(extraHeaders);
   headers.set("Accept", "application/json");
   headers.set("X-Request-Id", crypto.randomUUID());
   if (body !== undefined) headers.set("Content-Type", "application/json");
   if (idempotencyKey) headers.set("Idempotency-Key", idempotencyKey);
   if (ifMatch) headers.set("If-Match", ifMatch);
+  if (ifNoneMatch) headers.set("If-None-Match", ifNoneMatch);
   if (auth) {
     const token = sessionToken.read();
     if (token) headers.set("Authorization", `Bearer ${token}`);

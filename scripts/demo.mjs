@@ -41,13 +41,9 @@ const SERVICES = [
   "review-service",
   "wallet-service",
   "notification-service",
+  "booking-service",
+  "messaging-service",
 ];
-// Booking and Messaging only start once a real image is supplied; the default
-// `:pending` images are deliberate placeholders that cannot run.
-const OPTIONAL_IMAGES = {
-  BOOKING_IMAGE: "booking-service",
-  MESSAGING_IMAGE: "messaging-service",
-};
 const SECRETS = [
   "JWT_SECRET",
   "RESET_CONTENT_KEY",
@@ -66,6 +62,8 @@ const SECRETS = [
   "RABBITMQ_AUTH_PASSWORD",
   "RABBITMQ_TUTOR_PASSWORD",
   "RABBITMQ_REVIEW_PASSWORD",
+  "RABBITMQ_BOOKING_PASSWORD",
+  "RABBITMQ_MESSAGING_PASSWORD",
   "RABBITMQ_WALLET_PASSWORD",
   "RABBITMQ_NOTIFICATION_PASSWORD",
   "AUTH_WORKLOAD_CREDENTIAL",
@@ -146,14 +144,19 @@ function composeArgs(...rest) {
   ];
 }
 
-function run(args, { quiet = false, input } = {}) {
-  return spawnSync(docker, args, {
+function run(args, { quiet = false, capture = false, input } = {}) {
+  const result = spawnSync(docker, args, {
     cwd: root,
     encoding: "utf8",
     input,
-    stdio: quiet ? ["pipe", "pipe", "pipe"] : ["pipe", "inherit", "inherit"],
+    stdio:
+      quiet || capture
+        ? ["pipe", "pipe", capture ? "inherit" : "pipe"]
+        : ["pipe", "inherit", "inherit"],
     env: { ...process.env, COMPOSE_PROJECT_NAME: project },
   });
+  if (capture && result.stdout) process.stdout.write(result.stdout);
+  return result;
 }
 
 function stream(args) {
@@ -204,12 +207,7 @@ async function checkPorts() {
 }
 
 function selectedServices() {
-  const names = definedNames();
-  const services = [...SERVICES];
-  for (const [variable, service] of Object.entries(OPTIONAL_IMAGES)) {
-    if (process.env[variable] || names.get(variable)) services.push(service);
-  }
-  return services;
+  return [...SERVICES];
 }
 
 function seed() {
@@ -243,10 +241,42 @@ function seed() {
       "--workspace",
       "services/tutor-service",
     ),
+    { capture: true },
   );
-  if (tutor.status !== 0)
+  if (tutor.status !== 0) {
     say(
       "  ! The demo tutor could not be seeded (the tutor service may still be starting). Run `npm run demo` again to retry.",
+    );
+    return;
+  }
+  // The tutor seed prints {"items":[{userId,tutorId,subjectId}]}; Booking opens demo availability for those tutors.
+  let tutors = [];
+  try {
+    const lastJson = tutor.stdout
+      .split("\n")
+      .reverse()
+      .find((line) => line.trim().startsWith("{"));
+    tutors = JSON.parse(lastJson ?? "{}").items ?? [];
+  } catch {
+    tutors = [];
+  }
+  const booking = run(
+    composeArgs(
+      "exec",
+      "-T",
+      "-e",
+      `BOOKING_SEED_TUTORS=${JSON.stringify(tutors)}`,
+      "booking-service",
+      "npm",
+      "run",
+      "seed",
+      "--workspace",
+      "services/booking-service",
+    ),
+  );
+  if (booking.status !== 0)
+    say(
+      "  ! Demo availability could not be seeded. Run `npm run demo` again to retry.",
     );
 }
 
@@ -274,6 +304,16 @@ async function liveChecks() {
       "gateway → auth service",
     ],
     [
+      "Bookings (booking service)",
+      (await probe("/api/bookings")) === 401,
+      "GET /api/bookings (needs sign-in)",
+    ],
+    [
+      "Messages (messaging service)",
+      (await probe("/api/messages/inbox")) === 401,
+      "GET /api/messages/inbox (needs sign-in)",
+    ],
+    [
       "Find tutors (tutor service)",
       (await probe("/api/discovery/tutors?pageSize=1")) === 200,
       "GET /api/discovery/tutors",
@@ -286,13 +326,6 @@ async function liveChecks() {
 }
 
 function summary(healthy) {
-  const names = definedNames();
-  const hasBooking = Boolean(
-    process.env.BOOKING_IMAGE || names.get("BOOKING_IMAGE"),
-  );
-  const hasMessaging = Boolean(
-    process.env.MESSAGING_IMAGE || names.get("MESSAGING_IMAGE"),
-  );
   say(`\n${healthy ? "✔ Demo is ready" : "! Demo started with problems"}\n`);
   say(`  App      ${WEB_URL}`);
   say(`  Gateway  ${GATEWAY_URL}`);
@@ -300,14 +333,6 @@ function summary(healthy) {
   say("    admin.demo@example.test       administrator");
   say("    student.demo@example.test     student");
   say("    candidate.demo@example.test   approved tutor (Mathematics)");
-  if (!hasBooking || !hasMessaging) {
-    const missing = [!hasBooking && "Booking", !hasMessaging && "Messaging"]
-      .filter(Boolean)
-      .join(" and ");
-    say(
-      `\n  Not running: ${missing}. This repository has no runnable image for ${missing.includes("and") ? "them" : "it"}; set ${[!hasBooking && "BOOKING_IMAGE", !hasMessaging && "MESSAGING_IMAGE"].filter(Boolean).join(" / ")} in .env.demo to include ${missing.includes("and") ? "them" : "it"}.`,
-    );
-  }
   say("\n  npm run demo -- logs     follow logs");
   say("  npm run demo -- down     stop (data is kept)");
   say("  npm run demo -- reset --yes   stop and delete this demo's data\n");

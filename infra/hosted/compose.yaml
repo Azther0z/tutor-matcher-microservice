@@ -353,7 +353,7 @@ services:
     environment:
       ACTOR_ASSERTION_PUBLIC_KEY: ${ACTOR_ASSERTION_PUBLIC_KEY:?supply actor verification key}
       DEMO_MODE: 'true'
-      HTTP_PORT: '4004'
+      PORT: '4004'
       GRPC_PORT: '50052'
       DATABASE_URL: postgresql://booking_owner:${BOOKING_DB_PASSWORD}@postgres:5432/booking_db
       TUTOR_GRPC_URL: tutor-service:50053

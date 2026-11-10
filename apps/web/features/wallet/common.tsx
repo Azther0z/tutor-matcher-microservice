@@ -25,6 +25,7 @@ const BADGE: Record<string, string> = {
   SUCCEEDED: "badge", APPROVED: "badge", DELIVERED: "badge", IN: "badge", ACTIVE: "badge",
   FAILED: "badge danger", REJECTED: "badge danger", OUT: "badge warn",
   PENDING: "badge warn", UNKNOWN: "badge warn", OPEN: "badge warn", SKIPPED: "badge warn",
+  PAYMENT_DUE: "badge warn", CANCELLED: "badge danger", CONFIRMED: "badge", COMPLETED: "badge",
 };
 export function StatusBadge({ value }: { value: string }) {
   return <span className={BADGE[value] ?? "badge"}>{titleCase(value)}</span>;

@@ -11,9 +11,9 @@
     "node": ">=22"
   },
   "scripts": {
-    "build": "npm run build -w @tutor-matcher/shared && npm run build -w @tutor-matcher/auth-service -w @tutor-matcher/wallet-service -w @tutor-matcher/notification-service -w @tutor-matcher/tutor-service -w @tutor-matcher/review-service && npm run build -w @tutor-matcher/web",
+    "build": "npm run build -w @tutor-matcher/shared && npm run build -w @tutor-matcher/auth-service -w @tutor-matcher/wallet-service -w @tutor-matcher/notification-service -w @tutor-matcher/booking-service -w @tutor-matcher/messaging-service -w @tutor-matcher/tutor-service -w @tutor-matcher/review-service && npm run build -w @tutor-matcher/web",
     "typecheck": "npm run build -w @tutor-matcher/shared && npm run typecheck --workspaces --if-present",
-    "lint": "eslint packages/shared/src services/auth-service/src services/wallet-service/src services/notification-service/src \"services/tutor-service/src/**/*.ts\" \"services/review-service/src/**/*.ts\" apps/web",
+    "lint": "eslint packages/shared/src services/auth-service/src services/wallet-service/src services/notification-service/src services/booking-service/src services/messaging-service/src \"services/tutor-service/src/**/*.ts\" \"services/review-service/src/**/*.ts\" apps/web",
     "format": "prettier --write package.json tsconfig.base.json eslint.config.mjs scripts",
     "format:check": "prettier --check package.json tsconfig.base.json eslint.config.mjs scripts",
     "test": "npm run test --workspaces --if-present && node --test tests/*.test.cjs",
@@ -35,6 +35,8 @@
     "loadtest:prepare": "node loadtest/prepare-marketplace.mjs",
     "test:marketplace:integrated": "node loadtest/marketplace-integration.mjs",
     "dev:wallet": "npm run dev -w @tutor-matcher/wallet-service",
+    "dev:booking": "npm run dev -w @tutor-matcher/booking-service",
+    "dev:messaging": "npm run dev -w @tutor-matcher/messaging-service",
     "dev:notification": "npm run dev -w @tutor-matcher/notification-service",
     "smoke:p-broker": "node scripts/smoke-p-broker.mjs"
   },

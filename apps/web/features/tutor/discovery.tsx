@@ -433,9 +433,12 @@ export function SubjectDetails({
   const selectedSlots =
     data?.slots.filter((slot) => selected.includes(slot.id)) ?? [];
   const error = selectionError(selectedSlots);
+  const firstSlot = [...selectedSlots].sort((a, b) => a.startsAt.localeCompare(b.startsAt))[0];
   const selectionQuery = new URLSearchParams({
     tutorId,
     subjectId,
+    // The booking page re-reads this subject's slots for the same Bangkok day, so the day travels with the selection.
+    ...(firstSlot ? { date: new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Bangkok" }).format(new Date(firstSlot.startsAt)) } : {}),
     slotIds: [...selectedSlots]
       .sort((a, b) => a.startsAt.localeCompare(b.startsAt))
       .map((slot) => slot.id)

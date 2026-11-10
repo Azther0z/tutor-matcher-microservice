@@ -310,6 +310,8 @@ const TUTOR_LINKS = [
   { href: "/teach/application", label: "Application and history" },
   { href: "/teach/profile", label: "Profile and publication" },
   { href: "/teach/subjects", label: "Subjects" },
+  { href: "/teach/availability", label: "Availability" },
+  { href: "/teach/lessons", label: "Lessons" },
 ];
 export function TutorNavigation() {
   const pathname = usePathname();

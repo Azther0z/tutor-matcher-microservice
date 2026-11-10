@@ -110,7 +110,23 @@ if (workspace === "auth-service") {
   if (typeof createApp !== "function")
     throw new Error("Notification HTTP factory unavailable");
   console.log("Notification production dependencies and HTTP factory load.");
+} else if (workspace === "booking-service") {
+  const { createApp } =
+    await import("../services/booking-service/dist/http/app.js");
+  const { startGrpcServer } =
+    await import("../services/booking-service/dist/grpc/server.js");
+  if (typeof createApp !== "function" || typeof startGrpcServer !== "function")
+    throw new Error("Booking HTTP or gRPC factory unavailable");
+  console.log(
+    "Booking production dependencies, HTTP factory and gRPC server module load.",
+  );
+} else if (workspace === "messaging-service") {
+  const { createApp } =
+    await import("../services/messaging-service/dist/http/app.js");
+  if (typeof createApp !== "function")
+    throw new Error("Messaging HTTP factory unavailable");
+  console.log("Messaging production dependencies and HTTP factory load.");
 } else
   throw new Error(
-    "Choose auth-service, tutor-service, review-service, wallet-service, notification-service or web",
+    "Choose auth-service, tutor-service, review-service, wallet-service, notification-service, booking-service, messaging-service or web",
   );

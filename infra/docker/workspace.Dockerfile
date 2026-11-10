@@ -9,6 +9,7 @@ COPY services/review-service/package.json services/review-service/package.json
 COPY services/booking-service/package.json services/booking-service/package.json
 COPY services/wallet-service/package.json services/wallet-service/package.json
 COPY services/notification-service/package.json services/notification-service/package.json
+COPY services/messaging-service/package.json services/messaging-service/package.json
 RUN npm ci --no-audit --no-fund
 COPY . .
 ARG WORKSPACE
