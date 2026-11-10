@@ -42,7 +42,9 @@
     "smoke:p-broker": "node scripts/smoke-p-broker.mjs",
     "routes:internal:check": "node scripts/generate-internal-traefik-routes.mjs --check",
     "test:internal-traefik": "npm run build -w @tutor-matcher/shared && node --test tests/internal-traefik.test.cjs && node scripts/qualify-internal-traefik-compose.mjs && node scripts/qualify-internal-traefik-swarm.mjs --render-only",
-    "qualify:internal-traefik:swarm": "node scripts/qualify-internal-traefik-swarm.mjs"
+    "qualify:internal-traefik:swarm": "node scripts/qualify-internal-traefik-swarm.mjs",
+    "loadtest:discovery": "node loadtest/run-discovery.mjs",
+    "test:loadtest": "node --test tests/discovery-loadtest.test.cjs tests/discovery-capacity.test.cjs"
   },
   "devDependencies": {
     "@eslint/js": "9.39.5",

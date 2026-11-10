@@ -1,0 +1,83 @@
+# Local discovery experiment; merge after the repository's compose.yaml.
+services:
+  postgres:
+    cpus: 1.0
+    mem_limit: 768m
+  mongo:
+    cpus: 1.0
+    mem_limit: 1024m
+  rabbitmq:
+    cpus: 0.5
+    mem_limit: 512m
+  docker-api:
+    cpus: 0.1
+    mem_limit: 128m
+  api-gateway:
+    command: !override
+      - --entrypoints.web.address=:8080
+      - --entrypoints.auth.address=127.0.0.1:8081
+      - --entrypoints.auth.forwardedHeaders.trustedIPs=127.0.0.1/32,::1/128
+      - --entrypoints.traefik.address=127.0.0.1:8082
+      - --ping=true
+      - --api.dashboard=false
+      - --providers.file.filename=/etc/traefik/dynamic/routes.yaml
+      - --providers.file.watch=true
+      - --serversTransport.forwardingTimeouts.dialTimeout=2s
+      - --serversTransport.forwardingTimeouts.responseHeaderTimeout=5s
+      - --accesslog=true
+      - --accesslog.format=json
+      - --accesslog.fields.headers.defaultmode=drop
+      - --providers.docker.endpoint=tcp://docker-api:2375
+      - --providers.docker.exposedbydefault=false
+      - --providers.docker.constraints=Label(`tutor-matcher.gateway`, `true`) && Label(`com.docker.compose.project`, `${COMPOSE_PROJECT_NAME:?supply isolated project}`)
+      - --providers.docker.defaultRule=PathRegexp(`a^`)
+      - --providers.docker.allowEmptyServices=true
+      - --providers.docker.network=${COMPOSE_PROJECT_NAME:-tutor-matcher}_backend
+    cpus: 0.5
+    mem_limit: 256m
+    ports: !override
+      - "127.0.0.1:${DISCOVERY_PORT:-18080}:8080"
+  internal-traefik:
+    command: !override
+      - --entrypoints.internal.address=:8080
+      - --ping=true
+      - --entrypoints.traefik.address=127.0.0.1:8082
+      - --providers.file.filename=/etc/traefik/dynamic/routes.yaml
+      - --providers.file.watch=true
+      - --providers.docker.endpoint=tcp://docker-api:2375
+      - --providers.docker.exposedbydefault=false
+      - --providers.docker.constraints=Label(`tutor-matcher.internal`, `true`) && Label(`com.docker.compose.project`, `${COMPOSE_PROJECT_NAME:?supply isolated project}`)
+      - --providers.docker.defaultRule=PathRegexp(`a^`)
+      - --providers.docker.allowEmptyServices=true
+      - --providers.docker.network=${COMPOSE_PROJECT_NAME:-tutor-matcher}_backend
+      - --providers.docker.watch=true
+      - --serversTransport.forwardingTimeouts.dialTimeout=2s
+      - --serversTransport.forwardingTimeouts.responseHeaderTimeout=5s
+    cpus: 0.5
+    mem_limit: 256m
+  auth-service:
+    cpus: 0.5
+    mem_limit: 384m
+    image: tutor-matcher-discovery-auth:${DISCOVERY_IMAGE_TAG:-local}
+  tutor-service:
+    cpus: 0.5
+    mem_limit: 384m
+    image: tutor-matcher-discovery-tutor:${DISCOVERY_IMAGE_TAG:-local}
+  booking-service:
+    cpus: 0.5
+    mem_limit: 384m
+    image: tutor-matcher-discovery-booking:${DISCOVERY_IMAGE_TAG:-local}
+  review-service:
+    cpus: 0.5
+    mem_limit: 384m
+    image: tutor-matcher-discovery-review:${DISCOVERY_IMAGE_TAG:-local}
+  load-generator:
+    image: grafana/k6:1.6.1
+    profiles: [performance]
+    cpus: 1.0
+    mem_limit: 1536m
+    user: "0:0"
+    networks: [backend]
+    volumes:
+      - ./loadtest:/scripts:ro
+      - ${DISCOVERY_OUTPUT:?supply a new experiment output directory}:/results
