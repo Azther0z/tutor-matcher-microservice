@@ -398,3 +398,16 @@ fieldset.field legend { font-size: 14px; font-weight: 500; padding: 0; margin-bo
 .slip-preview, .slip-image { display: block; max-width: 280px; max-height: 360px; width: auto; height: auto; border-radius: 8px; border: 1px solid var(--line-strong); margin-top: 8px; }
 .slip-image { max-width: 100%; cursor: zoom-in; }
 .field input[type="file"] { padding: 8px; }
+.legal-link { padding: 0; border: 0; background: none; color: var(--ink); font: inherit; font-weight: 500; text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--line-strong); cursor: pointer; }
+.legal-link:hover { text-decoration-color: var(--amber); color: var(--amber); }
+.legal-modal { width: min(560px, calc(100% - 32px)); max-height: min(640px, calc(100vh - 48px)); padding: 0; border: 1px solid var(--line-strong); border-radius: var(--radius); background: var(--surface); color: var(--ink); box-shadow: var(--shadow); }
+.legal-modal[open] { display: flex; flex-direction: column; }
+.legal-modal::backdrop { background: rgba(0, 0, 0, 0.6); }
+.legal-modal-head { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid var(--line); }
+.legal-modal-head h2 { margin: 0; font-size: 18px; }
+.legal-modal-close { width: 32px; height: 32px; border: 0; border-radius: 8px; background: transparent; color: var(--muted); font-size: 22px; line-height: 1; cursor: pointer; }
+.legal-modal-close:hover { background: var(--surface-2); color: var(--ink); }
+.legal-modal-body { padding: 18px 20px; overflow-y: auto; }
+.legal-modal-foot { padding: 12px 20px; border-top: 1px solid var(--line); text-align: right; }
+.legal-modal-body p { color: var(--muted); }
+.legal-modal-body h2 { font-size: 16px; }
