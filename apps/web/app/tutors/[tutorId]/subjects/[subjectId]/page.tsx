@@ -1,4 +1,6 @@
 import { SubjectDetails } from "@/features/tutor/discovery";
+
+export const metadata = { title: "Subject details" };
 export default async function Page({
   params,
 }: {

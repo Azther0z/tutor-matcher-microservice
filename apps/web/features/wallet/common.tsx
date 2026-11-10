@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { RequireAuth, useAuth } from "@/lib/auth-context";
 import { api } from "@/lib/api";
@@ -15,7 +16,7 @@ export function RequireCapability({ capability, children }: { capability: Capabi
 function CapabilityGate({ capability, children }: { capability: Capability; children: React.ReactNode }) {
   const { account } = useAuth();
   if (account && !account.capabilities.includes(capability)) {
-    return <section className="panel"><h1>{titleCase(capability)} access required</h1><p>Your current account does not have the {capability} capability.</p></section>;
+    return <section className="panel"><h1>{titleCase(capability)} access required</h1><p>Your current account does not have the {capability} capability.</p>{capability === "TUTOR" && <p><Link className="button" href="/teach/application">Apply to become a tutor</Link></p>}</section>;
   }
   return <>{children}</>;
 }

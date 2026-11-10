@@ -225,7 +225,10 @@ function ReviewWriterContent({ bookingId }: { bookingId: string }) {
           <ResourceState
             loading={resource.loading}
             error={resource.error}
+            failure={resource.failure}
             retry={() => void resource.reload()}
+            backHref="/reviews"
+            backLabel="Back to reviews"
           />
           {booking && (
             <section className="panel">

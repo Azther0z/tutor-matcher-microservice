@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { AuthProvider } from "@/lib/auth-context";
-import { SignOutButton } from "@/components/sign-out";
+import { SiteNav } from "@/components/site-nav";
 import "./globals.css";
 
-export const metadata: Metadata = { title: "Tutor Matcher", description: "Find the right tutor for your next learning goal." };
+export const metadata: Metadata = { title: { default: "Tutor Matcher", template: "%s · Tutor Matcher" }, description: "Find the right tutor for your next learning goal." };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="en"><body><AuthProvider><header className="site-header"><Link className="brand" href="/" aria-label="Tutor Matcher home"><span className="brand-mark">T</span><span>Tutor Matcher</span></Link><nav aria-label="Main navigation"><Link href="/login">Log in</Link><Link className="nav-cta" href="/signup">Create account</Link><Link href="/account">Account</Link><Link href="/wallet">Wallet</Link><Link href="/notifications">Notifications</Link><Link href="/admin/users">Admin</Link></nav><SignOutButton /></header><main className="page-shell">{children}</main><footer className="site-footer"><span>Learn with confidence.</span><span>Your learning, your pace.</span></footer></AuthProvider></body></html>
+  return <html lang="en"><body><AuthProvider><a className="skip-link" href="#main">Skip to main content</a><header className="site-header"><Link className="brand" href="/" aria-label="Tutor Matcher home"><span className="brand-mark">T</span><span>Tutor Matcher</span></Link><SiteNav /></header><main className="page-shell" id="main" tabIndex={-1}>{children}</main><footer className="site-footer"><span>Learn with confidence.</span><span>Your learning, your pace.</span></footer></AuthProvider></body></html>
 }

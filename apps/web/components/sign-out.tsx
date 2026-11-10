@@ -13,5 +13,5 @@ export function SignOutButton() {
     try { await signOut(); } finally { router.replace("/login"); setPending(false); }
   }
   if (!account) return null;
-  return <button className="button button-quiet" onClick={() => void handleSignOut()} disabled={pending}>{pending ? "Signing out…" : "Sign out"}</button>;
+  return <button className="nav-button" onClick={() => void handleSignOut()} disabled={pending}>{pending ? "Signing out…" : "Sign out"}</button>;
 }

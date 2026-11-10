@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Field, Notice } from "@/components/field";
+import { Field, Notice, focusFirstInvalid } from "@/components/field";
 import { useAuth } from "@/lib/auth-context";
 import { ReviewList } from "../review/reviews";
 import {
@@ -32,6 +32,21 @@ const filterNames = [
   "format",
   "sort",
 ] as const;
+function priceProblems(
+  min: string | null,
+  max: string | null,
+): { min?: string; max?: string } {
+  const problems: { min?: string; max?: string } = {};
+  const lower = min === null ? null : Number(min);
+  const upper = max === null ? null : Number(max);
+  if (lower !== null && (!Number.isFinite(lower) || lower < 0))
+    problems.min = "Enter a rate of 0 or more.";
+  if (upper !== null && (!Number.isFinite(upper) || upper < 0))
+    problems.max = "Enter a rate of 0 or more.";
+  if (!problems.min && !problems.max && lower !== null && upper !== null && lower > upper)
+    problems.max = "The maximum rate must be at least the minimum rate.";
+  return problems;
+}
 function RatingLabel({
   average,
   count,
@@ -76,6 +91,16 @@ export function Discover() {
       ? `/discovery/tutors?${parameters}`
       : null,
   );
+  const [priceErrors, setPriceErrors] = useState<{ min?: string; max?: string }>({});
+  // One outage state for the whole catalogue: the form stays off until the learning areas and search can load.
+  const searchDown = Boolean(
+    areas.error || range.error || (resource.failure?.outage ?? false),
+  );
+  const reloadCatalogue = () => {
+    void areas.reload();
+    void range.reload();
+    void resource.reload();
+  };
   const navigate = (page: number) => {
     const next = new URLSearchParams(query.toString());
     next.set("page", String(page));
@@ -83,11 +108,18 @@ export function Discover() {
   };
   function filter(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const form = new FormData(event.currentTarget);
+    const formElement = event.currentTarget;
+    const form = new FormData(formElement);
     const next = new URLSearchParams();
     for (const key of filterNames) {
       const value = String(form.get(key) ?? "").trim();
       if (value) next.set(key, value);
+    }
+    const problems = priceProblems(next.get("minRate"), next.get("maxRate"));
+    setPriceErrors(problems);
+    if (problems.min || problems.max) {
+      focusFirstInvalid(formElement);
+      return;
     }
     router.push(`/discover?${next}`);
   }
@@ -103,7 +135,26 @@ export function Discover() {
       </header>
       <section className="panel">
         <h2>Search subjects</h2>
-        <form key={query.toString()} className="form" onSubmit={filter}>
+        {searchDown && (
+          <Notice kind="error" requestId={resource.failure?.requestId}>
+            {resource.failure?.outage
+              ? resource.failure.message
+              : "Search is unavailable right now."}{" "}
+            <button className="button button-quiet" onClick={reloadCatalogue}>
+              Try again
+            </button>
+          </Notice>
+        )}
+        <form
+          key={query.toString()}
+          className="form"
+          onSubmit={filter}
+          noValidate
+        >
+          <fieldset
+            className="plain-fieldset form"
+            disabled={searchDown || areas.loading}
+          >
           <div className="field-set">
             <Field
               id="search-keyword"
@@ -146,7 +197,7 @@ export function Discover() {
                 <option value="">Any rating</option>
                 {[1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5].map((rating) => (
                   <option key={rating} value={rating}>
-                    {rating}
+                    {rating} {rating === 1 ? "star" : "stars"} &amp; up
                   </option>
                 ))}
               </select>
@@ -159,6 +210,7 @@ export function Discover() {
               label="Minimum hourly rate (THB)"
               inputMode="decimal"
               defaultValue={query.get("minRate") ?? ""}
+              error={priceErrors.min}
             />
             <Field
               id="maximum-rate"
@@ -166,6 +218,7 @@ export function Discover() {
               label="Maximum hourly rate (THB)"
               inputMode="decimal"
               defaultValue={query.get("maxRate") ?? ""}
+              error={priceErrors.max}
             />
           </div>
           {range.data && (
@@ -176,10 +229,9 @@ export function Discover() {
           )}
           <div className="field-set">
             <div className="field">
-              <label htmlFor="format">Lesson format</label>
-              <select id="format" name="format" defaultValue="ONLINE">
-                <option value="ONLINE">Online</option>
-              </select>
+              <span className="field-label">Lesson format</span>
+              <p className="static-value">Online lessons</p>
+              <input type="hidden" name="format" value="ONLINE" />
             </div>
             <div className="field">
               <label htmlFor="sort">Sort subjects</label>
@@ -201,23 +253,8 @@ export function Discover() {
               Clear filters
             </Link>
           </div>
+          </fieldset>
         </form>
-        {areas.error && (
-          <Notice kind="error">
-            Learning-area options could not load.{" "}
-            <button
-              className="button button-quiet"
-              onClick={() => void areas.reload()}
-            >
-              Retry learning areas
-            </button>
-          </Notice>
-        )}
-        {range.error && (
-          <p className="muted">
-            The catalogue price range is temporarily unavailable.
-          </p>
-        )}
         {preferences.error && (
           <Notice kind="info">
             Your learning preferences could not load. These recommendations use
@@ -235,7 +272,8 @@ export function Discover() {
         loading={
           !ready || resource.loading || Boolean(account && preferences.loading)
         }
-        error={resource.error}
+        error={searchDown ? "" : resource.error}
+        failure={resource.failure}
         retry={() => void resource.reload()}
       />
       {resource.data && !resource.loading && (
@@ -308,10 +346,14 @@ export function TutorProfile({ tutorId }: { tutorId: string }) {
       <Link className="text-link" href="/discover">
         Back to discovery
       </Link>
+      {!tutor && <h1 className="page-title">Tutor profile</h1>}
       <ResourceState
         loading={resource.loading}
         error={resource.error}
+        failure={resource.failure}
         retry={() => void resource.reload()}
+        backHref="/discover"
+        backLabel="Find tutors"
       />
       {tutor && (
         <>
@@ -407,10 +449,14 @@ export function SubjectDetails({
       <Link className="text-link" href={`/tutors/${tutorId}`}>
         Back to tutor profile
       </Link>
+      {!data && <h1 className="page-title">Subject details</h1>}
       <ResourceState
         loading={resource.loading}
         error={resource.error}
+        failure={resource.failure}
         retry={() => void resource.reload()}
+        backHref={`/tutors/${tutorId}`}
+        backLabel="Back to tutor profile"
       />
       {data && (
         <>

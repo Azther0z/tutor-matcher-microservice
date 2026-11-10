@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { use, useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Notice } from "@/components/field";
-import { api, errorMessage } from "@/lib/api";
+import { LoadError, Notice } from "@/components/field";
+import { api, failureOf, type Failure } from "@/lib/api";
 import { DemoBanner, StatusBadge, useOperation } from "./common";
 import { formatMoney, formatTime } from "./format";
 import { returnBookingId } from "./overview";
@@ -21,11 +21,11 @@ export function TopupPage({ params }: { params: Promise<{ topupId: string }> }) 
   const { topupId } = use(params);
   const returnTo = returnBookingId(useSearchParams());
   const [topup, setTopup] = useState<Topup | null>(null);
-  const [error, setError] = useState("");
+  const [error, setError] = useState<Failure | null>(null);
 
   const load = useCallback(async () => {
-    try { setTopup(await api<Topup>(`/wallet/topups/${topupId}`)); setError(""); }
-    catch (e) { setError(errorMessage(e, "We couldn’t load this top-up.")); }
+    try { setTopup(await api<Topup>(`/wallet/topups/${topupId}`)); setError(null); }
+    catch (e) { setError(failureOf(e, "We couldn’t load this top-up.")); }
   }, [topupId]);
   useEffect(() => { void load(); }, [load]);
   const operation = useOperation(topup?.operation, () => void load());
@@ -34,7 +34,7 @@ export function TopupPage({ params }: { params: Promise<{ topupId: string }> }) 
     <>
       <header className="section-heading"><p className="eyebrow">WALLET</p><h1>Top-up</h1><p><Link className="text-link" href="/wallet">Back to wallet</Link></p></header>
       <DemoBanner />
-      {error && <Notice kind="error">{error} <button className="button button-quiet" onClick={() => void load()}>Try again</button></Notice>}
+      <LoadError failure={error} onRetry={() => void load()} backHref="/wallet" backLabel="Back to wallet"/>
       {!topup && !error && <p role="status">Loading…</p>}
       {topup && (
         <section className="panel">

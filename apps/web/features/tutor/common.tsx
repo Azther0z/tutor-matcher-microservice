@@ -1,16 +1,19 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   api,
   ApiError,
   apiResponse,
   errorMessage,
+  failureOf,
   fieldErrors,
   type ApiOptions,
+  type Failure,
 } from "@/lib/api";
-import { Notice } from "@/components/field";
+import { LoadError, Notice } from "@/components/field";
 import type { Operation, Pagination } from "./types";
 
 export const revisionTag = (revision: string) => `"${revision}"`;
@@ -32,6 +35,7 @@ export function useResource<T>(path: string | null, auth = true) {
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(Boolean(path));
   const [error, setError] = useState("");
+  const [failure, setFailure] = useState<Failure | null>(null);
   const generation = useRef(0);
   const load = useCallback(async () => {
     const current = ++generation.current;
@@ -42,15 +46,16 @@ export function useResource<T>(path: string | null, auth = true) {
     }
     setLoading(true);
     setError("");
+    setFailure(null);
     try {
       const result = await api<T>(path, { auth });
       if (generation.current === current) setData(result);
     } catch (e) {
       if (generation.current === current) {
         setData(null);
-        setError(
-          errorMessage(e, "This information is unavailable. Please retry."),
-        );
+        const next = failureOf(e, "This information is unavailable. Please retry.");
+        setError(next.message);
+        setFailure(next);
       }
     } finally {
       if (generation.current === current) setLoading(false);
@@ -62,7 +67,7 @@ export function useResource<T>(path: string | null, auth = true) {
       generation.current++;
     };
   }, [load]);
-  return { data, loading, error, reload: load };
+  return { data, loading, error, failure, reload: load };
 }
 
 type SavedAction = { path: string; options: ApiOptions; signature: string };
@@ -71,6 +76,7 @@ export function useAction(onSuccess?: () => void | Promise<void>) {
   const lock = useRef(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
+  const [requestId, setRequestId] = useState<string | undefined>();
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [notice, setNotice] = useState("");
   const [uncertain, setUncertain] = useState(false);
@@ -80,6 +86,7 @@ export function useAction(onSuccess?: () => void | Promise<void>) {
     lock.current = true;
     setPending(true);
     setError("");
+    setRequestId(undefined);
     setErrors({});
     setNotice("");
     try {
@@ -110,6 +117,7 @@ export function useAction(onSuccess?: () => void | Promise<void>) {
           "We could not confirm the result. Retry the original action below.",
         ),
       );
+      setRequestId(e instanceof ApiError ? e.requestId : undefined);
       const unresolved =
         !(e instanceof ApiError) ||
         e.status >= 500 ||
@@ -191,6 +199,7 @@ export function useAction(onSuccess?: () => void | Promise<void>) {
     poll,
     pending,
     error,
+    requestId,
     errors,
     notice,
     uncertain,
@@ -201,7 +210,11 @@ export type ActionState = ReturnType<typeof useAction>;
 export function ActionMessages({ action }: { action: ActionState }) {
   return (
     <>
-      {action.error && <Notice kind="error">{action.error}</Notice>}
+      {action.error && (
+        <Notice kind="error" requestId={action.requestId}>
+          {action.error}
+        </Notice>
+      )}
       {Object.keys(action.errors).length > 0 && (
         <ul role="alert">
           {Object.entries(action.errors).map(([key, value]) => (
@@ -240,20 +253,26 @@ export function ResourceState({
   loading,
   error,
   retry,
+  failure,
+  backHref,
+  backLabel,
 }: {
   loading: boolean;
   error: string;
   retry: () => void;
+  failure?: Failure | null;
+  backHref?: string;
+  backLabel?: string;
 }) {
   if (loading) return <p role="status">Loading...</p>;
   if (error)
     return (
-      <>
-        <Notice kind="error">{error}</Notice>
-        <button className="button" onClick={retry}>
-          Try again
-        </button>
-      </>
+      <LoadError
+        failure={failure ?? { message: error, missing: false, outage: false }}
+        onRetry={retry}
+        backHref={backHref}
+        backLabel={backLabel}
+      />
     );
   return null;
 }
@@ -287,21 +306,25 @@ export function Pager({
     </nav>
   );
 }
+const TUTOR_LINKS = [
+  { href: "/teach/application", label: "Application and history" },
+  { href: "/teach/profile", label: "Profile and publication" },
+  { href: "/teach/subjects", label: "Subjects" },
+];
 export function TutorNavigation() {
+  const pathname = usePathname();
   return (
-    <nav className="button-row" aria-label="Tutor workspace">
-      <Link className="text-link" href="/teach/application">
-        Application and history
-      </Link>
-      <Link className="text-link" href="/teach/profile">
-        Profile and publication
-      </Link>
-      <Link className="text-link" href="/teach/subjects">
-        Subjects
-      </Link>
-      <Link className="text-link" href="/teach/availability">
-        Availability
-      </Link>
+    <nav className="button-row sub-nav" aria-label="Tutor workspace">
+      {TUTOR_LINKS.map((link) => (
+        <Link
+          key={link.href}
+          className="text-link"
+          href={link.href}
+          aria-current={pathname === link.href ? "page" : undefined}
+        >
+          {link.label}
+        </Link>
+      ))}
       <Link className="text-link" href="/discover">
         Find a tutor
       </Link>
