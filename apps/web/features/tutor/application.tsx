@@ -371,14 +371,24 @@ function ApplicationContent({ profile = false }: { profile?: boolean }) {
                 >
                   Refresh
                 </button>
-                {workspace.tutorId && (
-                  <Link
-                    className="button button-quiet"
-                    href={`/tutors/${workspace.tutorId}`}
-                  >
-                    View public profile
-                  </Link>
-                )}
+                {workspace.tutorId &&
+                  (workspace.published ? (
+                    <Link
+                      className="button button-quiet"
+                      href={`/tutors/${workspace.tutorId}`}
+                    >
+                      View public profile
+                    </Link>
+                  ) : (
+                    <span
+                      className="tooltip-wrap"
+                      data-tip="Publish your listing first."
+                    >
+                      <button className="button button-quiet" disabled>
+                        View public profile
+                      </button>
+                    </span>
+                  ))}
               </div>
               {workspace.activation === "ACTIVE" &&
                 account?.capabilities.includes("TUTOR") && (
