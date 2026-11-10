@@ -619,4 +619,3 @@ fieldset.field legend { font-size: 14px; font-weight: 500; padding: 0; margin-bo
 .booking-new .slot-footer .button-quiet:hover { color: var(--ink); background: rgba(255, 255, 255, 0.05); }
 .booking-new .slot-footer .button:disabled { background: transparent; box-shadow: inset 0 0 0 1px var(--line-strong); color: var(--muted); opacity: 0.7; }
 .booking-new .slot-footer .button-danger { color: #fff; }
-.booking-progress-track.is-cut { background: transparent; }
