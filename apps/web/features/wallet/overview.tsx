@@ -8,7 +8,7 @@ import { useAuth } from "@/lib/auth-context";
 import { api, failureOf, type Failure } from "@/lib/api";
 import { DemoBanner } from "./common";
 import { TopupRequestPanel } from "./topup-request";
-import { formatMoney, publicPath } from "./format";
+import { formatMoney } from "./format";
 import type { WalletOverview } from "./types";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
@@ -75,17 +75,6 @@ export function WalletOverviewPage() {
             {isTutor && <Row label="Earned this month" value={formatMoney(wallet.earningsThisMonth)} />}
             {isTutor && <Row label="Total paid out" value={formatMoney(wallet.totalPaidOut)} />}
           </div>
-          {wallet.paymentDueBookings.length > 0 && (
-            <div className="wallet-due">
-              <h2>Waiting for payment</h2>
-              {wallet.paymentDueBookings.map((booking) => (
-                <Link key={booking.id} href={publicPath(booking.url)}>
-                  <span>Booking {booking.id.slice(0, 8)}</span>
-                  <span className="status-text status-due">Payment due</span>
-                </Link>
-              ))}
-            </div>
-          )}
         </section>
       )}
       <TopupRequestPanel returnTo={returnTo} unavailable={Boolean(error) && !wallet} />
