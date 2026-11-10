@@ -622,7 +622,7 @@ fieldset.field legend { font-size: 14px; font-weight: 500; padding: 0; margin-bo
 .slot-grid .tooltip-wrap { display: block; }
 .slot-own { display: flex; align-items: center; justify-content: center; text-decoration: none; }
 .slot-chip.is-held { border-color: rgba(245, 165, 36, 0.22); color: #9c8458; background: rgba(245, 165, 36, 0.05); }
-.slot-chip.is-booked { border-color: rgba(96, 165, 250, 0.22); color: #6f8aab; background: rgba(96, 165, 250, 0.05); }
+.slot-chip.is-booked { border-color: transparent; color: #7d93ad; background: rgba(96, 165, 250, 0.12); text-decoration: line-through; text-decoration-color: rgba(125, 147, 173, 0.7); }
 .slot-chip.is-held:hover { background: rgba(245, 165, 36, 0.05); }
-.slot-chip.is-booked:hover { background: rgba(96, 165, 250, 0.05); }
+.slot-chip.is-booked:hover { background: rgba(96, 165, 250, 0.12); }
 .slot-chip.slot-own { cursor: not-allowed; }
