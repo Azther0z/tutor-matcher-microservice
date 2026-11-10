@@ -35,15 +35,15 @@ jobs:
           command -v buildctl >/dev/null
           release_dir="$RUNNER_TEMP/tutor-matcher-release"
           mkdir -p "$release_dir"
-          for workspace in auth-service web; do
-            image="$REGISTRY/tutor-matcher-microservice/$workspace:$REVISION"
+          for workspace in services/auth-service apps/web; do
+            image="$REGISTRY/tutor-matcher-microservice/${workspace##*/}:$REVISION"
             buildctl build \
               --frontend dockerfile.v0 \
-              --local context=. --local dockerfile=docker \
+              --local context=. --local dockerfile=infra/docker \
               --opt filename=workspace.Dockerfile \
               --opt "build-arg:WORKSPACE=$workspace" \
               --output "type=image,name=$image,push=true" \
-              --metadata-file "$release_dir/$workspace.json"
+              --metadata-file "$release_dir/${workspace##*/}.json"
           done
           node --input-type=module - "$release_dir" "$REGISTRY" "$REVISION" <<'JS'
           import fs from 'node:fs';

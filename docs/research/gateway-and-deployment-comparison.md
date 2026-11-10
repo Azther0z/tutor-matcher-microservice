@@ -7,7 +7,7 @@ Researched: **8 November 2026, Asia/Bangkok**. Official sources below were acces
 
 ### Project baseline and decision criteria
 
-At research time, the former Express gateway (`api-gateway/src/index.js`, since removed) verified JWTs locally, queried Consul for passing service instances, cached discovery for one second, fell back to fixed URLs when discovery failed, and attempted at most two targets for GET transport failures. Other methods received one attempt. It created identity headers from verified token claims. It did **not** call Auth to check current account restrictions on each protected request. The replacement's current behavior is documented in the [Traefik gateway](../../api-gateway/README.md).
+At research time, the former Express gateway (`api-gateway/src/index.js`, since removed) verified JWTs locally, queried Consul for passing service instances, cached discovery for one second, fell back to fixed URLs when discovery failed, and attempted at most two targets for GET transport failures. Other methods received one attempt. It created identity headers from verified token claims. It did **not** call Auth to check current account restrictions on each protected request. The replacement's current behavior is documented in the [Traefik gateway](../../infra/gateway/README.md).
 
 The accepted [authentication decision](../adr/0018-gateway-authentication.md) and [system design](../system-design.md#identity-permissions-and-tutor-activation) require both a valid token and current Auth account state for protected new requests. A suspended account must therefore lose access before an otherwise valid JWT expires. Every candidate needs an Auth integration; buying native JWT validation does not supply Tutor Matcher's account policy. The accepted [Consul decision](../adr/0021-consul-discovery.md) also requires health-aware discovery and an explicit degraded-routing policy.
 
@@ -74,7 +74,7 @@ These alternatives were evaluated against the then-current Swarm/Doco-CD deliver
 
 At research time, the checkout had six runnable applications (custom Gateway, Auth, Tutor, Booking, Wallet, Notification), root local Compose, PostgreSQL, MongoDB, RabbitMQ and Consul. That snapshot is historical. The target adds the Next.js frontend, Review and Messaging, changes Booking persistence to PostgreSQL, and requires durable outbox and owner-worker processing. Do not assess current readiness from that snapshot. The accepted target has three PostgreSQL databases and four MongoDB databases, with separate ownership even when engines are shared. A database per service does not require a separate cloud database instance per service.
 
-The current Booking process has separate REST and gRPC listeners on 4004 and 50052. The target retains public-facing REST operations and 20 private domain RPCs across five gRPC servers. Sources: [current Compose](../../compose.yaml), [current Booking startup](../../booking-service/src/index.js), [target service design](../system-design.md), [RPC addresses](../../contracts/grpc/README.md).
+The current Booking process has separate REST and gRPC listeners on 4004 and 50052. The target retains public-facing REST operations and 20 private domain RPCs across five gRPC servers. Sources: [current Compose](../../compose.yaml), [current Booking startup](../../services/booking-service/src/index.js), [target service design](../system-design.md), [RPC addresses](../../contracts/grpc/README.md).
 
 ### Runtime comparison
 

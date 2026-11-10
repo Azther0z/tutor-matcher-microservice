@@ -18,10 +18,10 @@ This records what was built, how to repeat it, and, just as important, what was 
 
 | Area | Result |
 | --- | --- |
-| `wallet-service/` | Rewritten in TypeScript (ADR-0002). REST on 4003, `WalletFinanceService` gRPC on 50054, PostgreSQL migration `001_wallet_target.sql`, transactional outbox publisher, earnings-clearing worker. 24 REST operations incl. demo controls and the owner status read |
-| `notification-service/` | Rewritten in TypeScript. Durable RabbitMQ consumer on the versioned topology, transactional acceptance, admin audience resolution, preference-aware dispatch, simulated receipts, REST on 4007 (it previously had no HTTP port) |
-| `notification-service/deploy/rabbitmq-definitions.json` | Exchange, queue, binding, dead-letter path and per-producer publish permissions for Saint to integrate |
-| UI (`web/features/{wallet,notification}`, routes, `web/e2e/finance`) | Built on Saint's shell: wallet, top-up, transactions, payout accounts, payouts, disputes, admin disputes, demo provider controls, notification preferences and receipts. Verified in a real browser against **mocked** API responses only; not yet against the running backend through Traefik |
+| `services/wallet-service/` | Rewritten in TypeScript (ADR-0002). REST on 4003, `WalletFinanceService` gRPC on 50054, PostgreSQL migration `001_wallet_target.sql`, transactional outbox publisher, earnings-clearing worker. 24 REST operations incl. demo controls and the owner status read |
+| `services/notification-service/` | Rewritten in TypeScript. Durable RabbitMQ consumer on the versioned topology, transactional acceptance, admin audience resolution, preference-aware dispatch, simulated receipts, REST on 4007 (it previously had no HTTP port) |
+| `services/notification-service/deploy/rabbitmq-definitions.json` | Exchange, queue, binding, dead-letter path and per-producer publish permissions for Saint to integrate |
+| UI (`apps/web/features/{wallet,notification}`, routes, `apps/web/e2e/finance`) | Built on Saint's shell: wallet, top-up, transactions, payout accounts, payouts, disputes, admin disputes, demo provider controls, notification preferences and receipts. Verified in a real browser against **mocked** API responses only; not yet against the running backend through Traefik |
 
 ## Repeat the checks
 
@@ -65,7 +65,7 @@ The tests `DROP SCHEMA public` in the Wallet test database and clear collections
 
 ## Real-broker results (`npm run smoke:p-broker`, 10 November 2026)
 
-18 checks pass against a disposable RabbitMQ 4.4.0 and a MongoDB replica set, using the real `docker/rabbitmq-provision.mjs`, Wallet's `AmqpBroker` and Notification's `EventConsumer`: provisioned producer users have no management tag; Notification asserts the provisioned topology and consumes as a restricted user; a Wallet publish resolves on a routed confirm and is durably accepted as publisher `wallet`; a repeated publish adds no second delivery; Wallet cannot publish under another producer's prefix, declare queues or inspect Notification's queue; the broker rejects a spoofed `user_id`; a transient storage failure is redelivered then accepted; an unbound queue makes publish fail as UNROUTABLE and publishing recovers once Notification reinstalls the topology; publishing during a broker stop does not report success, resumes after restart, and the event is accepted exactly once.
+18 checks pass against a disposable RabbitMQ 4.4.0 and a MongoDB replica set, using the real `infra/docker/rabbitmq-provision.mjs`, Wallet's `AmqpBroker` and Notification's `EventConsumer`: provisioned producer users have no management tag; Notification asserts the provisioned topology and consumes as a restricted user; a Wallet publish resolves on a routed confirm and is durably accepted as publisher `wallet`; a repeated publish adds no second delivery; Wallet cannot publish under another producer's prefix, declare queues or inspect Notification's queue; the broker rejects a spoofed `user_id`; a transient storage failure is redelivered then accepted; an unbound queue makes publish fail as UNROUTABLE and publishing recovers once Notification reinstalls the topology; publishing during a broker stop does not report success, resumes after restart, and the event is accepted exactly once.
 
 **Tutor and Review (added 10 November 2026).** The same script now drives Ideal's real `RabbitPublisher` classes through the broker for all six Tutor and Review contract events (`tutor.submission-submitted`, `-withdrawn`, `-decided`, `tutor.activated`, `review.flagged`, `review.moderated`). Each is published with a routed confirm, accepted by Notification under the correct producer identity, and either creates a mandatory simulated email (user targets) or keeps its admin audience pending for resolution (admin targets); Tutor cannot publish under Review's routing prefix. This found a fifth defect: both publishers declared the exchange and queues and called `checkQueue` on every connection, which the least-privilege `tutor` and `review` users cannot do (`ACCESS_REFUSED` on `ExchangeDeclare`), so no Tutor or Review event could ever be published and Review's startup readiness check would have failed. Both are now publish-only, like Wallet.
 
@@ -73,7 +73,7 @@ The real broker found four defects that the fake-channel tests could not:
 
 1. The provisioning job failed on first start: RabbitMQ refuses topic permissions on an exchange that does not exist, and the job runs before any owner declares it. It now declares the exchanges, queues and bindings first.
 2. The `notification` user could not bind its queues (`queue.bind` needs write on the queue and read on the source exchange). The definitions were corrected.
-3. `EventConsumer` leaked its connection when topology setup failed and spawned a new connect loop on every close, which multiplied into thousands of connections. It now closes the half-open connection and runs one loop (`notification-service/test/connect.test.ts` fails on the old code).
+3. `EventConsumer` leaked its connection when topology setup failed and spawned a new connect loop on every close, which multiplied into thousands of connections. It now closes the half-open connection and runs one loop (`services/notification-service/test/connect.test.ts` fails on the old code).
 4. Wallet's passive queue check needs `configure` access, which would let Wallet delete Notification's queue. The check now only proves connectivity; routing is proven by the `mandatory` publish.
 
 ## Not run, and why this matters
@@ -87,7 +87,7 @@ Still to run on a real broker (from `contracts/recovery.md`): the Wallet outbox 
 
 ## Open items
 
-1. **UI against the real stack.** The pages exist and their browser tests pass (`web/e2e/finance`, 20 tests), but every response is mocked. Run the same journeys through Traefik, Auth and the real Wallet and Notification once the stack can start. The booking pages that link here (`/bookings/{id}`) belong to Santa and were not present to link-check.
+1. **UI against the real stack.** The pages exist and their browser tests pass (`apps/web/e2e/finance`, 20 tests), but every response is mocked. Run the same journeys through Traefik, Auth and the real Wallet and Notification once the stack can start. The booking pages that link here (`/bookings/{id}`) belong to Santa and were not present to link-check.
 2. **Integration.** Switch the test doubles to the real Booking and Auth at the first checkpoint, and pair with Santa on the operation identities ([contract-findings.md](contract-findings.md) items 3 and 4).
 3. **Stack.** Rebased onto PR #5 (Consul removed, `ACTOR_ASSERTION_PUBLIC_KEY` and per-caller credential variables, `_FILE` secrets, un-prefixed paths behind Traefik's `strip-api-prefix`, workspace lockfile, shared actor verification, Compose build and broker provisioning). Not exercised through real Traefik with Auth admission.
 4. **Deployment.** Compose wiring is done ([runtime-needs.md](runtime-needs.md)); the compose files parse (`npm run config:check`) but no image was built and nothing was started.

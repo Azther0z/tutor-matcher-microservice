@@ -1,11 +1,14 @@
+import { basename } from "node:path";
 import { createRequire } from "node:module";
 import { spawn } from "node:child_process";
 import { createServer } from "node:net";
 
-const workspace = process.argv[2];
+const workspace = basename(process.argv[2] ?? "");
 if (workspace === "auth-service") {
-  const { createAuthApp } = await import("../auth-service/dist/index.js");
-  const { createAuthGrpcServer } = await import("../auth-service/dist/grpc.js");
+  const { createAuthApp } =
+    await import("../services/auth-service/dist/index.js");
+  const { createAuthGrpcServer } =
+    await import("../services/auth-service/dist/grpc.js");
   if (typeof createAuthApp() !== "function")
     throw new Error("Auth HTTP factory unavailable");
   createAuthGrpcServer().forceShutdown();
@@ -13,9 +16,10 @@ if (workspace === "auth-service") {
     "Auth production dependencies, HTTP factory and gRPC descriptors load.",
   );
 } else if (workspace === "tutor-service") {
-  const { createTutorApp } = await import("../tutor-service/dist/http.js");
+  const { createTutorApp } =
+    await import("../services/tutor-service/dist/http.js");
   const { createTutorGrpcServer } =
-    await import("../tutor-service/dist/grpc.js");
+    await import("../services/tutor-service/dist/grpc.js");
   if (typeof createTutorApp({}) !== "function")
     throw new Error("Tutor HTTP factory unavailable");
   createTutorGrpcServer({}).forceShutdown();
@@ -23,8 +27,10 @@ if (workspace === "auth-service") {
     "Tutor production dependencies, HTTP factory and gRPC descriptors load.",
   );
 } else if (workspace === "review-service") {
-  const { createReviewApp } = await import("../review-service/dist/routes.js");
-  const { createRatingServer } = await import("../review-service/dist/grpc.js");
+  const { createReviewApp } =
+    await import("../services/review-service/dist/routes.js");
+  const { createRatingServer } =
+    await import("../services/review-service/dist/grpc.js");
   if (
     typeof createReviewApp(
       {},
@@ -42,7 +48,7 @@ if (workspace === "auth-service") {
   const port = reserve.address().port;
   await new Promise((resolve) => reserve.close(resolve));
   const require = createRequire(
-    new URL("../web/package.json", import.meta.url),
+    new URL("../apps/web/package.json", import.meta.url),
   );
   const child = spawn(
     process.execPath,
@@ -55,7 +61,7 @@ if (workspace === "auth-service") {
       String(port),
     ],
     {
-      cwd: new URL("../web/", import.meta.url),
+      cwd: new URL("../apps/web/", import.meta.url),
       env: {
         ...process.env,
         NODE_ENV: "production",

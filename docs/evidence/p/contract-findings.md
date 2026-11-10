@@ -36,4 +36,4 @@ The PR asked implementers to verify anything that does not hold up. These are th
 
 - `docs/handoffs/p.md` says "Serve the seven Wallet RPCs on private port 50054" and the registry agrees. Consul has since been removed; peers reach gRPC at the fixed `wallet-service:50054` DNS name from `compose.yaml`.
 - The former Consul registration of Notification (port 0, TTL check) is gone. Notification has an HTTP port (4007) and Traefik health-checks `/health`.
-- Existing Postman files and the legacy `proto/booking.proto` were not touched.
+- Existing Postman files and the legacy `contracts/legacy/booking.proto` were not touched.

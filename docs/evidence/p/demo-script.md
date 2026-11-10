@@ -1,6 +1,6 @@
 # Demo and slide section (P): finance and notifications
 
-Status: the finance and notification UI is built and passes browser tests against mocked responses (`web/e2e/finance`). It has **not** been shown against the running backend, so rehearse the live path before presenting. The API walkthrough below is the fallback.
+Status: the finance and notification UI is built and passes browser tests against mocked responses (`apps/web/e2e/finance`). It has **not** been shown against the running backend, so rehearse the live path before presenting. The API walkthrough below is the fallback.
 
 ## What can be shown now (API level, 5 minutes)
 

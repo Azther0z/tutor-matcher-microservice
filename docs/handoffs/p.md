@@ -13,19 +13,19 @@ UC05-05 and UC-06 govern your earnings/refund collaboration with Santa.
 The [source index](../sources/README.md) links both original PDFs.
 Use the shared reviewed baseline commit containing the requirements, design, contracts and handoffs.
 
-Existing code starts in `wallet-service/src/` and `notification-service/src/`.
+Existing code starts in `services/wallet-service/src/` and `services/notification-service/src/`.
 The existing direct top-up confirmation, one-refund shortcut and notification delivery log need the target rules below.
 
 | Area | Your implementation ownership |
 | --- | --- |
-| Backend | `wallet-service/**`, `notification-service/**` |
-| Frontend features | `web/features/wallet/**`, `web/features/notification/**` |
-| Frontend routes | `web/app/wallet/**`, `web/app/disputes/**`, `web/app/admin/disputes/**`, `web/app/notifications/**`, `web/app/demo/finance/**` |
-| Browser tests | `web/e2e/finance/**` |
-| Broker definitions | Planned `notification-service/deploy/**`. Saint integrates them into shared manifests |
+| Backend | `services/wallet-service/**`, `services/notification-service/**` |
+| Frontend features | `apps/web/features/wallet/**`, `apps/web/features/notification/**` |
+| Frontend routes | `apps/web/app/wallet/**`, `apps/web/app/disputes/**`, `apps/web/app/admin/disputes/**`, `apps/web/app/notifications/**`, `apps/web/app/demo/finance/**` |
+| Browser tests | `apps/web/e2e/finance/**` |
+| Broker definitions | Planned `services/notification-service/deploy/**`. Saint integrates them into shared manifests |
 | Evidence | Planned `docs/evidence/p/**`, including financial recovery, receipts and risk-matrix draft |
 
-Treat frontend routes above as paths under `web/app/`. Use Saint's shell, API/session adapter and common UI components.
+Treat frontend routes above as paths under `apps/web/app/`. Use Saint's shell, API/session adapter and common UI components.
 Santa owns payment/cancellation buttons in booking pages. You provide their financial endpoints and wallet/top-up destinations.
 
 ## First deliverable

@@ -36,7 +36,7 @@ Commands run from the repository root unless stated otherwise:
 ```sh
 npm run typecheck -w @tutor-matcher/web
 npm run build -w @tutor-matcher/web
-npx eslint web/features/tutor web/features/review web/e2e/marketplace
+npx eslint apps/web/features/tutor apps/web/features/review apps/web/e2e/marketplace
 cd web
 CHROME_BIN='/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' npx playwright test e2e/marketplace/marketplace.spec.ts --workers=2
 ```
@@ -62,6 +62,6 @@ These walkthrough steps still need the integrated peer services and synthetic se
 
 ## Combined service browser smoke
 
-`web/e2e/marketplace/live-smoke.mjs` exports `runLiveSmoke({gatewayUrl,password,tutorId,subjectId,bookingId})` for the isolated `loadtest/marketplace-integration.mjs` runner. It starts Next on an ephemeral loopback port, uses real gateway HTTP responses without browser interception, and creates separate candidate, admin and public browser contexts. It covers real login, published profile, subject creation/editing, revision submission and rejection, preservation of approved public content, future Bangkok slot selection and hidden-review moderation details. Browser and web-server processes are cleaned up on failure too. Credentials never appear in its printed diagnostics.
+`apps/web/e2e/marketplace/live-smoke.mjs` exports `runLiveSmoke({gatewayUrl,password,tutorId,subjectId,bookingId})` for the isolated `loadtest/marketplace-integration.mjs` runner. It starts Next on an ephemeral loopback port, uses real gateway HTTP responses without browser interception, and creates separate candidate, admin and public browser contexts. It covers real login, published profile, subject creation/editing, revision submission and rejection, preservation of approved public content, future Bangkok slot selection and hidden-review moderation details. Browser and web-server processes are cleaned up on failure too. Credentials never appear in its printed diagnostics.
 
 The module passed static syntax, lint and type checking when added. Runtime results belong to the combined runner's evidence. Its Booking and Swarm discovery fixtures remain explicit limitations even when its browser checks pass.

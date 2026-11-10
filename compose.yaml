@@ -10,7 +10,7 @@ services:
       WALLET_DB_PASSWORD: ${WALLET_DB_PASSWORD:?supply owner credential}
     volumes:
     - postgres-data:/var/lib/postgresql/data
-    - ./docker/postgres-owned-databases.sh:/docker-entrypoint-initdb.d/00-owned-databases.sh:ro
+    - ./infra/docker/postgres-owned-databases.sh:/docker-entrypoint-initdb.d/00-owned-databases.sh:ro
     healthcheck:
       test:
       - CMD-SHELL
@@ -57,8 +57,8 @@ services:
       RABBITMQ_TUTOR_PASSWORD: ${RABBITMQ_TUTOR_PASSWORD:?supply tutor publisher password}
       RABBITMQ_REVIEW_PASSWORD: ${RABBITMQ_REVIEW_PASSWORD:?supply review publisher password}
     volumes:
-    - ./docker/rabbitmq-provision.mjs:/provision/rabbitmq-provision.mjs:ro
-    - ./notification-service/deploy/rabbitmq-definitions.json:/provision/rabbitmq-definitions.json:ro
+    - ./infra/docker/rabbitmq-provision.mjs:/provision/rabbitmq-provision.mjs:ro
+    - ./services/notification-service/deploy/rabbitmq-definitions.json:/provision/rabbitmq-definitions.json:ro
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -69,9 +69,9 @@ services:
     - backend
     build:
       context: .
-      dockerfile: docker/workspace.Dockerfile
+      dockerfile: infra/docker/workspace.Dockerfile
       args:
-        WORKSPACE: auth-service
+        WORKSPACE: services/auth-service
     environment:
       ACTOR_ASSERTION_PUBLIC_KEY: ${ACTOR_ASSERTION_PUBLIC_KEY:?supply actor verification key}
       DEMO_MODE: 'true'
@@ -144,8 +144,8 @@ services:
     ports:
     - 127.0.0.1:8080:8080
     volumes:
-    - ./api-gateway/routes.yaml:/etc/traefik/dynamic/routes.yaml:ro
-    - ./docker/traefik-start.sh:/usr/local/bin/traefik-start.sh:ro
+    - ./infra/gateway/routes.yaml:/etc/traefik/dynamic/routes.yaml:ro
+    - ./infra/docker/traefik-start.sh:/usr/local/bin/traefik-start.sh:ro
     networks:
     - backend
     - socket
@@ -172,9 +172,9 @@ services:
     - backend
     build:
       context: .
-      dockerfile: docker/workspace.Dockerfile
+      dockerfile: infra/docker/workspace.Dockerfile
       args:
-        WORKSPACE: web
+        WORKSPACE: apps/web
     ports:
     - 127.0.0.1:3000:3000
     environment:
@@ -221,7 +221,7 @@ services:
     - --quiet
     - /setup/mongo-init.js
     volumes:
-    - ./docker/mongo-init.js:/setup/mongo-init.js:ro
+    - ./infra/docker/mongo-init.js:/setup/mongo-init.js:ro
     networks:
     - backend
   tutor-service:
@@ -235,9 +235,9 @@ services:
     cpus: 0.5
     build:
       context: .
-      dockerfile: docker/workspace.Dockerfile
+      dockerfile: infra/docker/workspace.Dockerfile
       args:
-        WORKSPACE: tutor-service
+        WORKSPACE: services/tutor-service
     environment:
       ACTOR_ASSERTION_PUBLIC_KEY: ${ACTOR_ASSERTION_PUBLIC_KEY:?supply actor verification key}
       DEMO_MODE: 'true'
@@ -326,9 +326,9 @@ services:
     - target
     build:
       context: .
-      dockerfile: docker/workspace.Dockerfile
+      dockerfile: infra/docker/workspace.Dockerfile
       args:
-        WORKSPACE: wallet-service
+        WORKSPACE: services/wallet-service
     environment:
       ACTOR_ASSERTION_PUBLIC_KEY: ${ACTOR_ASSERTION_PUBLIC_KEY:?supply actor verification key}
       DEMO_MODE: 'true'
@@ -375,9 +375,9 @@ services:
     image: ${REVIEW_IMAGE:-tutor-matcher-review:local}
     build:
       context: .
-      dockerfile: docker/workspace.Dockerfile
+      dockerfile: infra/docker/workspace.Dockerfile
       args:
-        WORKSPACE: review-service
+        WORKSPACE: services/review-service
     environment:
       ACTOR_ASSERTION_PUBLIC_KEY: ${ACTOR_ASSERTION_PUBLIC_KEY:?supply actor verification key}
       DEMO_MODE: 'true'
@@ -458,9 +458,9 @@ services:
     - target
     build:
       context: .
-      dockerfile: docker/workspace.Dockerfile
+      dockerfile: infra/docker/workspace.Dockerfile
       args:
-        WORKSPACE: notification-service
+        WORKSPACE: services/notification-service
     environment:
       ACTOR_ASSERTION_PUBLIC_KEY: ${ACTOR_ASSERTION_PUBLIC_KEY:?supply actor verification key}
       DEMO_MODE: 'true'

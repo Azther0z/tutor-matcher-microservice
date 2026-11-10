@@ -35,7 +35,7 @@ const workloadCredential = randomBytes(32).toString("base64url");
 
 Object.assign(process.env, {
   DATABASE_URL: smokeDatabaseUrl,
-  AUTH_MIGRATIONS_DIR: path.join(root, "auth-service", "migrations"),
+  AUTH_MIGRATIONS_DIR: path.join(root, "services/auth-service", "migrations"),
   JWT_SECRET: jwtSecret,
   RESET_CONTENT_KEY: resetContentKey,
   ACTOR_ASSERTION_PUBLIC_KEY: publicKey,
@@ -50,10 +50,10 @@ delete process.env.ACTOR_ASSERTION_PRIVATE_KEY_FILE;
 delete process.env.GATEWAY_PRIVATE_KEY_FILE;
 
 const { migrate, pool } = require(
-  path.join(root, "auth-service", "dist", "db.js"),
+  path.join(root, "services/auth-service", "dist", "db.js"),
 );
 const { createAuthApp } = require(
-  path.join(root, "auth-service", "dist", "index.js"),
+  path.join(root, "services/auth-service", "dist", "index.js"),
 );
 const { startTestGateway } = await import("./traefik-test-runtime.mjs");
 const { chromium, expect } = require("@playwright/test");
@@ -169,7 +169,7 @@ async function run() {
       String(webPort),
     ],
     {
-      cwd: path.join(root, "web"),
+      cwd: path.join(root, "apps/web"),
       env: { ...process.env, API_GATEWAY_URL: gatewayUrl },
       stdio: "ignore",
     },

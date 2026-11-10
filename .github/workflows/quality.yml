@@ -88,6 +88,6 @@ jobs:
         with:
           name: saint-browser-failure
           path: |
-            web/test-results/
+            apps/web/test-results/
             .cache/gateway/*.log
           if-no-files-found: ignore
