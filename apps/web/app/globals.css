@@ -702,3 +702,5 @@ fieldset.field legend { font-size: 14px; font-weight: 500; padding: 0; margin-bo
 .wallet-recent-head .text-link:hover { color: var(--ink); }
 .wallet-viewall { color: var(--muted); font-size: 13px; font-weight: 500; text-decoration: none; }
 .wallet-viewall:hover { color: var(--ink); }
+.wallet-tx { border-radius: 0; }
+.wallet-tx:hover { background: #0b0b0b; }
