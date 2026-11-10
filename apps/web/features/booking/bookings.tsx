@@ -50,7 +50,7 @@ function BookingProgress({ booking }: { booking: Booking }) {
       : status === "CONFIRMED"
         ? 2
         : 3;
-  const fill = cancelled ? 100 : (reached / (STEPS.length - 1)) * 100;
+  const fill = ((cancelled ? reached + 1 : reached) / (STEPS.length - 1)) * 100;
   return (
     <div
       className={`booking-progress${cancelled ? " is-cancelled" : ""}`}
