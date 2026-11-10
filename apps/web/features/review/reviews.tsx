@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Field, Notice } from "@/components/field";
 import { Dropdown } from "@/components/dropdown";
+import { LegalModal } from "@/components/legal-modal";
 import { RequireAuth, useAuth } from "@/lib/auth-context";
 import { api, errorMessage } from "@/lib/api";
 import {
@@ -29,6 +30,7 @@ function ReviewCard({
   const reply = useAction(reload);
   const flag = useAction();
   const [flagged, setFlagged] = useState(false);
+  const [reporting, setReporting] = useState(false);
   async function submitReply(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     await reply.run(
@@ -49,15 +51,42 @@ function ReviewCard({
         new FormData(event.currentTarget).get("reason") ?? "",
       ).trim(),
     });
-    if (result) setFlagged(true);
+    if (result) {
+      setFlagged(true);
+      setReporting(false);
+    }
   }
   return (
     <article className="review-item">
       <div className="review-top">
         <strong>{review.studentDisplayName}</strong>
-        <time dateTime={review.createdAt}>
-          {bangkokTime(review.createdAt)}
-        </time>
+        <span className="review-top-right">
+          <time dateTime={review.createdAt}>
+            {bangkokTime(review.createdAt)}
+          </time>
+          {flagged ? (
+            <span className="review-reported">Reported</span>
+          ) : account ? (
+            <button
+              type="button"
+              className="review-report-btn"
+              title="Report this review"
+              aria-label="Report this review"
+              onClick={() => setReporting(true)}
+            >
+              !
+            </button>
+          ) : (
+            <Link
+              className="review-report-btn"
+              title="Sign in to report this review"
+              aria-label="Sign in to report this review"
+              href={`/login?returnTo=${encodeURIComponent(`/tutors/${review.tutorId}`)}`}
+            >
+              !
+            </Link>
+          )}
+        </span>
       </div>
       <span className="review-stars" role="img" aria-label={`${review.rating} out of 5 stars`}>
         {"★".repeat(review.rating)}
@@ -99,41 +128,44 @@ function ReviewCard({
           </button>
         </form>
       )}
-      {account ? (
-        <details className="review-report">
-          <summary>Report</summary>
-          <ActionMessages action={flag} />
-          {flagged ? (
-            <p role="status">Your report was submitted for moderation.</p>
-          ) : (
-            <form className="form" onSubmit={(event) => void submitFlag(event)}>
-              <div className="field">
-                <label htmlFor={`flag-${review.id}`}>Report reason</label>
-                <textarea
-                  id={`flag-${review.id}`}
-                  name="reason"
-                  required
-                  maxLength={2000}
-                  rows={3}
-                />
-              </div>
-              <p className="tutor-card-meta">Each person can report a review once.</p>
+      {account && (
+        <LegalModal
+          open={reporting}
+          title="Report this review"
+          onClose={() => setReporting(false)}
+          actions={
+            <div className="button-row" style={{ justifyContent: "flex-end" }}>
+              <button type="button" className="button button-quiet" onClick={() => setReporting(false)}>
+                Cancel
+              </button>
               <button
-                className="button button-quiet"
+                type="submit"
+                form={`flag-form-${review.id}`}
+                className="button"
                 disabled={flag.pending || flag.uncertain}
               >
-                Submit report
+                {flag.pending ? "Sending..." : "Submit report"}
               </button>
-            </form>
-          )}
-        </details>
-      ) : (
-        <Link
-          className="review-report-link"
-          href={`/login?returnTo=${encodeURIComponent(`/tutors/${review.tutorId}`)}`}
+            </div>
+          }
         >
-          Sign in to report
-        </Link>
+          <form id={`flag-form-${review.id}`} className="form" onSubmit={(event) => void submitFlag(event)}>
+            <ActionMessages action={flag} />
+            <div className="field">
+              <label htmlFor={`flag-${review.id}`}>What is wrong with this review?</label>
+              <textarea
+                id={`flag-${review.id}`}
+                name="reason"
+                required
+                maxLength={2000}
+                rows={5}
+              />
+            </div>
+            <p className="tutor-card-meta">
+              Each person can report a review once. A moderator will look at it.
+            </p>
+          </form>
+        </LegalModal>
       )}
     </article>
   );
