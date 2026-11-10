@@ -74,6 +74,7 @@ function AvailabilityWorkspace() {
     [day],
   );
   async function toggle(time: string) {
+    if (new Date(`${date}T${time}:00+07:00`).getTime() <= Date.now()) return;
     const current = slots.get(time);
     if (current?.state === "HELD" || current?.state === "BOOKED") return;
     const opening = current?.state !== "OPEN";
@@ -150,12 +151,13 @@ function AvailabilityWorkspace() {
                   const slot = slots.get(time);
                   const locked = slot?.state === "HELD" || slot?.state === "BOOKED";
                   const open = slot?.state === "OPEN";
+                  const past = new Date(`${date}T${time}:00+07:00`).getTime() <= Date.now();
                   const chip = (
                     <button
                       key={time}
                       type="button"
                       className={`slot-chip${locked ? ` slot-own ${slot?.state === "HELD" ? "is-held" : "is-booked"}` : ""}`}
-                      disabled={Boolean(pendingTime) && !locked}
+                      disabled={(Boolean(pendingTime) || past) && !locked}
                       aria-disabled={locked || undefined}
                       onClick={() => !locked && void toggle(time)}
                       aria-pressed={open}
