@@ -38,8 +38,8 @@ function HoldCountdown({ expiresAt, onExpired }: { expiresAt: string; onExpired:
 function BookingCard({ booking }: { booking: Booking }) {
   return (
     <article className="panel tutor-card">
+      <StatusBadge value={booking.status} corner />
       <div className="stat-line">
-        <StatusBadge value={booking.status} />
         <span>{formatTime(booking.startsAt)}</span>
       </div>
       <h2>

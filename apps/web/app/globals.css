@@ -265,6 +265,13 @@ fieldset.field legend { font-size: 14px; font-weight: 500; padding: 0; margin-bo
 .data-table th { font-size: 12px; letter-spacing: 0.08em; color: var(--muted); text-transform: uppercase; font-weight: 500; }
 .data-table tr:hover td { background: rgba(139, 92, 246, 0.04); }
 .data-table a { color: var(--amber); font-weight: 600; }
+.status-text { font-size: 13px; font-weight: 600; }
+.status-due { color: #f5a524; }
+.status-info { color: #60a5fa; }
+.status-good { color: #4ade80; }
+.status-bad { color: #f87171; }
+.status-muted { color: var(--muted); }
+.status-corner { position: absolute; top: 16px; right: 18px; pointer-events: none; }
 .badge { display: inline-block; padding: 3px 11px; border-radius: 6px; background: rgba(143, 224, 171, 0.14); color: var(--success); font-size: 12px; font-weight: 600; }
 .badge.warn { background: rgba(139, 92, 246, 0.15); color: #c4b5fd; }
 .badge.danger { background: var(--danger-bg); color: var(--danger); }
