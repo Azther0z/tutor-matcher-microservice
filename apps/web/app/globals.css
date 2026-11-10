@@ -497,3 +497,25 @@ fieldset.field legend { font-size: 14px; font-weight: 500; padding: 0; margin-bo
 .range-slider input[type="range"]:focus-visible::-webkit-slider-thumb { outline: 2px solid var(--amber); outline-offset: 2px; }
 .search-side .field input:focus-visible { outline: none; border-color: var(--amber); box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.28); }
 .dropdown-trigger:focus-visible { outline: none; border-color: var(--amber); box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.28); }
+
+.subject-head { display: grid; gap: 8px; margin: 12px 0 20px; }
+.subject-head p { margin: 0; }
+.subject-meta { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; font-size: 15px; }
+.slot-panel { display: grid; gap: 12px; padding: 16px 18px; }
+.slot-panel-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.slot-panel-head h2, .slot-panel h2 { margin: 0; font-size: 18px; }
+.slot-panel-head .field { grid-template-columns: auto; gap: 4px; }
+.slot-panel-head .field label { font-size: 13px; color: var(--muted); }
+.slot-panel-head .field input { padding: 8px 12px; border-radius: 8px; font-size: 14px; }
+.slot-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+.slot-chip { min-height: 38px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: transparent; color: var(--ink); font-size: 14px; cursor: pointer; transition: background 0.15s, border-color 0.15s; }
+.slot-chip:hover:not(:disabled) { background: #0b0b0b; }
+.slot-chip[aria-pressed="true"] { background: var(--surface-2); border-color: var(--amber); }
+.slot-chip:disabled { opacity: 0.4; cursor: not-allowed; }
+.slot-chip:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.28); }
+.slot-footer { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; padding-top: 12px; border-top: 1px solid var(--line); }
+.rating-bars { display: grid; gap: 6px; margin-top: 10px; font-size: 14px; color: var(--muted); }
+.rating-bar-row { display: grid; grid-template-columns: 64px 1fr 32px; align-items: center; gap: 12px; }
+.rating-bar-row span:last-child { text-align: right; }
+.rating-bar { height: 6px; border-radius: 3px; background: var(--surface-2); overflow: hidden; }
+.rating-bar span { display: block; height: 100%; background: #f5c518; }

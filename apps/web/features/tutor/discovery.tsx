@@ -51,20 +51,6 @@ function priceProblems(
     problems.max = "The maximum rate must be at least the minimum rate.";
   return problems;
 }
-function RatingLabel({
-  average,
-  count,
-}: {
-  average: number | null;
-  count: number;
-}) {
-  return (
-    <span>
-      {average === null ? "No ratings yet" : `${average.toFixed(1)}/5`} ({count}{" "}
-      reviews)
-    </span>
-  );
-}
 function RatingStars({ average, count }: { average: number | null; count: number }) {
   const percent = average === null ? 0 : Math.max(0, Math.min(100, (average / 5) * 100));
   const label =
@@ -461,110 +447,121 @@ export function SubjectDetails({
       />
       {data && (
         <>
-          <section className="panel">
+          <header className="page-heading subject-head">
             <h1>{data.subject.name}</h1>
-            <p>
+            <p className="tutor-card-meta">
               With{" "}
               <Link className="text-link" href={`/tutors/${data.tutor.id}`}>
                 {data.tutor.displayName}
               </Link>
+              {data.subject.learningAreas.length > 0 &&
+                `, ${data.subject.learningAreas.join(", ")}`}
             </p>
             <p style={{ whiteSpace: "pre-wrap" }}>{data.subject.description}</p>
-            <div className="stat-line">
+            <div className="subject-meta">
               <strong>THB {data.subject.hourlyRate}/hour</strong>
-              <RatingLabel
+              <RatingStars
                 average={data.rating.average}
                 count={data.rating.reviewCount}
               />
             </div>
-            <p>{data.subject.learningAreas.join(", ")}</p>
-          </section>
-          <section className="panel">
-            <h2>Choose your lesson time</h2>
-            <p>
+          </header>
+          <section className="panel slot-panel">
+            <div className="slot-panel-head">
+              <h2>Choose your lesson time</h2>
+              <Field
+                id="lesson-date"
+                label="Date (Bangkok)"
+                type="date"
+                min={bangkokDate()}
+                value={date}
+                onChange={(event) => {
+                  if (event.target.value) setDate(event.target.value);
+                }}
+              />
+            </div>
+            <p className="tutor-card-meta">
               Select 1 to 8 consecutive half-hour slots. All times use
               Asia/Bangkok.
             </p>
-            <Field
-              id="lesson-date"
-              label="Lesson date (Bangkok)"
-              type="date"
-              min={bangkokDate()}
-              value={date}
-              onChange={(event) => {
-                if (event.target.value) setDate(event.target.value);
-              }}
-            />
             {data.slots.length === 0 && (
               <p className="empty-state">No free slots on this date.</p>
             )}
-            <fieldset className="field">
-              <legend>Available half-hour slots</legend>
-              {data.slots.map((slot) => (
-                <label key={slot.id} className="check-row">
-                  <input
-                    type="checkbox"
-                    checked={selected.includes(slot.id)}
+            <div className="slot-grid" role="group" aria-label="Available half-hour slots">
+              {data.slots.map((slot) => {
+                const on = selected.includes(slot.id);
+                return (
+                  <button
+                    type="button"
+                    key={slot.id}
+                    className="slot-chip"
+                    aria-pressed={on}
                     disabled={new Date(slot.startsAt).getTime() <= Date.now()}
-                    onChange={(event) =>
+                    onClick={() =>
                       setSelected((previous) =>
-                        event.target.checked
-                          ? [...previous, slot.id]
-                          : previous.filter((id) => id !== slot.id),
+                        on
+                          ? previous.filter((id) => id !== slot.id)
+                          : [...previous, slot.id],
                       )
                     }
-                  />
-                  <span>
+                  >
                     {bangkokTime(slot.startsAt)} to{" "}
                     {new Intl.DateTimeFormat("en-GB", {
                       timeZone: "Asia/Bangkok",
                       timeStyle: "short",
                     }).format(new Date(slot.endsAt))}
-                  </span>
-                </label>
-              ))}
-            </fieldset>
-            <p>
-              {selectedSlots.length} slots selected, {selectedSlots.length / 2}{" "}
-              hours.
-            </p>
+                  </button>
+                );
+              })}
+            </div>
             {selectedSlots.length > 0 && error && (
               <Notice kind="error">{error}</Notice>
             )}
             {account?.id === data.subject.tutorUserId ? (
               <Notice kind="info">You cannot book your own subject.</Notice>
             ) : (
-              !error && (
-                <Link
-                  className="button"
-                  href={
-                    account
-                      ? bookingPath
-                      : `/login?returnTo=${encodeURIComponent(bookingPath)}`
-                  }
-                >
-                  {account ? "Continue to booking" : "Sign in and continue"}
-                </Link>
-              )
+              <div className="slot-footer">
+                <span className="tutor-card-meta">
+                  {selectedSlots.length} slots selected, {selectedSlots.length / 2}{" "}
+                  hours. Selecting slots does not reserve them.
+                </span>
+                {!error && (
+                  <Link
+                    className="button"
+                    href={
+                      account
+                        ? bookingPath
+                        : `/login?returnTo=${encodeURIComponent(bookingPath)}`
+                    }
+                  >
+                    {account ? "Continue to booking" : "Sign in and continue"}
+                  </Link>
+                )}
+              </div>
             )}
-            <p className="muted">
-              Your booking summary will show the final price and learning-goal
-              note before a hold is created. Selecting slots here does not
-              reserve them.
-            </p>
           </section>
           <section className="panel">
             <h2>Rating breakdown</h2>
-            {([5, 4, 3, 2, 1] as const).map((rating) => (
-              <p key={rating}>
-                {rating} stars:{" "}
-                {
+            <div className="rating-bars">
+              {([5, 4, 3, 2, 1] as const).map((rating) => {
+                const n =
                   data.rating.distribution[
                     String(rating) as keyof typeof data.rating.distribution
-                  ]
-                }
-              </p>
-            ))}
+                  ];
+                const pct = data.rating.reviewCount
+                  ? (n / data.rating.reviewCount) * 100
+                  : 0;
+                return (
+                  <div className="rating-bar-row" key={rating}>
+                    <span>{rating} stars</span>
+                    <span className="rating-bar">
+                      <span style={{ width: `${pct}%` }} />
+                    </span>
+                    <span>{n}</span>
+                  </div>
+                );
+              })}
+            </div>
           </section>
           <ReviewList tutorId={tutorId} subjectId={subjectId} />
         </>
