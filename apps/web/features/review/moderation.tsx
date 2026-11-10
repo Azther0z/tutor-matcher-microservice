@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { StatusBadge } from "@/features/wallet/common";
 import { RequireAuth } from "@/lib/auth-context";
 import { Field, Notice } from "@/components/field";
 import { Dropdown } from "@/components/dropdown";
@@ -40,7 +41,7 @@ function FlagCard({
     <article className="panel">
       <div className="stat-line">
         <strong>Reported by {item.reporterDisplayName}</strong>
-        <span className="badge">{item.flag.state}</span>
+        <StatusBadge value={item.flag.state} />
         <time dateTime={item.flag.createdAt}>
           {bangkokTime(item.flag.createdAt)} (Bangkok)
         </time>

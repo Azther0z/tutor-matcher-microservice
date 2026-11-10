@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { StatusBadge } from "@/features/wallet/common";
 import Link from "next/link";
 import { RequireAuth, useAuth } from "@/lib/auth-context";
 import { Field, Notice } from "@/components/field";
@@ -182,7 +183,7 @@ function SubmissionHistory({
             ? "Application"
             : "Profile revision"}
         </strong>
-        <span className="badge">{submission.state}</span>
+        <StatusBadge value={submission.state} />
         <span>Activation: {submission.activation}</span>
       </div>
       <h3>{submission.headline || "Tutor profile"}</h3>

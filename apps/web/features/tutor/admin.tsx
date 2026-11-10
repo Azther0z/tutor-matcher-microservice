@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { StatusBadge } from "@/features/wallet/common";
 import { useState } from "react";
 import { RequireAuth } from "@/lib/auth-context";
 import { Field, Notice } from "@/components/field";
@@ -121,7 +122,7 @@ function DetailContent({ submissionId }: { submissionId: string }) {
       {submission && (
         <section className="panel">
           <div className="stat-line">
-            <span className="badge">{submission.state}</span>
+            <StatusBadge value={submission.state} />
             <span>{submission.kind}</span>
             <span>Activation: {submission.activation}</span>
           </div>

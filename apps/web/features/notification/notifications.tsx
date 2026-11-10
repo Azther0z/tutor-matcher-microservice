@@ -108,7 +108,7 @@ function ReceiptsPanel() {
                 <tr key={receipt.id}>
                   <td>{formatTime(receipt.createdAt)}</td>
                   <td>{titleCase(receipt.category)}</td>
-                  <td>{titleCase(receipt.channel)} <span className="badge">Simulated</span></td>
+                  <td>{titleCase(receipt.channel)} <span className="status-text status-muted">Simulated</span></td>
                   <td><StatusBadge value={receipt.status} />{receipt.deliveredAt && <><br /><span className="small-muted">{formatTime(receipt.deliveredAt)}</span></>}</td>
                 </tr>
               ))}

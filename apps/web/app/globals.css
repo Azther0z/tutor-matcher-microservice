@@ -792,3 +792,6 @@ fieldset.field legend { font-size: 14px; font-weight: 500; padding: 0; margin-bo
 .audit-row small { color: var(--muted); font-size: 13px; }
 .audit-row time { flex: none; font-size: 13px; color: var(--muted); }
 .wallet-recent h2 { margin: 0 0 6px; font-size: 18px; }
+.badge, .badge.warn, .badge.danger { display: inline; padding: 0; border-radius: 0; background: none; font-size: 13px; font-weight: 600; color: var(--success); }
+.badge.warn { color: #f5a524; }
+.badge.danger { color: #f87171; }

@@ -107,7 +107,7 @@ export function PayoutAccountsPage() {
           <ul className="audit-list">
             {accounts.map((account) => (
               <li key={account.id}>
-                <strong>{bankName(account.bankCode)}</strong> {account.maskedAccountNumber}, {account.accountHolderName} {account.isDefault && <span className="badge">Default</span>}
+                <strong>{bankName(account.bankCode)}</strong> {account.maskedAccountNumber}, {account.accountHolderName} {account.isDefault && <span className="status-text status-muted">Default</span>}
                 <div className="button-row">
                   {!account.isDefault && <button className="button button-quiet" disabled={busy === account.id} onClick={() => void act(account, "default")}>Make default</button>}
                   <button className="button button-danger" disabled={busy === account.id} onClick={() => void act(account, "delete")}>Remove</button>
