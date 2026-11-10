@@ -28,7 +28,6 @@ export function TransactionsPage() {
   return (
     <>
       <header className="section-heading">
-        <p className="eyebrow">WALLET</p>
         <h1>Transaction history</h1>
         <p>Only completed movements appear here. Reservations and pending earnings are on your <Link className="text-link" href="/wallet">wallet</Link> page.</p>
       </header>
@@ -79,7 +78,7 @@ export function TransactionDetailPage({ params }: { params: Promise<{ transactio
   useEffect(() => { load(); }, [load]);
   return (
     <>
-      <header className="section-heading"><p className="eyebrow">WALLET</p><h1>Transaction</h1><p><Link className="text-link" href="/wallet/transactions">Back to history</Link></p></header>
+      <header className="section-heading"><h1>Transaction</h1><p><Link className="text-link" href="/wallet/transactions">Back to history</Link></p></header>
       <section className="panel">
         <LoadError failure={error} onRetry={load} backHref="/wallet/transactions" backLabel="Back to history"/>
         {!tx && !error && <p role="status">Loading…</p>}

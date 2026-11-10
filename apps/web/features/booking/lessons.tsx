@@ -64,7 +64,6 @@ export function LessonsPage() {
     <RequireCapability capability="TUTOR">
       <TutorNavigation />
       <header className="section-heading">
-        <p className="eyebrow">TEACH</p>
         <h1>Your lessons</h1>
         <p>Confirm lessons once they have ended so your earnings can start clearing, and see what is coming up.</p>
       </header>

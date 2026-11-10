@@ -357,7 +357,6 @@ export function TutorProfile({ tutorId }: { tutorId: string }) {
       {tutor && (
         <>
           <section className="panel">
-            <p className="eyebrow">VERIFIED TUTOR</p>
             <h1>{tutor.displayName}</h1>
             <h2>{tutor.headline}</h2>
             <p style={{ whiteSpace: "pre-wrap" }}>{tutor.bio}</p>
@@ -463,7 +462,6 @@ export function SubjectDetails({
       {data && (
         <>
           <section className="panel">
-            <p className="eyebrow">ONLINE LESSON</p>
             <h1>{data.subject.name}</h1>
             <p>
               With{" "}

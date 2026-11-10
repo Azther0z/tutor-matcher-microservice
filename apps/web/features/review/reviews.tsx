@@ -210,7 +210,6 @@ function ReviewWriterContent({ bookingId }: { bookingId: string }) {
   return (
     <>
       <header className="section-heading">
-        <p className="eyebrow">YOUR LESSON</p>
         <h1>Write a review</h1>
         <p>
           Reviews are linked to a completed booking. Only its student can write

@@ -38,7 +38,7 @@ export function TopupPage({ params }: { params: Promise<{ topupId: string }> }) 
 
   return (
     <>
-      <header className="section-heading"><p className="eyebrow">WALLET</p><h1>Top-up</h1><p><Link className="text-link" href="/wallet">Back to wallet</Link></p></header>
+      <header className="section-heading"><h1>Top-up</h1><p><Link className="text-link" href="/wallet">Back to wallet</Link></p></header>
       {topup && !topup.manual && <DemoBanner />}
       <LoadError failure={error} onRetry={() => void load()} backHref="/wallet" backLabel="Back to wallet"/>
       {!topup && !error && <p role="status">Loading…</p>}

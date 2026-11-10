@@ -44,7 +44,6 @@ export function WalletOverviewPage() {
   return (
     <>
       <header className="section-heading">
-        <p className="eyebrow">WALLET</p>
         <h1>Your wallet</h1>
         <p>Posted funds, payout reservations and pending earnings are kept separate.</p>
       </header>

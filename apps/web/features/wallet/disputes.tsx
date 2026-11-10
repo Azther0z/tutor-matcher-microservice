@@ -100,7 +100,7 @@ export function DisputesPage() {
 
   return (
     <>
-      <header className="section-heading"><p className="eyebrow">WALLET</p><h1>Disputes</h1><p>Open a dispute for a completed lesson and follow the decision here.</p></header>
+      <header className="section-heading"><h1>Disputes</h1><p>Open a dispute for a completed lesson and follow the decision here.</p></header>
       {notice && <Notice kind="success">{notice}</Notice>}
       <section className="panel"><OpenDispute initialBookingId={prefill} onOpened={() => { setNotice("Your dispute was opened."); void load(1); }} /></section>
       <section className="panel">
@@ -132,7 +132,7 @@ export function DisputeDetailPage({ params }: { params: Promise<{ disputeId: str
   useEffect(() => { load(); }, [load]);
   return (
     <>
-      <header className="section-heading"><p className="eyebrow">WALLET</p><h1>Dispute</h1><p><Link className="text-link" href="/disputes">Back to disputes</Link></p></header>
+      <header className="section-heading"><h1>Dispute</h1><p><Link className="text-link" href="/disputes">Back to disputes</Link></p></header>
       <section className="panel">
         <LoadError failure={error} onRetry={load} backHref="/disputes" backLabel="Back to disputes"/>
         {!dispute && !error && <p role="status">Loading…</p>}
@@ -162,7 +162,7 @@ export function AdminDisputesPage() {
 
   return (
     <>
-      <header className="section-heading"><p className="eyebrow">ADMIN TOOLS</p><h1>Disputes</h1><p>Inspect the evidence, decide the case, and the remedy and audit trail appear here.</p></header>
+      <header className="section-heading"><h1>Disputes</h1><p>Inspect the evidence, decide the case, and the remedy and audit trail appear here.</p></header>
       <section className="panel">
         <div className="field">
           <label htmlFor="status">Status</label>
@@ -236,7 +236,7 @@ export function AdminDisputeDetailPage({ params }: { params: Promise<{ disputeId
   const open = detail?.dispute.status === "OPEN";
   return (
     <>
-      <header className="section-heading"><p className="eyebrow">ADMIN TOOLS</p><h1>Dispute review</h1><p><Link className="text-link" href="/admin/disputes">Back to disputes</Link></p></header>
+      <header className="section-heading"><h1>Dispute review</h1><p><Link className="text-link" href="/admin/disputes">Back to disputes</Link></p></header>
       {notice && <Notice kind="success">{notice}</Notice>}
       {error && <Notice kind="error">{error}</Notice>}
       {!detail && !error && <p role="status">Loading…</p>}

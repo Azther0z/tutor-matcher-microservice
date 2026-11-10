@@ -124,7 +124,7 @@ function ReceiptsPanel() {
 export function NotificationsPage() {
   return (
     <>
-      <header className="section-heading"><p className="eyebrow">NOTIFICATIONS</p><h1>Notifications</h1><p>Choose what you’re told about and review what was delivered.</p></header>
+      <header className="section-heading"><h1>Notifications</h1><p>Choose what you’re told about and review what was delivered.</p></header>
       <Notice kind="info">Demonstration only. Notifications here are simulated and nothing is sent outside this app.</Notice>
       <PreferencesPanel />
       <ReceiptsPanel />

@@ -24,7 +24,6 @@ function QueueContent() {
   return (
     <>
       <header className="section-heading">
-        <p className="eyebrow">ADMINISTRATION</p>
         <h1>Tutor requests</h1>
         <p>
           Review submitted applications and profile revisions. Private documents

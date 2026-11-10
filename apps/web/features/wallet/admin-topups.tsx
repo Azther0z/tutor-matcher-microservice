@@ -78,7 +78,6 @@ function Requests() {
   return (
     <>
       <header className="section-heading">
-        <p className="eyebrow">ADMIN</p>
         <h1>Top-up requests</h1>
         <p>Check each transfer slip against the amount, then approve to credit the student's wallet or reject with a reason.</p>
       </header>

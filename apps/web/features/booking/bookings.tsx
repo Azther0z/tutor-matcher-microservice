@@ -210,7 +210,6 @@ function NewBookingContent() {
   return (
     <>
       <header className="section-heading">
-        <p className="eyebrow">NEW BOOKING</p>
         <h1>Review your lesson</h1>
         <p>
           Creating the booking holds these times briefly while you pay from your
@@ -347,7 +346,6 @@ function BookingDetailContent({ bookingId }: { bookingId: string }) {
         </Link>
       </p>
       <header className="section-heading">
-        <p className="eyebrow">YOUR LESSON</p>
         <h1>Booking</h1>
         <p>
           {booking

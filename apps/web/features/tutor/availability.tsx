@@ -109,7 +109,6 @@ function AvailabilityWorkspace() {
     <>
       <TutorNavigation />
       <header className="section-heading">
-        <p className="eyebrow">TUTOR WORKSPACE</p>
         <h1>Availability</h1>
         <p>
           Open half-hour lesson slots in Bangkok time and choose which published

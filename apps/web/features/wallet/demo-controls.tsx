@@ -45,7 +45,6 @@ export function DemoFinancePage() {
   return (
     <>
       <header className="section-heading">
-        <p className="eyebrow">ADMIN TOOLS, DEMO</p>
         <h1>Simulated provider outcomes</h1>
         <p>Stand in for the payment provider. Only an admin can resolve a simulated top-up or payout, and only for synthetic resources.</p>
       </header>

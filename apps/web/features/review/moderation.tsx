@@ -109,7 +109,6 @@ function QueueContent() {
   return (
     <>
       <header className="section-heading">
-        <p className="eyebrow">ADMINISTRATION</p>
         <h1>Review moderation</h1>
         <p>
           Inspect the reported review and reporter details before recording a

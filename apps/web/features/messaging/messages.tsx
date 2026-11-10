@@ -64,7 +64,6 @@ function Inbox() {
   return (
     <>
       <header className="section-heading">
-        <p className="eyebrow">CONVERSATIONS</p>
         <h1>Messages</h1>
         <p>Keep lesson questions and tutor conversations together.</p>
       </header>
@@ -239,7 +238,6 @@ function Thread({ userId }: { userId: string }) {
         </Link>
       </p>
       <header className="section-heading">
-        <p className="eyebrow">CONVERSATION</p>
         <h1>{other?.displayName ?? "New conversation"}</h1>
         <p>Messages are visible only to the participants in this thread.</p>
       </header>

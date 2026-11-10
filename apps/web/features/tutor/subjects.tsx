@@ -147,7 +147,6 @@ function SubjectsContent() {
   return (
     <>
       <header className="section-heading">
-        <p className="eyebrow">YOUR TEACHING</p>
         <h1>Subjects</h1>
         <p>
           Manage your online offerings. Opening half-hour slots is not

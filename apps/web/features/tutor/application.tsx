@@ -261,7 +261,6 @@ function ApplicationContent({ profile = false }: { profile?: boolean }) {
   return (
     <>
       <header className="section-heading">
-        <p className="eyebrow">TEACH WITH US</p>
         <h1>{profile ? "Profile and publication" : "Tutor application"}</h1>
         <p>
           One account for learning and teaching. Your approved profile stays

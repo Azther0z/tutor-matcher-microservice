@@ -10,7 +10,6 @@ export default function HomePage() {
   return (
     <>
       <section className="hero" aria-labelledby="hero-title">
-        <p className="eyebrow">A better fit for every learning goal</p>
         <h1 id="hero-title">Make your next lesson <em>count.</em></h1>
         <p className="hero-lede">Meet tutors who understand how you learn. Build a steady rhythm, ask better questions, and make progress you can see.</p>
         <form className="hero-search" action="/discover" role="search">
