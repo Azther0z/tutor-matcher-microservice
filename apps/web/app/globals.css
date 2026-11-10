@@ -233,12 +233,12 @@ fieldset.field legend { font-size: 14px; font-weight: 500; padding: 0; margin-bo
 .dropdown-value { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .dropdown-chevron { flex: none; color: var(--muted); transition: transform 0.15s; }
 .dropdown-trigger[aria-expanded="true"] .dropdown-chevron { transform: rotate(180deg); color: var(--amber); }
-.dropdown-menu { position: fixed; z-index: 50; overflow-y: auto; overscroll-behavior: contain; padding: 6px; border: 1px solid var(--line-strong); border-radius: 8px; background: var(--surface); color: var(--ink); box-shadow: var(--shadow); scrollbar-width: thin; scrollbar-color: var(--line-strong) var(--surface); }
-.dropdown-option { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 38px; padding: 8px 10px; font-size: 15px; border-radius: 6px; cursor: pointer; overflow-wrap: anywhere; }
+.dropdown-menu { position: fixed; z-index: 50; overflow-y: auto; overscroll-behavior: contain; padding: 0; border: 1px solid var(--line-strong); border-radius: 8px; background: var(--surface); color: var(--ink); box-shadow: var(--shadow); scrollbar-width: thin; scrollbar-color: var(--line-strong) var(--surface); }
+.dropdown-option { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 38px; padding: 8px 14px; font-size: 15px; border-radius: 0; cursor: pointer; overflow-wrap: anywhere; }
 .dropdown-option > span { min-width: 0; }
 .dropdown-option > svg { flex: none; color: var(--amber); }
-.dropdown-option.is-active { background: var(--surface-2); outline: 1px solid var(--line-strong); outline-offset: -1px; }
 .dropdown-option[aria-selected="true"] { color: var(--amber); background: rgba(139, 92, 246, 0.1); }
+.dropdown-option:hover, .dropdown-option.is-active { background: #080808; }
 .dropdown-option[aria-disabled="true"], .dropdown-empty { color: var(--muted); opacity: 0.6; cursor: not-allowed; }
 .dropdown-empty { padding: 12px; }
 
