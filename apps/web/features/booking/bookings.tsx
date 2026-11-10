@@ -433,7 +433,7 @@ function BookingDetailContent({ bookingId }: { bookingId: string }) {
               </button>
             </form>
           )}
-          <div className="slot-footer">
+          <div className="slot-footer flush">
             <span className="button-row">
               <Link
                 className="button button-quiet"
