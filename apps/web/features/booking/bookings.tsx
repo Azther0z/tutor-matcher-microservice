@@ -399,6 +399,7 @@ function BookingDetailContent({ bookingId }: { bookingId: string }) {
       <header className="page-heading">
         <h1>Booking</h1>
       </header>
+      {booking && <BookingProgress status={booking.status} />}
       {booking && (
         <section className="panel booking-new">
           <StatusBadge value={booking.status} corner />
@@ -411,7 +412,6 @@ function BookingDetailContent({ bookingId }: { bookingId: string }) {
               </strong>
             </p>
           </div>
-          <BookingProgress status={booking.status} />
           <div className="summary-rows">
             <div>
               <span>Time</span>
