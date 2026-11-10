@@ -342,10 +342,14 @@ fieldset.field legend { font-size: 14px; font-weight: 500; padding: 0; margin-bo
 
 /* Discovery search: filter sidebar on the left, banner, count and results on the right. */
 .search-hero { margin: 0 0 16px; }
+.search-results > .search-hero { margin-top: 0; }
 .search-hero h1 { font-size: 22px; margin: 0; }
 .search-layout { display: grid; grid-template-columns: 280px minmax(0, 1fr); gap: 24px; align-items: start; }
-.search-side { position: sticky; top: 80px; height: calc(100vh - 96px); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; padding: 20px; border: 1px solid var(--line-strong); border-radius: var(--radius); background: linear-gradient(165deg, var(--surface-2), var(--surface)); }
-.search-side .plain-fieldset { gap: 14px; }
+.search-side { position: sticky; top: 96px; height: calc(100vh - 128px); display: flex; flex-direction: column; overflow: hidden; padding: 20px; border: 1px solid var(--line-strong); border-radius: var(--radius); background: linear-gradient(165deg, var(--surface-2), var(--surface)); }
+.search-side > .form { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.search-side .plain-fieldset { display: contents; }
+.search-fields { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; display: grid; align-content: start; gap: 14px; padding-right: 6px; margin-right: -6px; }
+.search-actions { display: grid; gap: 10px; padding-top: 14px; margin-top: 14px; border-top: 1px solid var(--line); }
 .search-side .field { gap: 5px; }
 .search-side .field label, .search-side .field-label { font-size: 13px; }
 .search-side .field input, .search-side .field select { padding: 9px 12px; border-radius: 8px; font-size: 14px; }
@@ -365,7 +369,7 @@ fieldset.field legend { font-size: 14px; font-weight: 500; padding: 0; margin-bo
 .sort-control { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 14px; }
 .sort-control > div, .sort-control button { min-width: 190px; }
 .search-results .account-grid { max-width: none; margin: 0; }
-@media (max-width: 900px) { .search-layout { grid-template-columns: 1fr; } .search-side { position: static; height: auto; overflow: visible; } }
+@media (max-width: 900px) { .search-layout { grid-template-columns: 1fr; } .search-side { position: static; height: auto; overflow: visible; } .search-fields { overflow: visible; } }
 
 /* Navbar: links on the left, a white "Become a tutor" pill, wallet chip and avatar menu on the right. */
 .site-header { height: 64px; background: #000; border-bottom: 1px solid var(--line); backdrop-filter: none; }

@@ -140,9 +140,6 @@ export function Discover() {
   const resultCount = resource.data?.pagination.totalItems ?? 0;
   return (
     <>
-      <header className="search-hero">
-        <h1>Find a tutor</h1>
-      </header>
       <div className="search-layout">
         <aside className="search-side" aria-label="Filters">
           {searchDown && (
@@ -157,6 +154,7 @@ export function Discover() {
           )}
           <form key={query.toString()} className="form" onSubmit={filter} noValidate>
             <fieldset className="plain-fieldset" disabled={searchDown || areas.loading}>
+              <div className="search-fields">
               <Field
                 id="search-keyword"
                 name="q"
@@ -237,14 +235,20 @@ export function Discover() {
                 <span className="field-hint">Lessons are online.</span>
                 <input type="hidden" name="format" value={format} />
               </div>
-              <button className="button">Search</button>
-              <Link className="button button-outline clear-filters" href="/discover">
-                Clear filters
-              </Link>
+              </div>
+              <div className="search-actions">
+                <button className="button">Search</button>
+                <Link className="button button-outline clear-filters" href="/discover">
+                  Clear filters
+                </Link>
+              </div>
             </fieldset>
           </form>
         </aside>
         <section className="search-results" aria-live="polite">
+          <header className="search-hero">
+            <h1>Find a tutor</h1>
+          </header>
           <div className="recommend-banner">
             <strong>Recommended tutors</strong>
             {account ? (
