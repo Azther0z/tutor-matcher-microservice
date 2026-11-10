@@ -36,9 +36,9 @@ function HoldCountdown({ expiresAt, onExpired }: { expiresAt: string; onExpired:
   return <strong role="timer">{minutes}:{String(seconds).padStart(2, "0")}</strong>;
 }
 
-const STEPS = ["Booked", "Paid", "Completed"];
+const STEPS = ["Select time", "Booked", "Paid", "Completed"];
 function BookingProgress({ status }: { status: Booking["status"] }) {
-  const reached = status === "PAYMENT_DUE" ? 0 : status === "CONFIRMED" ? 1 : status === "COMPLETED" ? 2 : -1;
+  const reached = status === "PAYMENT_DUE" ? 1 : status === "CONFIRMED" ? 2 : status === "COMPLETED" ? 3 : 0;
   const cancelled = status === "CANCELLED";
   const fill = cancelled ? 0 : (reached / (STEPS.length - 1)) * 100;
   return (
