@@ -612,5 +612,5 @@ fieldset.field legend { font-size: 14px; font-weight: 500; padding: 0; margin-bo
 @keyframes progress-pulse { 0% { box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.5); } 100% { box-shadow: 0 0 0 9px rgba(74, 222, 128, 0); } }
 @media (prefers-reduced-motion: reduce) { .booking-progress-track .booking-progress-live, .booking-progress li.is-live i { animation: none; } }
 .booking-progress-track .booking-progress-cut { position: absolute; top: 0; height: 100%; background: #f87171; }
-.booking-progress-track .booking-progress-live { position: absolute; top: 0; height: 100%; background: repeating-linear-gradient(90deg, #4ade80 0 14px, transparent 14px 19px); animation: progress-march 0.6s linear infinite; }
-@keyframes progress-march { from { background-position: 0 0; } to { background-position: 19px 0; } }
+.booking-progress-track .booking-progress-live { position: absolute; top: 0; height: 100%; background: repeating-linear-gradient(90deg, #4ade80 0 32px, transparent 32px 36px); animation: progress-march 0.6s linear infinite; }
+@keyframes progress-march { from { background-position: 0 0; } to { background-position: 36px 0; } }
