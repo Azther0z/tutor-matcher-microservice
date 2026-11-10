@@ -211,7 +211,13 @@ main:focus { outline: none; }
 .form-card-compact .field input { padding: 11px 14px; border-radius: 8px; }
 .form-card-compact .field input:focus-visible { outline: none; border-color: var(--amber); box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.28); }
 .form-card-compact .button { min-height: 44px; padding: 11px 24px; }
-.form-card-compact .form-footer { margin-top: 22px; }
+.form-card-compact .login-forgot { margin: -6px 0 0; text-align: right; font-size: 13px; }
+.form-card-compact .login-forgot a { color: var(--muted); font-weight: 400; text-decoration: none; }
+.form-card-compact .login-forgot a:hover { color: var(--ink); text-decoration: underline; }
+.form-card-compact .login-submit { width: 100%; margin-top: 4px; }
+.form-card-compact .login-footer { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--line); text-align: center; font-size: 13px; }
+.form-card-compact .login-footer a { color: var(--ink); font-weight: 500; text-decoration: none; }
+.form-card-compact .login-footer a:hover { text-decoration: underline; }
 fieldset.field, .plain-fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
 fieldset.field legend { font-size: 14px; font-weight: 500; padding: 0; margin-bottom: 8px; }
 .plain-fieldset { display: grid; gap: 16px; }
