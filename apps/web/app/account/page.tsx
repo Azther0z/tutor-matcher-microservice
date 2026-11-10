@@ -3,12 +3,12 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Field, Notice } from "@/components/field";
+import { ErrorNotice, Field, Notice, focusFirstInvalid } from "@/components/field";
 import { RequireAuth, useAuth } from "@/lib/auth-context";
-import { api, apiResponse, errorMessage, fieldErrors, newIdempotencyKey } from "@/lib/api";
+import { ApiError, PASSWORD_MAX_LENGTH, api, apiResponse, errorMessage, failureOf, fieldErrors, isValidEmail, newIdempotencyKey, type Failure } from "@/lib/api";
 import type { Account, StudentProfile } from "@/lib/types";
 
-function StudentLearningProfile() {
+function StudentLearningProfile({ quietSignal, onActivity }: { quietSignal: number; onActivity: () => void }) {
   const [profile, setProfile] = useState<StudentProfile | null>(null); const [etag, setEtag] = useState(""); const [loading, setLoading] = useState(true);
   const [pending, setPending] = useState(false); const [error, setError] = useState(""); const [notice, setNotice] = useState(""); const [key, setKey] = useState(newIdempotencyKey());
   const load = useCallback(async () => {
@@ -18,8 +18,10 @@ function StudentLearningProfile() {
     finally { setLoading(false); }
   }, []);
   useEffect(() => { void load(); }, [load]);
+  // Another form on the page was used: this form's old success message no longer describes the page.
+  useEffect(() => { setNotice(""); }, [quietSignal]);
   async function submit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault(); setPending(true); setError(""); setNotice("");
+    event.preventDefault(); onActivity(); setPending(true); setError(""); setNotice("");
     const form = new FormData(event.currentTarget);
     const rawAreas = String(form.get("learningAreas") ?? "").split(",").map((value) => value.trim().toLowerCase()).filter(Boolean);
     const learningAreas = [...new Set(rawAreas)]; const level = String(form.get("level") ?? "").trim(); const goals = String(form.get("goals") ?? "").trim();
@@ -39,51 +41,71 @@ function StudentLearningProfile() {
 function AccountSettings() {
   const { account, refresh, signOut, clearLocal } = useAuth(); const router = useRouter();
   const [settings, setSettings] = useState<Account | null>(null); const [etag, setEtag] = useState(""); const [loading, setLoading] = useState(true);
-  const [pending, setPending] = useState(false); const [notice, setNotice] = useState(""); const [error, setError] = useState(""); const [errors, setErrors] = useState<Record<string,string>>({});
+  const [pending, setPending] = useState(false); const [notice, setNotice] = useState(""); const [error, setError] = useState<Failure | null>(null);
+  // Each form owns its own field errors, so one form's "Required." never shows under another form's field.
+  const [profileErrors, setProfileErrors] = useState<Record<string,string>>({}); const [passwordErrors, setPasswordErrors] = useState<Record<string,string>>({}); const [deactivateErrors, setDeactivateErrors] = useState<Record<string,string>>({});
+  const [activity, setActivity] = useState(0);
+  const resetFormState = () => { setError(null); setNotice(""); setProfileErrors({}); setPasswordErrors({}); setDeactivateErrors({}); setActivity((value) => value + 1); };
   const [profileKey, setProfileKey] = useState(newIdempotencyKey()); const [passwordKey, setPasswordKey] = useState(newIdempotencyKey()); const [deactivateKey, setDeactivateKey] = useState(newIdempotencyKey());
   const load = useCallback(async () => {
-    setLoading(true); setError("");
+    setLoading(true); setError(null);
     try { const result = await apiResponse<Account>("/profiles/me/account"); setSettings(result.data); setEtag(result.headers.get("ETag") ?? `"${result.data.revision}"`); }
-    catch (e) { setError(errorMessage(e, "We couldn’t load your account settings.")); }
+    catch (e) { setError(failureOf(e, "We couldn’t load your account settings.")); }
     finally { setLoading(false); }
   }, []);
   useEffect(() => { void load(); }, [load]);
+  // A wrong current password comes back as 401 INVALID_CREDENTIALS: it belongs under that field and does not end the session.
+  function reportFailure(e: unknown, fallback: string, setFormErrors: (errors: Record<string, string>) => void, formElement: HTMLFormElement) {
+    const fields = fieldErrors(e); const failure = failureOf(e, fallback);
+    if (e instanceof ApiError && e.body?.code === "INVALID_CREDENTIALS") fields.currentPassword = "Current password is incorrect.";
+    if (fields.currentPassword === "Required.") fields.currentPassword = "Enter your current password.";
+    setFormErrors(fields);
+    setError(Object.values(fields).includes(failure.message) || fields.currentPassword === "Current password is incorrect." ? null : failure);
+    focusFirstInvalid(formElement);
+  }
   async function updateProfile(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault(); setPending(true); setError(""); setNotice(""); setErrors({});
+    event.preventDefault(); resetFormState(); setPending(true);
+    const formElement = event.currentTarget;
     const f = new FormData(event.currentTarget); const body: Record<string,string> = { firstName: String(f.get("firstName") ?? "").trim(), lastName: String(f.get("lastName") ?? "").trim() };
     const email = String(f.get("email") ?? "").trim(); const currentPassword = String(f.get("emailCurrentPassword") ?? "");
     if (email !== settings?.email) { body.email = email; if (currentPassword) body.currentPassword = currentPassword; }
-    if (!body.firstName || !body.lastName || (body.email !== undefined && !body.email)) { setErrors({ firstName: body.firstName ? "" : "Enter your first name.", lastName: body.lastName ? "" : "Enter your last name.", email: body.email ? "" : "Enter your email address." }); setPending(false); return; }
+    const emailProblem = body.email === undefined ? "" : !body.email ? "Enter your email address." : !isValidEmail(body.email) ? "Enter a valid email address." : "";
+    if (!body.firstName || !body.lastName || emailProblem) { setProfileErrors({ firstName: body.firstName ? "" : "Enter your first name.", lastName: body.lastName ? "" : "Enter your last name.", email: emailProblem }); setPending(false); focusFirstInvalid(formElement); return; }
     try {
       const result = await apiResponse<Account>("/profiles/me/account", { method: "PUT", body, idempotencyKey: profileKey, ifMatch: etag });
       setSettings(result.data); setEtag(result.headers.get("ETag") ?? `"${result.data.revision}"`); setProfileKey(newIdempotencyKey()); setNotice("Your account details have been saved."); await refresh();
-    } catch (e) { setErrors(fieldErrors(e)); setError(errorMessage(e, "Could not save your account details.")); if ((e as { status?: number }).status === 412) void load(); }
+    } catch (e) { reportFailure(e, "Could not save your account details.", setProfileErrors, formElement); if ((e as { status?: number }).status === 412) void load(); }
     finally { setPending(false); }
   }
   async function changePassword(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault(); setPending(true); setError(""); setNotice(""); setErrors({});
+    event.preventDefault(); resetFormState(); setPending(true);
+    const formElement = event.currentTarget;
     const f = new FormData(event.currentTarget); const currentPassword = String(f.get("passwordCurrentPassword") ?? ""); const newPassword = String(f.get("newPassword") ?? ""); const confirmation = String(f.get("passwordConfirmation") ?? "");
-    if (newPassword.length < 8 || newPassword !== confirmation) { setErrors({ newPassword: newPassword.length < 8 ? "Use at least 8 characters." : "", passwordConfirmation: newPassword !== confirmation ? "Passwords do not match." : "" }); setPending(false); return; }
+    const lengthProblem = newPassword.length < 8 ? "Use at least 8 characters." : newPassword.length > PASSWORD_MAX_LENGTH ? `Use ${PASSWORD_MAX_LENGTH} characters or fewer.` : "";
+    if (!currentPassword || lengthProblem || newPassword !== confirmation) { setPasswordErrors({ currentPassword: currentPassword ? "" : "Enter your current password.", newPassword: lengthProblem, passwordConfirmation: newPassword !== confirmation ? "Passwords do not match." : "" }); setPending(false); focusFirstInvalid(formElement); return; }
     try {
       await api<Account>("/profiles/me/account", { method: "PUT", body: { currentPassword, newPassword }, idempotencyKey: passwordKey, ifMatch: etag });
       setPasswordKey(newIdempotencyKey()); clearLocal(); window.location.replace("/login?notice=password-changed");
-    } catch (e) { setErrors(fieldErrors(e)); setError(errorMessage(e, "Could not update your password.")); if ((e as { status?: number }).status === 412) void load(); }
+    } catch (e) { reportFailure(e, "Could not update your password.", setPasswordErrors, formElement); if ((e as { status?: number }).status === 412) void load(); }
     finally { setPending(false); }
   }
   async function deactivate(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const formElement = event.currentTarget;
+    if (!String(new FormData(formElement).get("deactivatePassword") ?? "")) { resetFormState(); setDeactivateErrors({ currentPassword: "Enter your current password to deactivate." }); focusFirstInvalid(formElement); return; }
     if (!window.confirm("Deactivate your account? Your email, bookings, funds, and history remain preserved. You’ll be signed out.") ) return;
-    setPending(true); setError(""); setNotice("");
-    const currentPassword = String(new FormData(event.currentTarget).get("deactivatePassword") ?? "");
+    resetFormState(); setPending(true);
+    const currentPassword = String(new FormData(formElement).get("deactivatePassword") ?? "");
     try {
       await api<Account>("/profiles/me/account", { method: "PUT", body: { currentPassword, deactivate: true }, idempotencyKey: deactivateKey, ifMatch: etag });
       setDeactivateKey(newIdempotencyKey()); clearLocal(); window.location.replace("/login?notice=deactivated");
-    } catch (e) { setError(errorMessage(e, "Could not deactivate your account.")); if ((e as { status?: number }).status === 412) void load(); }
+    } catch (e) { reportFailure(e, "Could not deactivate your account.", setDeactivateErrors, formElement); if ((e as { status?: number }).status === 412) void load(); }
     finally { setPending(false); }
   }
   if (loading) return <p role="status">Loading account settings…</p>;
-  if (!settings) return <><Notice kind="error">{error || "Account settings are unavailable."}</Notice><button className="button" onClick={() => void load()}>Try again</button></>;
-  return <><header className="section-heading"><p className="eyebrow">YOUR PROFILE</p><h1>Account settings</h1><p>Manage your identity and security. Your access is controlled by your current account capabilities.</p></header>{error && <Notice kind="error">{error}</Notice>}{notice && <Notice kind="success">{notice}</Notice>}<div className="account-grid"><section className="panel"><h2>Personal details</h2><p>Changes to your name and email keep your current session active.</p><form className="form" onSubmit={updateProfile} noValidate><Field id="firstName" label="First name" defaultValue={settings.firstName} required error={errors.firstName}/><Field id="lastName" label="Last name" defaultValue={settings.lastName} required error={errors.lastName}/><Field id="email" label="Email address" type="email" defaultValue={settings.email} required error={errors.email}/><Field id="emailCurrentPassword" label="Current password (required to change email)" type="password" autoComplete="current-password" error={errors.currentPassword}/><button className="button" disabled={pending}>{pending ? "Saving…" : "Save details"}</button></form></section><section className="panel"><h2>Change password</h2><p>Changing your password signs out every session, including this one.</p><form className="form" onSubmit={changePassword} noValidate><Field id="passwordCurrentPassword" label="Current password" type="password" autoComplete="current-password" required error={errors.currentPassword}/><Field id="newPassword" label="New password" type="password" autoComplete="new-password" minLength={8} required error={errors.newPassword}/><Field id="passwordConfirmation" label="Confirm new password" type="password" autoComplete="new-password" required error={errors.passwordConfirmation}/><button className="button" disabled={pending}>{pending ? "Updating…" : "Update password"}</button></form></section></div><section className="panel"><h2>Sign out</h2><p>Sign out of this browser. To revoke all your sessions, change your password above.</p><button className="button button-quiet" onClick={() => { void signOut().finally(() => router.replace("/login")); }} disabled={pending}>Sign out of this session</button></section><section className="panel danger-panel"><h2>Deactivate account</h2><p>Deactivation signs you out and revokes every session. Your identity, reserved email, bookings, funds, and history remain preserved. Only an active admin can restore access.</p><form className="inline-form" onSubmit={deactivate}><Field id="deactivatePassword" label="Current password to deactivate" type="password" autoComplete="current-password" required error={errors.currentPassword}/><button className="button button-danger" disabled={pending}>{pending ? "Deactivating…" : "Deactivate account"}</button></form></section><StudentLearningProfile/><section className="panel"><h2>Account access</h2><div className="stat-line"><span>Access: <strong>{account?.capabilities.join(", ")}</strong></span><span>Status: <strong>{account?.status}</strong></span></div><p>New accounts always include Student capability. Additional capabilities are assigned through controlled review.</p><Link className="text-link" href="/">Browse Tutor Matcher</Link></section></>;
+  if (!settings) return <><header className="section-heading"><h1>Account settings</h1></header>{error ? <ErrorNotice failure={error}/> : <Notice kind="error">Account settings are unavailable.</Notice>}<button className="button" onClick={() => void load()}>Try again</button></>;
+  const learningProfile = <StudentLearningProfile quietSignal={activity} onActivity={() => { setNotice(""); }}/>;
+  return <><header className="section-heading"><p className="eyebrow">YOUR PROFILE</p><h1>Account settings</h1><p>Manage your identity and security. Your access is controlled by your current account capabilities.</p></header><ErrorNotice failure={error}/>{notice && <Notice kind="success">{notice}</Notice>}<div className="account-grid"><section className="panel"><h2>Personal details</h2><p>Changes to your name and email keep your current session active.</p><form className="form" onSubmit={updateProfile} noValidate><Field id="firstName" label="First name" defaultValue={settings.firstName} required error={profileErrors.firstName}/><Field id="lastName" label="Last name" defaultValue={settings.lastName} required error={profileErrors.lastName}/><Field id="email" label="Email address" type="email" defaultValue={settings.email} required error={profileErrors.email}/><Field id="emailCurrentPassword" label="Current password (required to change email)" type="password" autoComplete="current-password" error={profileErrors.currentPassword}/><button className="button" disabled={pending}>{pending ? "Saving…" : "Save details"}</button></form></section><section className="panel"><h2>Change password</h2><p>Changing your password signs out every session, including this one.</p><form className="form" onSubmit={changePassword} noValidate><Field id="passwordCurrentPassword" label="Current password" type="password" autoComplete="current-password" required error={passwordErrors.currentPassword}/><Field id="newPassword" label="New password" type="password" autoComplete="new-password" minLength={8} maxLength={PASSWORD_MAX_LENGTH} hint={`Use 8 to ${PASSWORD_MAX_LENGTH} characters.`} required error={passwordErrors.newPassword}/><Field id="passwordConfirmation" label="Confirm new password" type="password" autoComplete="new-password" maxLength={PASSWORD_MAX_LENGTH} required error={passwordErrors.passwordConfirmation}/><button className="button" disabled={pending}>{pending ? "Updating…" : "Update password"}</button></form></section></div>{learningProfile}<section className="panel"><h2>Account access</h2><div className="stat-line"><span>Access: <strong>{account?.capabilities.join(", ")}</strong></span><span>Status: <strong>{account?.status}</strong></span></div><p>New accounts always include Student capability. Additional capabilities are assigned through controlled review.</p><Link className="text-link" href="/discover">Find tutors</Link></section><section className="panel"><h2>Sign out</h2><p>Sign out of this browser. To revoke all your sessions, change your password above.</p><button className="button button-outline" onClick={() => { void signOut().finally(() => router.replace("/login")); }} disabled={pending}>Sign out of this session</button></section><section className="panel danger-panel"><h2>Deactivate account</h2><p>Deactivation signs you out and revokes every session. Your identity, reserved email, bookings, funds, and history remain preserved. Only an active admin can restore access.</p><form className="inline-form" onSubmit={deactivate} noValidate><Field id="deactivatePassword" label="Current password to deactivate" type="password" autoComplete="current-password" required error={deactivateErrors.currentPassword}/><button className="button button-danger" disabled={pending}>{pending ? "Deactivating…" : "Deactivate account"}</button></form></section></>;
 }
 
 export default function AccountPage() { return <RequireAuth><AccountSettings/></RequireAuth>; }
