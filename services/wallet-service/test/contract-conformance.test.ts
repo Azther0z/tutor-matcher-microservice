@@ -64,8 +64,9 @@ describe('event conformance', () => {
     const key = () => ({ 'idempotency-key': newId() });
     const tutor = newId(); const student = newId();
     const topup = async (user: string, outcome: string, amount = '2000.00') => {
-      const t = await h.call('POST', '/api/wallet/topups', { token: h.token(user), headers: key(), body: { amount } });
-      await h.call('POST', `/api/demo/topups/${t.body.id}/outcome`, { token: admin, headers: key(), body: { outcome, providerReference: t.body.providerReference } });
+      const t = await h.call('POST', '/api/wallet/topups', { token: h.token(user), headers: key(), body: { amount, slipImage: 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/pZsAAAAASUVORK5CYII=', slipContentType: 'image/png' } });
+      const decision = outcome === 'SUCCEEDED' ? 'APPROVE' : 'REJECT';
+      await h.call('POST', `/api/admin/topups/${t.body.id}/decision`, { token: admin, headers: key(), body: { decision, reason: decision === 'REJECT' ? 'test rejection' : undefined } });
     };
     await topup(tutor, 'SUCCEEDED'); await topup(tutor, 'FAILED', '5.00');
     const account = (await h.call('POST', '/api/payout-accounts', { token: h.token(tutor, ['STUDENT', 'TUTOR']), headers: key(), body: { bankCode: 'KBANK', accountHolderName: 'T', accountNumber: '1234567890' } })).body;
