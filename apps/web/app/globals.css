@@ -373,3 +373,11 @@ fieldset.field legend { font-size: 14px; font-weight: 500; padding: 0; margin-bo
 .site-header .account-menu a:hover, .site-header .account-menu button:hover { background: #202020; color: #fff; }
 .account-menu hr { border: 0; border-top: 1px solid #3f3f46; margin: 8px 0; }
 @media (max-width: 800px) { .site-nav { flex-wrap: wrap; } .site-nav .nav-group { flex-wrap: wrap; } .site-header { height: auto; padding-top: 8px; padding-bottom: 8px; } }
+
+/* PromptPay top-up: the QR for the typed amount, the slip preview, and the admin slip view. */
+.promptpay-qr { margin: 0; display: grid; justify-items: center; gap: 8px; padding: 16px; border-radius: var(--radius-sm); background: #fff; color: #18181b; }
+.promptpay-qr img { display: block; max-width: 100%; height: auto; }
+.promptpay-qr figcaption { font-size: 14px; }
+.slip-preview, .slip-image { display: block; max-width: 280px; max-height: 360px; width: auto; height: auto; border-radius: 12px; border: 1px solid var(--line-strong); margin-top: 8px; }
+.slip-image { max-width: 100%; cursor: zoom-in; }
+.field input[type="file"] { padding: 8px; }

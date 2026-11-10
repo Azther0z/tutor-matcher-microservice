@@ -446,6 +446,7 @@ function summary(healthy) {
   say(`  Gateway  ${GATEWAY_URL}`);
   say("\n  Demo accounts (password: AUTH_DEMO_PASSWORD in .env.demo)");
   say("    admin.demo@example.test       Carol Davis, administrator");
+  say("    piranat.admin@example.test    Piranat Wadlom, administrator");
   say(
     "    student.demo@example.test     Bob Smith, student (has a finished lesson to review)",
   );

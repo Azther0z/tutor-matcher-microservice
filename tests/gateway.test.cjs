@@ -456,12 +456,12 @@ async function startProviderCase(t, provider) {
   );
 
   await t.test(
-    `${provider}: exact inventory has 86 routes and unknown paths stay closed`,
+    `${provider}: exact inventory has 90 routes and unknown paths stay closed`,
     async () => {
-      assert.equal(inventory.length, 86);
+      assert.equal(inventory.length, 90);
       assert.equal(
         new Set(inventory.map(({ method, path }) => `${method} ${path}`)).size,
-        86,
+        90,
       );
       const routeFile = readFileSync(
         path.join(root, "infra/gateway/routes.yaml"),

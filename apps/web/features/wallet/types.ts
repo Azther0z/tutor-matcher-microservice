@@ -35,9 +35,15 @@ export type Topup = {
   userId: string;
   amount: Money;
   status: ProviderStatus;
-  demo: true;
+  demo: boolean;
+  manual?: boolean;
   providerReference: string;
   paymentRepresentation: string;
+  slip?: { contentType: string; uploadedAt: string } | null;
+  decisionReason?: string | null;
+  decidedAt?: string | null;
+  /** Present on the admin review list. */
+  userDisplayName?: string;
   operation: OperationRef;
   createdAt: string;
   confirmedAt: string | null;

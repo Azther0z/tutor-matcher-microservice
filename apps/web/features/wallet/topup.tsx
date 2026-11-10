@@ -10,6 +10,12 @@ import { formatMoney, formatTime } from "./format";
 import { returnBookingId } from "./overview";
 import type { Topup } from "./types";
 
+const MANUAL_TEXT: Record<Topup["status"], string> = {
+  PENDING: "Your slip is with an admin for review. Your balance is credited when it is approved.",
+  SUCCEEDED: "An admin approved your top-up. Your balance was credited once.",
+  FAILED: "An admin rejected this top-up. Nothing was credited.",
+  UNKNOWN: "This request needs another look. Nothing is credited until it is approved.",
+};
 const OUTCOME_TEXT: Record<Topup["status"], string> = {
   PENDING: "Waiting for the demonstration provider. Nothing has been credited yet.",
   SUCCEEDED: "The demonstration provider reported success. Your balance was credited once.",
@@ -33,21 +39,26 @@ export function TopupPage({ params }: { params: Promise<{ topupId: string }> }) 
   return (
     <>
       <header className="section-heading"><p className="eyebrow">WALLET</p><h1>Top-up</h1><p><Link className="text-link" href="/wallet">Back to wallet</Link></p></header>
-      <DemoBanner />
+      {topup && !topup.manual && <DemoBanner />}
       <LoadError failure={error} onRetry={() => void load()} backHref="/wallet" backLabel="Back to wallet"/>
       {!topup && !error && <p role="status">Loading…</p>}
       {topup && (
         <section className="panel">
           <div className="stat-line"><span className="tiny-label">AMOUNT</span><strong>{formatMoney(topup.amount)}</strong></div>
           <p>Status: <StatusBadge value={topup.status} /></p>
-          <p role="status">{OUTCOME_TEXT[topup.status]}</p>
+          <p role="status">{(topup.manual ? MANUAL_TEXT : OUTCOME_TEXT)[topup.status]}</p>
+          {topup.manual && topup.decisionReason && <Notice kind={topup.status === "FAILED" ? "error" : "info"}>Admin note: {topup.decisionReason}</Notice>}
           {operation?.error && <p className="small-muted">{operation.error}</p>}
           {operation?.status === "TIMEOUT" && <Notice kind="info">Still waiting. You can leave this page; the result will appear in your wallet.</Notice>}
-          <h2>Simulated payment code</h2>
-          <div className="sensitive-box" aria-label="Simulated payment code">
-            <p><strong>Not payable.</strong> This is a demonstration code. Do not scan it with a banking app.</p>
-            <code>{topup.paymentRepresentation}</code>
-          </div>
+          {!topup.manual && (
+            <>
+              <h2>Simulated payment code</h2>
+              <div className="sensitive-box" aria-label="Simulated payment code">
+                <p><strong>Not payable.</strong> This is a demonstration code. Do not scan it with a banking app.</p>
+                <code>{topup.paymentRepresentation}</code>
+              </div>
+            </>
+          )}
           <p className="small-muted">Created {formatTime(topup.createdAt)}{topup.confirmedAt ? ` · Confirmed ${formatTime(topup.confirmedAt)}` : ""}</p>
           <div className="button-row">
             {topup.status === "SUCCEEDED" && returnTo && <Link className="button" href={`/bookings/${returnTo}`}>Return to your booking</Link>}

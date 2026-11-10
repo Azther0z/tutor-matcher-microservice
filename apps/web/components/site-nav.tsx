@@ -85,6 +85,7 @@ export function SiteNav() {
                 <Link href="/account" onClick={() => setMenuOpen(false)}>Settings</Link>
                 <Link href="/notifications" onClick={() => setMenuOpen(false)}>Notifications</Link>
                 {isAdmin && <Link href="/admin/tutor-requests" onClick={() => setMenuOpen(false)}>Tutor requests</Link>}
+                {isAdmin && <Link href="/admin/topups" onClick={() => setMenuOpen(false)}>Top-up requests</Link>}
                 {isAdmin && <Link href="/admin/users" onClick={() => setMenuOpen(false)}>Admin</Link>}
                 <hr />
                 <button type="button" onClick={() => void logout()}>Logout</button>

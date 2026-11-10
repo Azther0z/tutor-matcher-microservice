@@ -1154,3 +1154,51 @@ http:
       priority: 1
       middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix]
       service: unavailable
+    list-topups:
+      entryPoints: [web]
+      rule: Path(`/api/wallet/topups`) && Method(`GET`)
+      priority: 10303
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix, retry-read]
+      service: wallet-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
+    list-topups-unavailable:
+      entryPoints: [web]
+      rule: Path(`/api/wallet/topups`) && Method(`GET`)
+      priority: 1
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix, retry-read]
+      service: unavailable
+    list-admin-topups:
+      entryPoints: [web]
+      rule: Path(`/api/admin/topups`) && Method(`GET`)
+      priority: 10303
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix, retry-read]
+      service: wallet-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
+    list-admin-topups-unavailable:
+      entryPoints: [web]
+      rule: Path(`/api/admin/topups`) && Method(`GET`)
+      priority: 1
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix, retry-read]
+      service: unavailable
+    get-topup-slip:
+      entryPoints: [web]
+      rule: PathRegexp(`^/api/admin/topups/[^/]+/slip$`) && Method(`GET`)
+      priority: 10405
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix, retry-read]
+      service: wallet-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
+    get-topup-slip-unavailable:
+      entryPoints: [web]
+      rule: PathRegexp(`^/api/admin/topups/[^/]+/slip$`) && Method(`GET`)
+      priority: 1
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix, retry-read]
+      service: unavailable
+    decide-topup:
+      entryPoints: [web]
+      rule: PathRegexp(`^/api/admin/topups/[^/]+/decision$`) && Method(`POST`)
+      priority: 10405
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix]
+      service: wallet-service@{{ env "TRAEFIK_DISCOVERY_PROVIDER" }}
+    decide-topup-unavailable:
+      entryPoints: [web]
+      rule: PathRegexp(`^/api/admin/topups/[^/]+/decision$`) && Method(`POST`)
+      priority: 1
+      middlewares: [strip-client-identity, gateway-auth-credential, authorize, strip-forwardauth-proof, owner-credential, strip-api-prefix]
+      service: unavailable

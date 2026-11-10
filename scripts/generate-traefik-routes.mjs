@@ -18,8 +18,8 @@ const operations = inventory.filter(
 );
 assert.equal(
   operations.length,
-  86,
-  "expected exactly 86 public REST operations",
+  90,
+  "expected exactly 90 public REST operations",
 );
 const owners = [
   "auth",
@@ -85,12 +85,12 @@ const normalized = operations.map((entry) => {
 });
 assert.equal(
   new Set(normalized.map(({ method, route }) => `${method} ${route}`)).size,
-  86,
+  90,
   "route inventory must be unique",
 );
 assert.equal(
   specOperations.size,
-  86,
+  90,
   "OpenAPI public route count differs from operation map",
 );
 

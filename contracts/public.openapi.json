@@ -15325,7 +15325,7 @@
     "/wallet/topups": {
       "post": {
         "operationId": "createTopup",
-        "summary": "Start a clearly labeled simulated top-up",
+        "summary": "Request a manual PromptPay top-up with the transfer slip",
         "description": "Caller must satisfy current account and capability checks plus owner/resource checks. See contracts/README.md for semantic invariants, privacy, retries and pending outcomes.",
         "tags": [
           "wallet"
@@ -15581,7 +15581,9 @@
           "UC04-01",
           "UC04-02"
         ],
-        "x-failure-codes": [],
+        "x-failure-codes": [
+          "TOPUP_REQUEST_OPEN"
+        ],
         "x-idempotency": "REQUIRED",
         "x-required-capabilities": [
           "STUDENT"
@@ -15597,6 +15599,286 @@
             }
           }
         },
+        "x-ingress-errors": {
+          "transportStatuses": [
+            502,
+            503,
+            504
+          ],
+          "mediaType": "text/plain",
+          "requestIdGuaranteed": false
+        }
+      },
+      "get": {
+        "operationId": "listTopups",
+        "summary": "List the caller's own top-up requests",
+        "description": "Caller must satisfy current account and capability checks plus owner/resource checks. See contracts/README.md for semantic invariants, privacy, retries and pending outcomes.",
+        "tags": [
+          "wallet"
+        ],
+        "security": [
+          {
+            "UserBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Request-Id",
+            "in": "header",
+            "required": false,
+            "description": "X-Request-Id",
+            "schema": {
+              "$ref": "#/components/schemas/Id"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "description": "page",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "required": false,
+            "description": "pageSize",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Committed result.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TopupPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed JSON or unsupported request syntax.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid authentication.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Authenticated caller lacks permission or current account is restricted.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource unavailable or not visible to this caller.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Business transition, quote, or idempotency conflict.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "All applicable field validation errors.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit; honor Retry-After.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              },
+              "Retry-After": {
+                "description": "Seconds before another admission attempt.",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dependency or current authorization unavailable. Retry only under the same operation identity. Native ingress transport failures may return plain text without X-Request-Id. Do not treat these as proof that a mutation was rejected; recover or retry only with its original operation identity.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "Service Unavailable"
+              }
+            }
+          },
+          "502": {
+            "description": "Native ingress transport failures may return plain text without X-Request-Id. Do not treat these as proof that a mutation was rejected; recover or retry only with its original operation identity.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Present when an application owner supplied a valid trace identity; native ingress failures may omit it.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "Bad Gateway"
+              }
+            }
+          },
+          "504": {
+            "description": "Native ingress transport failures may return plain text without X-Request-Id. Do not treat these as proof that a mutation was rejected; recover or retry only with its original operation identity.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Present when an application owner supplied a valid trace identity; native ingress failures may omit it.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "Gateway Timeout"
+              }
+            }
+          }
+        },
+        "x-owner": "wallet",
+        "x-requirements": [
+          "UC04-01"
+        ],
+        "x-failure-codes": [],
+        "x-idempotency": "NONE",
+        "x-required-capabilities": [
+          "STUDENT"
+        ],
         "x-ingress-errors": {
           "transportStatuses": [
             502,
@@ -25365,6 +25647,873 @@
           "requestIdGuaranteed": false
         }
       }
+    },
+    "/admin/topups": {
+      "get": {
+        "operationId": "listAdminTopups",
+        "summary": "List manual top-up requests for review",
+        "description": "Caller must satisfy current account and capability checks plus owner/resource checks. See contracts/README.md for semantic invariants, privacy, retries and pending outcomes.",
+        "tags": [
+          "wallet"
+        ],
+        "security": [
+          {
+            "UserBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Request-Id",
+            "in": "header",
+            "required": false,
+            "description": "X-Request-Id",
+            "schema": {
+              "$ref": "#/components/schemas/Id"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "description": "page",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "required": false,
+            "description": "pageSize",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "description": "status",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "PENDING",
+                "SUCCEEDED",
+                "FAILED"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Committed result.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TopupPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed JSON or unsupported request syntax.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid authentication.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Authenticated caller lacks permission or current account is restricted.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource unavailable or not visible to this caller.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Business transition, quote, or idempotency conflict.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "All applicable field validation errors.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit; honor Retry-After.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              },
+              "Retry-After": {
+                "description": "Seconds before another admission attempt.",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dependency or current authorization unavailable. Retry only under the same operation identity. Native ingress transport failures may return plain text without X-Request-Id. Do not treat these as proof that a mutation was rejected; recover or retry only with its original operation identity.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "Service Unavailable"
+              }
+            }
+          },
+          "502": {
+            "description": "Native ingress transport failures may return plain text without X-Request-Id. Do not treat these as proof that a mutation was rejected; recover or retry only with its original operation identity.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Present when an application owner supplied a valid trace identity; native ingress failures may omit it.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "Bad Gateway"
+              }
+            }
+          },
+          "504": {
+            "description": "Native ingress transport failures may return plain text without X-Request-Id. Do not treat these as proof that a mutation was rejected; recover or retry only with its original operation identity.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Present when an application owner supplied a valid trace identity; native ingress failures may omit it.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "Gateway Timeout"
+              }
+            }
+          }
+        },
+        "x-owner": "wallet",
+        "x-requirements": [
+          "UC04-03"
+        ],
+        "x-failure-codes": [],
+        "x-idempotency": "NONE",
+        "x-required-capabilities": [
+          "ADMIN"
+        ],
+        "x-ingress-errors": {
+          "transportStatuses": [
+            502,
+            503,
+            504
+          ],
+          "mediaType": "text/plain",
+          "requestIdGuaranteed": false
+        }
+      }
+    },
+    "/admin/topups/{topupId}/slip": {
+      "get": {
+        "operationId": "getTopupSlip",
+        "summary": "Read the transfer slip image of a top-up request",
+        "description": "Caller must satisfy current account and capability checks plus owner/resource checks. See contracts/README.md for semantic invariants, privacy, retries and pending outcomes.",
+        "tags": [
+          "wallet"
+        ],
+        "security": [
+          {
+            "UserBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Request-Id",
+            "in": "header",
+            "required": false,
+            "description": "X-Request-Id",
+            "schema": {
+              "$ref": "#/components/schemas/Id"
+            }
+          },
+          {
+            "name": "topupId",
+            "in": "path",
+            "required": true,
+            "description": "topupId",
+            "schema": {
+              "$ref": "#/components/schemas/Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The slip image.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "image/png": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "image/jpeg": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "image/webp": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed JSON or unsupported request syntax.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid authentication.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Authenticated caller lacks permission or current account is restricted.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource unavailable or not visible to this caller.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Business transition, quote, or idempotency conflict.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "All applicable field validation errors.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit; honor Retry-After.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              },
+              "Retry-After": {
+                "description": "Seconds before another admission attempt.",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dependency or current authorization unavailable. Retry only under the same operation identity. Native ingress transport failures may return plain text without X-Request-Id. Do not treat these as proof that a mutation was rejected; recover or retry only with its original operation identity.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "Service Unavailable"
+              }
+            }
+          },
+          "502": {
+            "description": "Native ingress transport failures may return plain text without X-Request-Id. Do not treat these as proof that a mutation was rejected; recover or retry only with its original operation identity.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Present when an application owner supplied a valid trace identity; native ingress failures may omit it.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "Bad Gateway"
+              }
+            }
+          },
+          "504": {
+            "description": "Native ingress transport failures may return plain text without X-Request-Id. Do not treat these as proof that a mutation was rejected; recover or retry only with its original operation identity.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Present when an application owner supplied a valid trace identity; native ingress failures may omit it.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "Gateway Timeout"
+              }
+            }
+          }
+        },
+        "x-owner": "wallet",
+        "x-requirements": [
+          "UC04-03"
+        ],
+        "x-failure-codes": [],
+        "x-idempotency": "NONE",
+        "x-required-capabilities": [
+          "ADMIN"
+        ],
+        "x-ingress-errors": {
+          "transportStatuses": [
+            502,
+            503,
+            504
+          ],
+          "mediaType": "text/plain",
+          "requestIdGuaranteed": false
+        }
+      }
+    },
+    "/admin/topups/{topupId}/decision": {
+      "post": {
+        "operationId": "decideTopup",
+        "summary": "Approve or reject a manual top-up request",
+        "description": "Caller must satisfy current account and capability checks plus owner/resource checks. See contracts/README.md for semantic invariants, privacy, retries and pending outcomes.",
+        "tags": [
+          "wallet"
+        ],
+        "security": [
+          {
+            "UserBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Request-Id",
+            "in": "header",
+            "required": false,
+            "description": "X-Request-Id",
+            "schema": {
+              "$ref": "#/components/schemas/Id"
+            }
+          },
+          {
+            "name": "topupId",
+            "in": "path",
+            "required": true,
+            "description": "topupId",
+            "schema": {
+              "$ref": "#/components/schemas/Id"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "description": "Stable for retries of one logical action. Resolve authorized replay before checking a stale revision.",
+            "schema": {
+              "$ref": "#/components/schemas/Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Committed result.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Topup"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed JSON or unsupported request syntax.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid authentication.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Authenticated caller lacks permission or current account is restricted.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource unavailable or not visible to this caller.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Business transition, quote, or idempotency conflict.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "All applicable field validation errors.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit; honor Retry-After.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              },
+              "Retry-After": {
+                "description": "Seconds before another admission attempt.",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dependency or current authorization unavailable. Retry only under the same operation identity. Native ingress transport failures may return plain text without X-Request-Id. Do not treat these as proof that a mutation was rejected; recover or retry only with its original operation identity.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Trace identity, never an authorization credential.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "Service Unavailable"
+              }
+            }
+          },
+          "502": {
+            "description": "Native ingress transport failures may return plain text without X-Request-Id. Do not treat these as proof that a mutation was rejected; recover or retry only with its original operation identity.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Present when an application owner supplied a valid trace identity; native ingress failures may omit it.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "Bad Gateway"
+              }
+            }
+          },
+          "504": {
+            "description": "Native ingress transport failures may return plain text without X-Request-Id. Do not treat these as proof that a mutation was rejected; recover or retry only with its original operation identity.",
+            "headers": {
+              "X-Request-Id": {
+                "description": "Present when an application owner supplied a valid trace identity; native ingress failures may omit it.",
+                "schema": {
+                  "$ref": "#/components/schemas/Id"
+                }
+              }
+            },
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "Gateway Timeout"
+              }
+            }
+          }
+        },
+        "x-owner": "wallet",
+        "x-requirements": [
+          "UC04-03"
+        ],
+        "x-failure-codes": [
+          "TOPUP_ALREADY_DECIDED"
+        ],
+        "x-idempotency": "REQUIRED",
+        "x-required-capabilities": [
+          "ADMIN"
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "Only declared request fields are accepted.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TopupDecision"
+              }
+            }
+          }
+        },
+        "x-ingress-errors": {
+          "transportStatuses": [
+            502,
+            503,
+            504
+          ],
+          "mediaType": "text/plain",
+          "requestIdGuaranteed": false
+        }
+      }
     }
   },
   "components": {
@@ -25755,6 +26904,12 @@
       },
       "PublicReview": {
         "$ref": "./schemas/v1.json#/$defs/PublicReview"
+      },
+      "TopupPage": {
+        "$ref": "./schemas/v1.json#/$defs/TopupPage"
+      },
+      "TopupDecision": {
+        "$ref": "./schemas/v1.json#/$defs/TopupDecision"
       }
     },
     "securitySchemes": {

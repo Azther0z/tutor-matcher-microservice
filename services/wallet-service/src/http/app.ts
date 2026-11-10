@@ -10,7 +10,7 @@ import {
   BANKS, createPayout, createPayoutAccount, deletePayoutAccount, fingerprint, getPayout, listPayoutAccounts, listPayouts, setDefaultPayoutAccount, setPayoutOutcome,
 } from '../domain/payouts';
 import type { Page, Reply } from '../domain/reply';
-import { createTopup, getTopup, setTopupOutcome } from '../domain/topups';
+import { createTopup, decideTopup, getSlip, getTopup, listReviewTopups, listTopups, setTopupOutcome, topupView, type TopupRequest } from '../domain/topups';
 import { getTransaction, listTransactions, walletOverview } from '../domain/wallet';
 import { AppError, asAppError, forbidden, malformed, notFound, preconditionRequired, validation } from '../errors';
 import { isUuid, newId } from '../ids';
@@ -105,7 +105,10 @@ export function createApp(deps: AppDeps): express.Express {
     res.status(ok ? 200 : 503).json({ status: ok ? 'ok' : 'unavailable' });
   });
 
-  app.use(express.json({ limit: '64kb', type: ['application/json', 'application/*+json'] }));
+  // Only the top-up request carries a transfer slip (up to 2 MB as base64); every other body stays small.
+  const smallJson = express.json({ limit: '64kb', type: ['application/json', 'application/*+json'] });
+  const slipJson = express.json({ limit: '3mb', type: ['application/json', 'application/*+json'] });
+  app.use((req, res, next) => (req.method === 'POST' && req.path === '/wallet/topups' ? slipJson : smallJson)(req, res, next));
 
   // Everything below is reachable only through the Gateway: workload credential plus a signed actor assertion.
   const authenticate: RequestHandler = (req, _res, next) => {
@@ -156,8 +159,14 @@ export function createApp(deps: AppDeps): express.Express {
   }));
   api.post('/wallet/topups', handle('STUDENT', async (req) => {
     query(req, []);
-    const input = body<{ amount: string; returnToBookingId?: string }>(req, 'TopupCreate');
+    if (req.body === undefined || req.body === null || typeof req.body !== 'object') throw malformed('INVALID_BODY', 'A JSON object body is required');
+    const input = req.body as TopupRequest;
+    // The (large) slip is hashed by the idempotency store, so a retry with the same key and the same slip replays safely.
     return idempotent(req, 'POST /api/wallet/topups', input, (tx) => createTopup(tx, req.actor, input, deps.clock.now()));
+  }));
+  api.get('/wallet/topups', handle('STUDENT', async (req) => {
+    const q = query(req, ['page', 'pageSize']);
+    return { status: 200, body: await listTopups(deps.pool, req.actor.userId, pageOf(q)) };
   }));
   api.get('/wallet/topups/:topupId', handle('STUDENT', async (req) => {
     query(req, []);
@@ -250,6 +259,46 @@ export function createApp(deps: AppDeps): express.Express {
     const id = idParam(req, 'disputeId'); const match = ifMatch(req);
     const input = body<{ decision: 'APPROVE_FULL_REMAINDER' | 'REJECT'; reason: string }>(req, 'DisputeDecision');
     return idempotent(req, `POST /api/admin/disputes/${id}/decision`, input, (tx) => decideDispute(tx, req.actor, id, match, input, deps.clock.now()));
+  }));
+
+  // ---- manual top-up review (Admin only) ----
+  api.get('/admin/topups', handle('ADMIN', async (req) => {
+    const q = query(req, ['page', 'pageSize', 'status']);
+    if (q.status !== undefined && !['PENDING', 'SUCCEEDED', 'FAILED'].includes(q.status)) {
+      throw validation([{ path: '/query/status', code: 'INVALID', message: 'status must be PENDING, SUCCEEDED or FAILED' }]);
+    }
+    const page = pageOf(q);
+    const { rows, total } = await listReviewTopups(deps.pool, { status: q.status }, page);
+    const accounts = await deps.peers.auth.lookupAccounts([...new Set(rows.map((row) => row.user_id))], { requestId: req.requestId }).catch(() => []);
+    const name = (id: string) => accounts.find((a) => a.id === id)?.displayName ?? 'Unavailable account';
+    return {
+      status: 200,
+      body: {
+        items: rows.map((row) => ({ ...topupView(row), userDisplayName: name(row.user_id) })),
+        pagination: { page: page.page, pageSize: page.pageSize, totalItems: total, totalPages: total === 0 ? 0 : Math.ceil(total / page.pageSize) },
+      },
+    };
+  }));
+  api.get('/admin/topups/:topupId/slip', async (req, res, next) => {
+    try {
+      requireCapability(req.actor, 'ADMIN');
+      query(req, []);
+      const slip = await getSlip(deps.pool, idParam(req, 'topupId'));
+      res.setHeader('Content-Type', slip.contentType);
+      res.setHeader('Content-Disposition', 'inline');
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+      res.status(200).end(slip.bytes);
+    } catch (error) { next(error); }
+  });
+  api.post('/admin/topups/:topupId/decision', handle('ADMIN', async (req) => {
+    query(req, []);
+    const id = idParam(req, 'topupId');
+    if (req.body === undefined || req.body === null || typeof req.body !== 'object') throw malformed('INVALID_BODY', 'A JSON object body is required');
+    const input = req.body as { decision?: unknown; reason?: unknown };
+    if (input.decision !== 'APPROVE' && input.decision !== 'REJECT') throw validation([{ path: '/body/decision', code: 'INVALID', message: 'decision must be APPROVE or REJECT' }]);
+    if (input.reason !== undefined && typeof input.reason !== 'string') throw validation([{ path: '/body/reason', code: 'INVALID', message: 'reason must be text' }]);
+    const decision: { decision: 'APPROVE' | 'REJECT'; reason?: string } = { decision: input.decision, reason: input.reason as string | undefined };
+    return idempotent(req, `POST /api/admin/topups/${id}/decision`, decision, (tx) => decideTopup(tx, req.actor, id, decision, deps.clock.now()));
   }));
 
   // ---- simulated provider controls: ADMIN + DEMO_MODE + synthetic resource ----
