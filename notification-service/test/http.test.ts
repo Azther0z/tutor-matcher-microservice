@@ -29,6 +29,15 @@ describe('authentication', () => {
   });
 });
 
+describe('gateway path contract', () => {
+  it('serves public operations without the /api prefix Traefik strips, and does not serve a doubled prefix', async () => {
+    const user = newId();
+    expect((await h.call('GET', '/api/notifications', { token: h.token(user) })).status).toBe(200);
+    // The harness strips one /api like Traefik; a second one reaches the owner and is not a route.
+    expect((await h.call('GET', '/api/api/notifications', { token: h.token(user) })).status).toBe(404);
+  });
+});
+
 describe('preferences', () => {
   it('creates defaults lazily at revision 0: four groups on, product news off, no sixth group', async () => {
     const user = newId();

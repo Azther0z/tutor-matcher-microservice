@@ -1,13 +1,21 @@
 import 'dotenv/config';
 import path from 'node:path';
+import { credentialsFrom, loadSecretFiles } from './secrets';
+
+const SECRETS = [
+  'MONGO_URI', 'RABBITMQ_URL', 'ACTOR_ASSERTION_PUBLIC_KEY',
+  'GATEWAY_WORKLOAD_CREDENTIAL', 'NOTIFICATION_WORKLOAD_CREDENTIAL',
+] as const;
+/** Callers allowed to present a credential to Notification's REST surface. */
+const INBOUND_CALLERS = ['gateway'] as const;
 
 export interface Config {
   port: number;
   mongoUri: string;
   mongoDb: string;
   rabbitmqUrl: string;
-  consulUrl?: string;
-  gatewayPublicKey?: string;
+  /** RS256 public key that verifies the actor assertion signed by Auth. */
+  actorPublicKey?: string;
   workloadCredentials: Record<string, string>;
   outboundCredential?: string;
   authGrpcUrl: string;
@@ -20,11 +28,7 @@ export interface Config {
 const PRODUCERS = ['auth', 'tutor', 'booking', 'wallet', 'review', 'messaging'];
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
-  const credentials: Record<string, string> = {};
-  for (const [caller, secret] of Object.entries(JSON.parse(env.WORKLOAD_CREDENTIALS || '{}') as Record<string, unknown>)) {
-    if (typeof secret !== 'string' || secret.length < 16) throw new Error(`WORKLOAD_CREDENTIALS.${caller} must be a string of at least 16 characters`);
-    credentials[caller] = secret;
-  }
+  loadSecretFiles(SECRETS, env);
   // Default: each producer connects to the broker as a user named after itself.
   const identities = env.PUBLISHER_IDENTITIES ? JSON.parse(env.PUBLISHER_IDENTITIES) as Record<string, string> : Object.fromEntries(PRODUCERS.map((p) => [p, p]));
   return {
@@ -32,9 +36,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     mongoUri: env.MONGO_URI?.trim() || '',
     mongoDb: env.MONGO_DB || 'notification_db',
     rabbitmqUrl: env.RABBITMQ_URL || 'amqp://guest:guest@127.0.0.1:5672',
-    consulUrl: env.CONSUL_URL,
-    gatewayPublicKey: env.GATEWAY_PUBLIC_KEY?.replace(/\\n/g, '\n'),
-    workloadCredentials: credentials,
+    actorPublicKey: env.ACTOR_ASSERTION_PUBLIC_KEY?.replace(/\\n/g, '\n'),
+    workloadCredentials: credentialsFrom(env, INBOUND_CALLERS),
     outboundCredential: env.NOTIFICATION_WORKLOAD_CREDENTIAL,
     authGrpcUrl: env.AUTH_GRPC_URL || 'auth-service:50051',
     bookingGrpcUrl: env.BOOKING_GRPC_URL || 'booking-service:50052',
@@ -45,6 +48,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
 
 export function assertRunnable(config: Config): void {
   if (!config.mongoUri) throw new Error('MONGO_URI is required');
-  if (!config.gatewayPublicKey) throw new Error('GATEWAY_PUBLIC_KEY is required to verify actor assertions');
-  if (Object.keys(config.workloadCredentials).length === 0) throw new Error('WORKLOAD_CREDENTIALS is required');
+  if (!config.actorPublicKey) throw new Error('ACTOR_ASSERTION_PUBLIC_KEY is required to verify actor assertions');
+  for (const caller of INBOUND_CALLERS) {
+    if (!config.workloadCredentials[caller]) throw new Error(`${caller.toUpperCase()}_WORKLOAD_CREDENTIAL is required`);
+  }
 }

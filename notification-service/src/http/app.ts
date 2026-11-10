@@ -156,8 +156,6 @@ export function createApp(deps: AppDeps): express.Express {
     }
   }));
 
-  app.use('/api', api);
-
   const internal = express.Router();
   internal.use(authenticate);
   internal.get('/notification/operations/:operationId', handle(async (req) => {
@@ -169,6 +167,11 @@ export function createApp(deps: AppDeps): express.Express {
     return { status: 200, body: { id: op._id, owner: 'notification', status: op.status, kind: op.kind, resource: op.resource, error: null, createdAt: op.createdAt.toISOString(), updatedAt: op.updatedAt.toISOString() } };
   }));
   app.use('/internal/v1', internal);
+
+  // Traefik strips the public `/api` prefix before forwarding (api-gateway/routes.yaml strip-api-prefix), so owners
+  // serve public operations at their un-prefixed paths. The private `/internal/v1` namespace is mounted first and is
+  // never reachable through the public route allowlist.
+  app.use(api);
 
   app.use((req, _res, next) => next(notFound('NOT_FOUND', `No route for ${req.method} ${req.path}`)));
   app.use((error: unknown, req: Request, res: Response, _next: NextFunction) => {

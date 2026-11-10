@@ -6,12 +6,12 @@ This records what was built, how to repeat it, and, just as important, what was 
 
 | Item | Value |
 | --- | --- |
-| Baseline | `c28ba3b` (PR #3 head: delivery baseline, contracts and handoffs) |
-| Branch | `feat/p-wallet-notification`, working tree **uncommitted** at the time of writing |
+| Baseline | Stacked on `codex/saint-identity-on-traefik` (PR #5), which is itself stacked on `codex/traefik-swarm-gateway` (PR #4). Both are open and unmerged; merge #4, then #5, then this |
+| Branch | `feat/p-wallet-notification` |
 | Node | v24.15.0 locally. The Dockerfiles use `node:22-alpine`, which has **not** been built or run |
 | PostgreSQL used for tests | 18.6 (throwaway local cluster). `compose.yaml` pins `postgres:16-alpine` |
 | MongoDB used for tests | 8.2.7, single-member replica set. `compose.yaml` pins `mongo:7` and is a standalone server today |
-| RabbitMQ / Consul / Docker | **not available locally; nothing was run against them** |
+| RabbitMQ / Traefik / Docker | **not available locally; nothing was run against them** (the Docker daemon is not running) |
 
 ## What was delivered
 
@@ -25,10 +25,11 @@ This records what was built, how to repeat it, and, just as important, what was 
 ## Repeat the checks
 
 ```sh
-# Wallet: needs PostgreSQL. TEST_DATABASE_URL defaults to postgres://tutor@127.0.0.1:55433/wallet_test
-cd wallet-service && npm ci && npm run typecheck && npm test
+# From the repository root: npm ci && npm run typecheck && npm run lint
+# Wallet: needs PostgreSQL. WALLET_TEST_DATABASE_URL defaults to postgres://tutor@127.0.0.1:55433/wallet_test
+npm test -w @tutor-matcher/wallet-service
 # Notification: needs a MongoDB replica set. TEST_MONGO_URI defaults to mongodb://127.0.0.1:55434/?replicaSet=rs0&directConnection=true
-cd notification-service && npm ci && npm run typecheck && npm test
+npm test -w @tutor-matcher/notification-service
 ```
 
 The tests `DROP SCHEMA public` in the Wallet test database and clear collections in `notification_test`. Point them only at disposable databases.
@@ -38,10 +39,10 @@ The tests `DROP SCHEMA public` in the Wallet test database and clear collections
 | Check | Result |
 | --- | --- |
 | Wallet type check and build | pass |
-| Wallet tests (real PostgreSQL) | **86 pass** across 6 files: financial rules and races, HTTP behaviour, gRPC server, outbox recovery, contract fixtures and event conformance, client adapters |
+| Wallet tests (real PostgreSQL) | **90 pass** across 7 files: financial rules and races, HTTP behaviour, gRPC server, outbox recovery, contract fixtures and event conformance, client adapters, runtime configuration, and the un-prefixed gateway path contract |
 | Notification type check and build | pass |
-| Notification tests (real MongoDB transactions) | **39 pass** across 4 files: durable acceptance, dispatch, REST, consumer ack decisions, client adapters |
-| Wallet entrypoint smoke boot | Booted with RabbitMQ unreachable and no Consul; `/health` 200; unauthenticated call 401; malformed request id 400 |
+| Notification tests (real MongoDB transactions) | **42 pass** across 5 files: durable acceptance, dispatch, REST, consumer ack decisions, client adapters, runtime configuration, gateway path contract |
+| Wallet entrypoint smoke boot (after the platform rebase) | Built output booted with the actor key supplied as a mounted file (`ACTOR_ASSERTION_PUBLIC_KEY_FILE`), RabbitMQ unreachable and no Consul: migration applied, REST and gRPC listening, `/health` 200, unauthenticated `/wallet` 401. Notification was not boot-tested |
 | Mutation check | Removing the financial-record row lock made 2 race tests fail, then restored. The race tests do detect a missing lock |
 | Contract fixtures | The three `moneyCases`, four `cancellationBoundaryCases` and two `refundCapCases` in `contracts/examples/cases.json` run against the real service |
 | Event conformance | Every event Wallet enqueues across top-up, payout, cancellation refund, dispute open/approve/reject and clearing validates against all 21 variants of `events.v1.json`, and contains no bank-number material |
@@ -74,5 +75,5 @@ Cases to run when RabbitMQ exists (from `contracts/recovery.md`): business commi
 
 1. **UI.** The handoff says an API without its UI journey is incomplete. `web/` does not exist yet, so wallet, top-up, payout, dispute, preference and receipt pages are not built. They need Saint's shell and API/session adapter first.
 2. **Integration.** Switch the test doubles to the real Booking and Auth at the first checkpoint, and pair with Santa on the operation identities ([contract-findings.md](contract-findings.md) items 3 and 4).
-3. **Commit and PR.** Nothing is committed or pushed.
-4. **Deployment.** [runtime-needs.md](runtime-needs.md) lists what Saint must add to compose, Consul and secrets.
+3. **Stack.** Rebased onto PR #5 (Consul removed, `ACTOR_ASSERTION_PUBLIC_KEY` and per-caller credential variables, `_FILE` secrets, un-prefixed paths behind Traefik's `strip-api-prefix`, workspace lockfile, shared actor verification, Compose build and broker provisioning). Not exercised through real Traefik with Auth admission.
+4. **Deployment.** Compose wiring is done ([runtime-needs.md](runtime-needs.md)); the compose files parse (`npm run config:check`) but no image was built and nothing was started.

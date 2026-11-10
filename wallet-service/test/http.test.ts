@@ -65,6 +65,15 @@ describe('authentication and authorization', () => {
   });
 });
 
+describe('gateway path contract', () => {
+  it('serves public operations without the /api prefix Traefik strips, and does not serve a doubled prefix', async () => {
+    const user = newId();
+    expect((await h.call('GET', '/api/wallet', { token: h.token(user) })).status).toBe(200);
+    // The harness strips one /api like Traefik; a second one reaches the owner and is not a route.
+    expect((await h.call('GET', '/api/api/wallet', { token: h.token(user) })).status).toBe(404);
+  });
+});
+
 describe('top-ups through the simulated provider', () => {
   it('creates a labelled non-payable top-up that credits nothing until the provider succeeds', async () => {
     const user = newId();

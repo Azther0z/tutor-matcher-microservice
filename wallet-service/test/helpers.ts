@@ -6,7 +6,7 @@ import type { Clock } from '../src/time';
 import type { PaymentCommand } from '../src/domain/financial';
 import { money } from '../src/money';
 
-export const TEST_DATABASE_URL = process.env.TEST_DATABASE_URL || 'postgres://tutor@127.0.0.1:55433/wallet_test';
+export const TEST_DATABASE_URL = process.env.WALLET_TEST_DATABASE_URL || 'postgres://tutor@127.0.0.1:55433/wallet_test';
 
 export async function freshPool(): Promise<Pool> {
   const pool = new Pool({ connectionString: TEST_DATABASE_URL, max: 20 });

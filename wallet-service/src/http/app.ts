@@ -264,8 +264,6 @@ export function createApp(deps: AppDeps): express.Express {
   api.post('/demo/topups/:topupId/outcome', demo('topups'));
   api.post('/demo/payouts/:payoutId/outcome', demo('payouts'));
 
-  app.use('/api', api);
-
   // Fixed private owner-status path used by the Gateway's /operations/{owner}/{operationId} route.
   const internal = express.Router();
   internal.use(authenticate);
@@ -274,6 +272,11 @@ export function createApp(deps: AppDeps): express.Express {
     return { status: 200, body: await readOperation(deps.pool, idParam(req, 'operationId'), req.actor) };
   }));
   app.use('/internal/v1', internal);
+
+  // Traefik strips the public `/api` prefix before forwarding (api-gateway/routes.yaml strip-api-prefix), so owners
+  // serve public operations at their un-prefixed paths. The private `/internal/v1` namespace is mounted first and is
+  // never reachable through the public route allowlist.
+  app.use(api);
 
   app.use((req, _res, next) => next(notFound('NOT_FOUND', `No route for ${req.method} ${req.path}`)));
   app.use((error: unknown, req: Request, res: Response, _next: NextFunction) => {

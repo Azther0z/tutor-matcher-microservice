@@ -1,6 +1,5 @@
 import { ActorVerifier, WorkloadAuthenticator } from './auth';
 import { assertRunnable, loadConfig } from './config';
-import { registerWithConsul } from './consul';
 import { Contracts } from './contracts';
 import { createPool, migrate } from './db';
 import { clearDueEarnings } from './domain/clearing';
@@ -30,7 +29,7 @@ async function main(): Promise<void> {
 
   const app = createApp({
     pool, clock: systemClock, config, contracts, workload, peers,
-    actors: new ActorVerifier(config.gatewayPublicKey!),
+    actors: new ActorVerifier(config.actorPublicKey!),
     // Ready means "can take money decisions": the database answers. A broker outage never makes Wallet unready,
     // because committed outbox work simply waits for the publisher.
     ready: async () => { await pool.query('SELECT 1'); return true; },
@@ -56,14 +55,12 @@ async function main(): Promise<void> {
   const clearing = setInterval(sweep, 30_000);
   clearing.unref();
 
-  const deregister = await registerWithConsul({ consulUrl: config.consulUrl, name: 'wallet-service', httpPort: config.port, grpcPort: grpcServer.port });
 
   const shutdown = async () => {
     console.log('[Wallet] shutting down');
     publisher.stop();
     clearInterval(clearing);
     clearInterval(topology);
-    await deregister?.();
     grpcServer.server.tryShutdown(() => undefined);
     http.close();
     await broker.close();

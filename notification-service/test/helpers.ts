@@ -107,14 +107,15 @@ export async function startHttp(store: Store, clock: FakeClock): Promise<Harness
   const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
   const token = (userId: string, capabilities: Capability[] = ['STUDENT']) => {
     const iat = Math.floor(clock.now().getTime() / 1000);
-    return jwt.sign({ sessionId: newId(), admissionId: newId(), admittedAt: clock.now().toISOString(), requestId: newId(), publicOperation: 'test', capabilities, accountRevision: '0', iat, exp: iat + 60 },
+    return jwt.sign({ userId, sessionId: newId(), admissionId: newId(), admittedAt: clock.now().toISOString(), requestId: newId(), publicOperation: 'test', capabilities, accountRevision: '0', iat, exp: iat + 60 },
       keys.privateKey, { algorithm: 'RS256', issuer: 'api-gateway', audience: 'tutor-matcher-internal', subject: userId });
   };
   const call: Harness['call'] = async (method, route, init = {}) => {
     const headers: Record<string, string> = { 'content-type': 'application/json', ...(init.headers ?? {}) };
     if (init.credential !== null) headers.authorization = `Bearer ${init.credential ?? GATEWAY_SECRET}`;
     if (init.token) headers['x-actor-context'] = init.token;
-    const response = await fetch(base + route, { method, headers, body: init.body === undefined ? undefined : JSON.stringify(init.body) });
+    // Tests address the public path; like Traefik's strip-api-prefix, drop `/api` before the owner sees it.
+    const response = await fetch(base + route.replace(/^\/api(?=\/|$)/, ''), { method, headers, body: init.body === undefined ? undefined : JSON.stringify(init.body) });
     const text = await response.text();
     return { status: response.status, body: text ? JSON.parse(text) : undefined, headers: response.headers };
   };

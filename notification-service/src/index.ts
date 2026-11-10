@@ -1,7 +1,6 @@
 import { ActorVerifier, WorkloadAuthenticator } from './auth';
 import { EventConsumer } from './broker';
 import { assertRunnable, loadConfig } from './config';
-import { registerWithConsul } from './consul';
 import { Contracts } from './contracts';
 import { AudienceResolver } from './domain/audience';
 import { Dispatcher, SimulatedProvider } from './domain/dispatcher';
@@ -31,7 +30,7 @@ async function main(): Promise<void> {
   // Ready only once the database answers and the versioned topology is installed and consuming.
   const app = createApp({
     store, clock: systemClock, contracts, workload: new WorkloadAuthenticator(config.workloadCredentials),
-    actors: new ActorVerifier(config.gatewayPublicKey!),
+    actors: new ActorVerifier(config.actorPublicKey!),
     ready: async () => { await store.db.command({ ping: 1 }); return consumer.isReady(); },
   });
   const http = app.listen(config.port, () => console.log(`[Notification] REST listening on :${config.port}`));
@@ -39,13 +38,11 @@ async function main(): Promise<void> {
   void consumer.start();
   dispatcher.start(1000);
   audience.start(1000);
-  const deregister = await registerWithConsul({ consulUrl: config.consulUrl, name: 'notification-service', httpPort: config.port });
 
   const shutdown = async () => {
     console.log('[Notification] shutting down');
     dispatcher.stop();
     audience.stop();
-    await deregister?.();
     await consumer.stop();
     http.close();
     await store.client.close();

@@ -1,5 +1,5 @@
 import { timingSafeEqual } from 'node:crypto';
-import jwt from 'jsonwebtoken';
+import { AppError as SharedAppError, verifyActorAssertion } from '@tutor-matcher/shared';
 import { forbidden, unauthenticated } from './errors';
 
 export type Capability = 'STUDENT' | 'TUTOR' | 'ADMIN';
@@ -68,35 +68,26 @@ export class WorkloadAuthenticator {
 export class ActorVerifier {
   constructor(private readonly publicKey: string, private readonly now: () => Date = () => new Date()) {}
 
+  /** Signature, issuer, audience and claim shape come from the shared verifier so every owner accepts the same assertion. */
   verify(token: string | undefined): Actor {
     if (!token) throw unauthenticated('ACTOR_REQUIRED', 'A gateway-signed actor assertion is required');
-    let claims: jwt.JwtPayload;
+    let claims: ReturnType<typeof verifyActorAssertion>;
     try {
-      const decoded = jwt.verify(token, this.publicKey, {
-        algorithms: ['RS256'],
-        issuer: 'api-gateway',
-        audience: 'tutor-matcher-internal',
-        clockTimestamp: Math.floor(this.now().getTime() / 1000),
-      });
-      if (typeof decoded === 'string') throw new Error('unexpected token payload');
-      claims = decoded;
-    } catch {
-      throw unauthenticated('ACTOR_INVALID', 'Actor assertion is invalid or expired');
+      claims = verifyActorAssertion(token, this.publicKey, Math.floor(this.now().getTime() / 1000));
+    } catch (error) {
+      if (error instanceof SharedAppError) throw unauthenticated('ACTOR_INVALID', 'Actor assertion is invalid or expired');
+      throw error;
     }
-    const capabilities = Array.isArray(claims.capabilities) ? claims.capabilities : [];
-    const admittedAt = new Date(String(claims.admittedAt));
-    const required = ['sub', 'sessionId', 'admissionId', 'requestId', 'publicOperation', 'accountRevision'] as const;
-    if (required.some((key) => typeof claims[key] !== 'string') || Number.isNaN(admittedAt.getTime())) {
-      throw unauthenticated('ACTOR_INVALID', 'Actor assertion is missing required claims');
-    }
+    const admittedAt = new Date(claims.admittedAt);
+    if (Number.isNaN(admittedAt.getTime())) throw unauthenticated('ACTOR_INVALID', 'Actor assertion is missing required claims');
     return {
-      userId: claims.sub as string,
+      userId: claims.userId,
       sessionId: claims.sessionId,
       admissionId: claims.admissionId,
       admittedAt,
       requestId: claims.requestId,
       publicOperation: claims.publicOperation,
-      capabilities: capabilities.filter((c: unknown): c is Capability => c === 'STUDENT' || c === 'TUTOR' || c === 'ADMIN'),
+      capabilities: claims.capabilities.filter((c): c is Capability => c === 'STUDENT' || c === 'TUTOR' || c === 'ADMIN'),
       accountRevision: claims.accountRevision,
     };
   }
