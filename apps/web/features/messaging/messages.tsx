@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { use, useCallback, useEffect, useState } from "react";
+import { use, useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Notice } from "@/components/field";
 import { RequireAuth, useAuth } from "@/lib/auth-context";
@@ -30,6 +30,18 @@ type ThreadPage = {
   items: Message[];
   nextCursor: string | null;
 };
+
+/** "11 Nov, 03:58" in Bangkok time, short enough for a chat bubble. */
+function shortTime(value: string) {
+  return new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Asia/Bangkok",
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).format(new Date(value));
+}
 
 function Inbox() {
   const { account } = useAuth();
@@ -63,9 +75,8 @@ function Inbox() {
   ].filter(Boolean) as Array<"STUDENT" | "TUTOR" | "ADMIN">;
   return (
     <>
-      <header className="section-heading">
+      <header className="page-heading">
         <h1>Messages</h1>
-        <p>Keep lesson questions and tutor conversations together.</p>
       </header>
       {views.length > 1 && (
         <div className="view-switch" role="group" aria-label="Message view">
@@ -84,7 +95,7 @@ function Inbox() {
           ))}
         </div>
       )}
-      {loading && <p role="status">Loading conversations…</p>}
+      {loading && <p role="status" className="tutor-card-meta">Loading conversations…</p>}
       {error && (
         <Notice kind="error">
           {error}{" "}
@@ -94,13 +105,9 @@ function Inbox() {
         </Notice>
       )}
       {result?.items.length === 0 && (
-        <section className="empty-state">
-          <h2>No conversations yet</h2>
-          <p>Open a tutor profile to ask about a subject or lesson.</p>
-          <Link className="button" href="/discover">
-            Find a tutor
-          </Link>
-        </section>
+        <p className="tutor-card-meta">
+          No conversations yet. Open a tutor profile to ask about a subject or lesson.
+        </p>
       )}
       <div className="message-list">
         {result?.items.map((conversation) => {
@@ -165,6 +172,7 @@ function Thread({ userId }: { userId: string }) {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [key, setKey] = useState(newIdempotencyKey());
+  const scroller = useRef<HTMLDivElement>(null);
   const load = useCallback(async () => {
     setError("");
     try {
@@ -190,6 +198,11 @@ function Thread({ userId }: { userId: string }) {
   useEffect(() => {
     if (isUuid(userId)) void load();
   }, [load, userId]);
+  // Newest messages are at the bottom; keep them in view.
+  useEffect(() => {
+    const node = scroller.current;
+    if (node) node.scrollTop = node.scrollHeight;
+  }, [thread?.items.length]);
   async function send(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = event.currentTarget;
@@ -210,7 +223,6 @@ function Thread({ userId }: { userId: string }) {
       });
       form.reset();
       setKey(newIdempotencyKey());
-      setNotice("Message sent.");
       await load();
     } catch (caught) {
       setError(errorMessage(caught, "We couldn’t send your message."));
@@ -221,8 +233,8 @@ function Thread({ userId }: { userId: string }) {
   if (!isUuid(userId))
     return (
       <section className="panel">
-        <h1>We couldn’t find that conversation.</h1>
-        <Link className="button" href="/messages">
+        <h1 style={{ fontSize: 22 }}>We couldn’t find that conversation.</h1>
+        <Link className="text-link" href="/messages">
           Back to messages
         </Link>
       </section>
@@ -232,14 +244,8 @@ function Thread({ userId }: { userId: string }) {
   );
   return (
     <>
-      <p>
-        <Link className="text-link" href="/messages">
-          ← All messages
-        </Link>
-      </p>
-      <header className="section-heading">
+      <header className="page-heading">
         <h1>{other?.displayName ?? "New conversation"}</h1>
-        <p>Messages are visible only to the participants in this thread.</p>
       </header>
       {error && (
         <Notice kind="error">
@@ -252,14 +258,12 @@ function Thread({ userId }: { userId: string }) {
         </Notice>
       )}
       {notice && <Notice kind="success">{notice}</Notice>}
-      {!thread && !error && <p role="status">Loading conversation…</p>}
+      {!thread && !error && <p role="status" className="tutor-card-meta">Loading conversation…</p>}
       {thread && (
-        <section className="panel">
-          <div className="thread" aria-live="polite">
+        <section className="panel chat">
+          <div className="thread" ref={scroller} aria-live="polite">
             {thread.items.length === 0 && (
-              <p className="empty-state">
-                No messages yet. Start the conversation below.
-              </p>
+              <p className="chat-empty">No messages yet. Say hello below.</p>
             )}
             {thread.items.map((message) => (
               <article
@@ -267,25 +271,28 @@ function Thread({ userId }: { userId: string }) {
                 className={`message-bubble ${message.senderUserId === account?.id ? "own" : ""}`}
               >
                 <p>{message.content}</p>
-                <time dateTime={message.createdAt}>
-                  {formatTime(message.createdAt)}
-                </time>
+                <time dateTime={message.createdAt}>{shortTime(message.createdAt)}</time>
               </article>
             ))}
           </div>
-          <form className="form" onSubmit={send}>
-            <div className="field">
-              <label htmlFor="content">Message</label>
-              <textarea
-                id="content"
-                name="content"
-                rows={4}
-                maxLength={2000}
-                required
-              />
-            </div>
+          <form className="chat-composer" onSubmit={send}>
+            <textarea
+              id="content"
+              name="content"
+              aria-label="Message"
+              placeholder="Write a message"
+              rows={1}
+              maxLength={2000}
+              required
+              onKeyDown={(event) => {
+                if (event.key === "Enter" && !event.shiftKey) {
+                  event.preventDefault();
+                  event.currentTarget.form?.requestSubmit();
+                }
+              }}
+            />
             <button className="button" disabled={pending}>
-              {pending ? "Sending…" : "Send message"}
+              {pending ? "Sending…" : "Send"}
             </button>
           </form>
         </section>
