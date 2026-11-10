@@ -4,6 +4,8 @@ import Link from "next/link";
 import { use, useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Notice } from "@/components/field";
+import { Avatar } from "@/components/avatar";
+import type { BookingPage } from "@/features/booking/types";
 import { RequireAuth, useAuth } from "@/lib/auth-context";
 import { api, errorMessage, isUuid, newIdempotencyKey } from "@/lib/api";
 import { formatTime } from "@/features/wallet/format";
@@ -120,11 +122,14 @@ function Inbox() {
               key={conversation.id}
               href={`/messages/${other?.userId}?${new URLSearchParams({ view, ...(other?.displayName ? { name: other.displayName } : {}) })}`}
             >
-              <span>
-                <strong>{other?.displayName ?? "Conversation"}</strong>
-                {conversation.lastMessage && (
-                  <small>{conversation.lastMessage.content}</small>
-                )}
+              <span className="message-who">
+                <Avatar name={other?.displayName ?? "?"} size={40} />
+                <span>
+                  <strong>{other?.displayName ?? "Conversation"}</strong>
+                  {conversation.lastMessage && (
+                    <small>{conversation.lastMessage.content}</small>
+                  )}
+                </span>
               </span>
               <span>
                 {conversation.unreadCount > 0 && (
@@ -173,6 +178,7 @@ function Thread({ userId }: { userId: string }) {
   const [notice, setNotice] = useState("");
   const [key, setKey] = useState(newIdempotencyKey());
   const scroller = useRef<HTMLDivElement>(null);
+  const [lookedUp, setLookedUp] = useState("");
   const load = useCallback(async () => {
     setError("");
     try {
@@ -198,6 +204,20 @@ function Thread({ userId }: { userId: string }) {
   useEffect(() => {
     if (isUuid(userId)) void load();
   }, [load, userId]);
+  // Before the first message the thread has no participant names, so find the person among the caller's bookings.
+  const hasName = Boolean(thread?.conversation) || Boolean(params.get("name"));
+  useEffect(() => {
+    if (!thread || hasName || !isUuid(userId)) return;
+    const views = account?.capabilities.includes("TUTOR") ? ["STUDENT", "TUTOR"] : ["STUDENT"];
+    void Promise.all(views.map((v) => api<BookingPage>(`/bookings?page=1&pageSize=50&view=${v}`).catch(() => null))).then((pages) => {
+      for (const page of pages) {
+        for (const booking of page?.items ?? []) {
+          if (booking.tutorUserId === userId) return setLookedUp(booking.tutorDisplayName);
+          if (booking.studentUserId === userId) return setLookedUp(booking.studentDisplayName);
+        }
+      }
+    });
+  }, [thread, hasName, userId, account?.capabilities]);
   // Newest messages are at the bottom; keep them in view.
   useEffect(() => {
     const node = scroller.current;
@@ -239,10 +259,12 @@ function Thread({ userId }: { userId: string }) {
   const other = thread?.conversation?.participants.find(
     (participant) => participant.userId !== account?.id,
   );
+  const shownName = other?.displayName ?? params.get("name")?.slice(0, 80) ?? (lookedUp || "Conversation");
   return (
     <>
-      <header className="page-heading">
-        <h1>{other?.displayName ?? params.get("name")?.slice(0, 80) ?? "Conversation"}</h1>
+      <header className="page-heading chat-head">
+        <Avatar name={shownName} size={36} />
+        <h1>{shownName}</h1>
       </header>
       {error && (
         <Notice kind="error">
