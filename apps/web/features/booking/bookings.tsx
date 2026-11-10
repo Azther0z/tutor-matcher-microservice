@@ -311,6 +311,7 @@ function BookingDetailContent({ bookingId }: { bookingId: string }) {
   const [booking, setBooking] = useState<Booking | null>(null);
   const [etag, setEtag] = useState("");
   const [quote, setQuote] = useState<CancellationQuote | null>(null);
+  const [paying, setPaying] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -501,7 +502,7 @@ function BookingDetailContent({ bookingId }: { bookingId: string }) {
                 <button
                   className="button"
                   disabled={busy}
-                  onClick={() => void command(`/bookings/${bookingId}/confirm-payment`)}
+                  onClick={() => setPaying(true)}
                 >
                   {pending ? "Processing…" : "Pay from wallet"}
                 </button>
@@ -525,6 +526,36 @@ function BookingDetailContent({ bookingId }: { bookingId: string }) {
             </span>
           </div>
         </section>
+      )}
+      {booking && (
+        <LegalModal
+          open={paying}
+          title="Pay from wallet"
+          onClose={() => setPaying(false)}
+          actions={
+            <div className="button-row" style={{ justifyContent: "flex-end" }}>
+              <button type="button" className="button button-quiet" onClick={() => setPaying(false)}>
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="button"
+                disabled={busy}
+                onClick={() => {
+                  setPaying(false);
+                  void command(`/bookings/${bookingId}/confirm-payment`);
+                }}
+              >
+                Pay {formatMoney(booking.amount)}
+              </button>
+            </div>
+          }
+        >
+          <p>
+            Pay <strong>{formatMoney(booking.amount)}</strong> from your wallet
+            to confirm this booking?
+          </p>
+        </LegalModal>
       )}
       {booking && (
         <LegalModal
