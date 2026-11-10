@@ -37,24 +37,41 @@ function HoldCountdown({ expiresAt, onExpired }: { expiresAt: string; onExpired:
 }
 
 const STEPS = ["Select time", "Booked", "Paid", "Completed"];
-function BookingProgress({ status }: { status: Booking["status"] }) {
-  const reached = status === "PAYMENT_DUE" ? 1 : status === "CONFIRMED" ? 2 : status === "COMPLETED" ? 3 : 0;
+function BookingProgress({ booking }: { booking: Booking }) {
+  const { status } = booking;
   const cancelled = status === "CANCELLED";
-  const fill = cancelled ? 0 : (reached / (STEPS.length - 1)) * 100;
+  // Last finished step. A cancelled booking stops at the step it never reached (marked with a cross).
+  const reached = cancelled
+    ? booking.paidAt
+      ? 2
+      : 1
+    : status === "PAYMENT_DUE"
+      ? 1
+      : status === "CONFIRMED"
+        ? 2
+        : 3;
+  const fill = cancelled ? 100 : (reached / (STEPS.length - 1)) * 100;
   return (
-    <div className={`booking-progress${cancelled ? " is-cancelled" : ""}`} role="img" aria-label={cancelled ? "Booking cancelled" : `Step ${reached + 1} of ${STEPS.length}: ${STEPS[reached]}`}>
+    <div
+      className={`booking-progress${cancelled ? " is-cancelled" : ""}`}
+      role="img"
+      aria-label={cancelled ? "Booking cancelled" : `Step ${reached + 1} of ${STEPS.length}: ${STEPS[reached]}`}
+    >
       <div className="booking-progress-track" aria-hidden="true">
         <span style={{ width: `${fill}%` }} />
       </div>
       <ol aria-hidden="true">
-        {STEPS.map((label, index) => (
-          <li key={label} className={index <= reached ? "is-done" : ""}>
-            <i />
-            {label}
-          </li>
-        ))}
+        {STEPS.map((label, index) => {
+          const done = index <= reached;
+          const crossed = cancelled && index === reached + 1;
+          return (
+            <li key={label} className={crossed ? "is-crossed" : done ? "is-done" : ""}>
+              <i>{crossed ? "✕" : done ? "✓" : ""}</i>
+              {label}
+            </li>
+          );
+        })}
       </ol>
-      {cancelled && <p className="booking-progress-note">This booking was cancelled.</p>}
     </div>
   );
 }
@@ -399,7 +416,7 @@ function BookingDetailContent({ bookingId }: { bookingId: string }) {
       <header className="page-heading">
         <h1>Booking</h1>
       </header>
-      {booking && <BookingProgress status={booking.status} />}
+      {booking && <BookingProgress booking={booking} />}
       {booking && (
         <section className="panel booking-new">
           <StatusBadge value={booking.status} corner />
