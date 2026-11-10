@@ -1,12 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Field, Notice } from "@/components/field";
+import { Notice } from "@/components/field";
+import { LessonCalendar } from "@/components/lesson-calendar";
 import { RequireCapability } from "@/features/wallet/common";
 import { api, apiResponse, errorMessage, newIdempotencyKey } from "@/lib/api";
 import {
   bangkokDate,
-  bangkokTime,
   ResourceState,
   TutorNavigation,
 } from "./common";
@@ -38,7 +38,6 @@ function AvailabilityWorkspace() {
   const [loading, setLoading] = useState(true);
   const [pendingTime, setPendingTime] = useState("");
   const [error, setError] = useState("");
-  const [notice, setNotice] = useState("");
   const load = useCallback(async () => {
     setLoading(true);
     setError("");
@@ -84,7 +83,6 @@ function AvailabilityWorkspace() {
     }
     setPendingTime(time);
     setError("");
-    setNotice("");
     try {
       await apiResponse<OwnedSlot>(
         `/profiles/me/tutor/availability/${date}/${encodeURIComponent(time)}`,
@@ -97,7 +95,6 @@ function AvailabilityWorkspace() {
             : { ifNoneMatch: "*" as const }),
         },
       );
-      setNotice(`${time} is now ${opening ? "open" : "closed"}.`);
       await load();
     } catch (caught) {
       setError(errorMessage(caught, `We couldn’t update the ${time} slot.`));
@@ -107,92 +104,77 @@ function AvailabilityWorkspace() {
   }
   return (
     <>
+      <header className="page-heading"><h1>Availability</h1></header>
       <TutorNavigation />
-      <header className="section-heading">
-        <h1>Availability</h1>
-        <p>
-          Open half-hour lesson slots in Bangkok time and choose which published
-          subjects can use them.
-        </p>
-      </header>
-      <section className="panel">
-        <div className="field-set">
-          <Field
-            id="availability-date"
-            label="Date (Bangkok)"
-            type="date"
-            min={bangkokDate()}
-            value={date}
-            onChange={(event) =>
-              event.target.value && setDate(event.target.value)
-            }
-          />
-          <fieldset className="field option-picker">
-            <legend>Subjects for newly opened slots</legend>
+      <section className="panel slot-panel">
+        <div className="slot-layout">
+          <div className="slot-col">
+            <h2>Pick a date</h2>
+            <LessonCalendar value={date} min={bangkokDate()} onChange={setDate} />
+            <h2 className="slot-subjects-title">Subjects for opened slots</h2>
             {subjects.length === 0 && !loading && (
-              <p className="muted">
-                Publish a subject before opening availability.
-              </p>
+              <p className="tutor-card-meta">Publish a subject before opening availability.</p>
             )}
-            {subjects.map((subject) => (
-              <label className="check-row" key={subject.id}>
-                <input
-                  type="checkbox"
-                  checked={subjectIds.includes(subject.id)}
-                  onChange={(event) =>
+            <div className="topup-quick" role="group" aria-label="Subjects for newly opened slots">
+              {subjects.map((subject) => (
+                <button
+                  type="button"
+                  key={subject.id}
+                  className="topup-chip"
+                  aria-pressed={subjectIds.includes(subject.id)}
+                  onClick={() =>
                     setSubjectIds((current) =>
-                      event.target.checked
-                        ? [...current, subject.id]
-                        : current.filter((id) => id !== subject.id),
+                      current.includes(subject.id)
+                        ? current.filter((id) => id !== subject.id)
+                        : [...current, subject.id],
                     )
                   }
-                />
-                <span>{subject.name}</span>
-              </label>
-            ))}
-          </fieldset>
-        </div>
-        {error && day && <Notice kind="error">{error}</Notice>}
-        {notice && <Notice kind="success">{notice}</Notice>}
-        <ResourceState
-          loading={loading}
-          error={!loading && !day ? error : ""}
-          retry={() => void load()}
-        />
-        {day && (
-          <div className="slot-grid" aria-label={`Availability for ${date}`}>
-            {times.map((time) => {
-              const slot = slots.get(time);
-              const locked = slot?.state === "HELD" || slot?.state === "BOOKED";
-              const open = slot?.state === "OPEN";
-              return (
-                <button
-                  key={time}
-                  type="button"
-                  className={`slot-button ${open ? "open" : ""} ${locked ? "locked" : ""}`}
-                  disabled={Boolean(locked || pendingTime)}
-                  onClick={() => void toggle(time)}
-                  aria-pressed={open}
                 >
-                  {time}
-                  <span>
-                    {locked
-                      ? slot?.state.toLowerCase()
-                      : open
-                        ? "open"
-                        : "closed"}
-                  </span>
+                  {subject.name}
                 </button>
-              );
-            })}
+              ))}
+            </div>
           </div>
-        )}
-        <p className="muted">
-          Held or booked slots are locked so an existing booking cannot be
-          changed accidentally.{" "}
-          {day?.slots[0] &&
-            `Example time: ${bangkokTime(day.slots[0].startsAt)}.`}
-        </p>
+          <div className="slot-col">
+            <h2>Click a time to open or close it</h2>
+            <p className="tutor-card-meta">Half-hour slots, Asia/Bangkok. Held and booked slots are locked.</p>
+            {error && day && <Notice kind="error">{error}</Notice>}
+            <ResourceState
+              loading={loading && !day}
+              error={!loading && !day ? error : ""}
+              retry={() => void load()}
+            />
+            {day && (
+              <div className={`slot-grid${loading ? " is-loading" : ""}`} role="group" aria-label={`Availability for ${date}`}>
+                {times.map((time) => {
+                  const slot = slots.get(time);
+                  const locked = slot?.state === "HELD" || slot?.state === "BOOKED";
+                  const open = slot?.state === "OPEN";
+                  const chip = (
+                    <button
+                      key={time}
+                      type="button"
+                      className={`slot-chip${locked ? ` slot-own ${slot?.state === "HELD" ? "is-held" : "is-booked"}` : ""}`}
+                      disabled={Boolean(pendingTime) && !locked}
+                      aria-disabled={locked || undefined}
+                      onClick={() => !locked && void toggle(time)}
+                      aria-pressed={open}
+                    >
+                      {time}
+                    </button>
+                  );
+                  return locked ? (
+                    <span key={time} className="tooltip-wrap" data-tip={slot?.state === "HELD" ? "Held" : "Booked"}>
+                      {chip}
+                    </span>
+                  ) : (
+                    chip
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
       </section>
     </>
   );
