@@ -321,9 +321,6 @@ export function TutorNavigation() {
           {link.label}
         </Link>
       ))}
-      <Link className="text-link" href="/discover">
-        Find a tutor
-      </Link>
     </nav>
   );
 }
