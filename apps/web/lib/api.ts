@@ -146,15 +146,27 @@ export function errorMessage(error: unknown, fallback = "Something went wrong. P
 }
 
 /** A load or submit failure with what the UI needs: wording, a reference to quote, and what kind of failure it is. */
-export type Failure = { message: string; requestId?: string; status?: number; missing: boolean; outage: boolean };
+export type Failure = { message: string; requestId?: string; status?: number; missing: boolean; outage: boolean; unstructured?: boolean };
+function retryTiming(retryAfter: string | null | undefined): string | undefined {
+  if (!retryAfter) return undefined;
+  const seconds = /^\d+$/.test(retryAfter)
+    ? Number(retryAfter)
+    : (Date.parse(retryAfter) - Date.now()) / 1000;
+  if (!Number.isFinite(seconds) || seconds <= 0) return undefined;
+  const minutes = Math.ceil(seconds / 60);
+  return `Try again in about ${minutes} minute${minutes === 1 ? "" : "s"}.`;
+}
+
 export function failureOf(error: unknown, fallback?: string): Failure {
   const status = error instanceof ApiError ? error.status : undefined;
+  const retry = error instanceof ApiError && status === 429 ? retryTiming(error.retryAfter) : undefined;
   return {
-    message: errorMessage(error, fallback),
+    message: [errorMessage(error, fallback), retry].filter(Boolean).join(" "),
     requestId: error instanceof ApiError ? error.requestId : undefined,
     status,
     // A malformed or unknown id can never succeed on retry.
     missing: status === 400 || status === 404,
     outage: status === undefined || status >= 500,
+    unstructured: error instanceof ApiError ? !error.body?.message : true,
   };
 }

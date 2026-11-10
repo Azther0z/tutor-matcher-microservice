@@ -12,32 +12,38 @@ test.describe("wallet and top-up", () => {
     await expect(page.getByRole("link", { name: "Payouts" })).toHaveCount(0);
   });
 
-  test("starts a simulated top-up with an exact decimal string and an idempotency key, and keeps the booking destination", async ({ page }) => {
+  test("sends a manual top-up request with an exact decimal string and an idempotency key, and keeps the booking destination", async ({ page }) => {
     await signIn(page);
+    const slipPng = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/pWQAAAAASUVORK5CYII=", "base64");
     await page.route(/\/api\/wallet$/, (route) => json(route, 200, wallet()));
-    const created = await record(page, /\/api\/wallet\/topups$/, (route) => json(route, 201, topup("PENDING")));
-    await page.route(new RegExp(`/api/wallet/topups/${IDS.topup}$`), (route) => json(route, 200, topup("PENDING")));
-    await page.route(/\/api\/operations\/wallet\//, (route) => json(route, 200, { id: IDS.operation, owner: "wallet", status: "PENDING", statusUrl: "", resource: null }));
+    await page.route(/\/api\/wallet\/topups\?/, (route) => json(route, 200, page1([])));
+    await page.route(/\/api\/messages\/inbox\?/, (route) => json(route, 200, page1([])));
+    await page.route(/https:\/\/promptpay\.io\/.*/, (route) => route.fulfill({ status: 200, contentType: "image/png", body: slipPng }));
+    const created = await record(page, /\/api\/wallet\/topups$/, (route) => json(route, 201, {
+      ...topup("PENDING"), manual: true, decisionReason: null,
+    }));
     await page.goto(`/wallet?returnToBookingId=${IDS.booking}`);
     await page.getByLabel("Amount (THB)").fill("250.5");
-    await page.getByRole("button", { name: "Start top-up" }).click();
-    await expect(page).toHaveURL(new RegExp(`/wallet/topups/${IDS.topup}\\?returnToBookingId=${IDS.booking}$`));
-    expect(created[0].body).toEqual({ amount: "250.50", returnToBookingId: IDS.booking });
+    await page.getByLabel("Transfer slip").setInputFiles({ name: "slip.png", mimeType: "image/png", buffer: slipPng });
+    await page.getByRole("button", { name: "Send top-up request" }).click();
+    await expect(page.getByRole("status").filter({ hasText: "Your request is waiting for an admin." })).toBeVisible();
+    await expect(page.getByRole("link", { name: "View request" })).toHaveAttribute("href", `/wallet/topups/${IDS.topup}?returnToBookingId=${IDS.booking}`);
+    expect(created[0].body).toMatchObject({ amount: "250.50", returnToBookingId: IDS.booking, slipContentType: "image/png", slipImage: slipPng.toString("base64") });
     expect(created[0].headers["idempotency-key"]).toMatch(/^[0-9a-f-]{36}$/i);
-    await expect(page.getByText("Not payable.")).toBeVisible();
-    await expect(page.getByText("DEMO-NOT-PAYABLE-0001")).toBeVisible();
-    await expect(page.getByText(/Nothing has been credited yet/)).toBeVisible();
-    await expect(page.getByRole("link", { name: "Back to booking without paying" })).toHaveAttribute("href", `/bookings/${IDS.booking}`);
   });
 
   test("rejects an invalid amount before calling the API", async ({ page }) => {
     await signIn(page);
     await page.route(/\/api\/wallet$/, (route) => json(route, 200, wallet()));
-    const created = await record(page, /\/api\/wallet\/topups$/, (route) => json(route, 201, topup("PENDING")));
+    await page.route(/\/api\/wallet\/topups\?/, (route) => json(route, 200, page1([])));
+    await page.route(/\/api\/messages\/inbox\?/, (route) => json(route, 200, page1([])));
+    await page.route(/https:\/\/promptpay\.io\/.*/, (route) => route.fulfill({ status: 200, contentType: "image/png", body: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/pWQAAAAASUVORK5CYII=", "base64") }));
+    const created = await record(page, /\/api\/wallet\/topups$/, (route) => json(route, 201, { ...topup("PENDING"), manual: true }));
     await page.goto("/wallet");
+    await page.getByLabel("Transfer slip").setInputFiles({ name: "slip.png", mimeType: "image/png", buffer: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/pWQAAAAASUVORK5CYII=", "base64") });
     for (const bad of ["0", "100000.01", "12.345", "abc", "-5"]) {
       await page.getByLabel("Amount (THB)").fill(bad);
-      await page.getByRole("button", { name: "Start top-up" }).click();
+      await page.getByRole("button", { name: "Send top-up request" }).click();
       await expect(page.getByText(/from 0.01 to 100,000.00/)).toBeVisible();
     }
     expect(created).toHaveLength(0);
