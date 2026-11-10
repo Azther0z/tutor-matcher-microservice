@@ -1,9 +1,10 @@
 import Link from "next/link";
+import { HomeActions } from "@/components/home-actions";
 
 const paths = [
-  { tag: "STEP 1", title: "Search approved tutors", text: "Browse online tutors who have been reviewed and approved by our team." },
-  { tag: "STEP 2", title: "Book a half-hour slot", text: "Pick the times that suit you and see the estimated total before you confirm." },
-  { tag: "STEP 3", title: "Learn and review", text: "Message your tutor, finish the lesson, and leave a review to help the next learner." },
+  { tag: "1", title: "Find a tutor", text: "Browse online tutors approved by our team." },
+  { tag: "2", title: "Book a time", text: "Pick a half-hour slot and see the total before you confirm." },
+  { tag: "3", title: "Learn and review", text: "Message your tutor, take the lesson, then leave a review." },
 ];
 
 export default function HomePage() {
@@ -17,12 +18,7 @@ export default function HomePage() {
           <input id="hero-q" name="q" type="search" placeholder="What do you want to learn?" autoComplete="off" />
           <button className="button" type="submit">Search</button>
         </form>
-        <div className="actions">
-          <Link className="button button-outline" href="/signup">Get started <span aria-hidden="true">→</span></Link>
-          <Link className="button button-quiet" href="/teach/application">Become a tutor</Link>
-          <Link className="text-link" href="/login">I already have an account</Link>
-        </div>
-        <p className="hero-footnote">Every new account starts with student access.</p>
+        <HomeActions />
       </section>
 
       <section className="feature-band" aria-labelledby="how-title">
@@ -30,7 +26,7 @@ export default function HomePage() {
         <div className="card-grid">
           {paths.map((item) => (
             <article className="path-card" key={item.tag}>
-              <span className="tiny-label">{item.tag}</span>
+              <span className="path-no">{item.tag}</span>
               <h3>{item.title}</h3>
               <p>{item.text}</p>
             </article>

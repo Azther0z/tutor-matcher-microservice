@@ -795,3 +795,18 @@ fieldset.field legend { font-size: 14px; font-weight: 500; padding: 0; margin-bo
 .badge, .badge.warn, .badge.danger { display: inline; padding: 0; border-radius: 0; background: none; font-size: 13px; font-weight: 600; color: var(--success); }
 .badge.warn { color: #f5a524; }
 .badge.danger { color: #f87171; }
+
+/* ---------- Home tweaks ---------- */
+.button-grey { background: #d4d4d8; color: #18181b; box-shadow: none; }
+.button-grey:hover { background: #e4e4e7; }
+.hero-search { max-width: 760px; }
+.hero-search input { background: #1d1d20; color: var(--ink); border: 1px solid var(--line); padding: 14px 18px; }
+.hero-search input::placeholder { color: var(--muted); }
+.hero-search input:focus { border-color: var(--field-focus); outline: none; box-shadow: none; }
+.hero-search .button { background: #2a2a2e; color: var(--ink); box-shadow: none; }
+.hero-search .button:hover { background: #34343a; }
+.path-card { padding: 18px; border-radius: 12px; background: var(--surface); transition: none; }
+.path-card:hover { border-color: var(--line); transform: none; }
+.path-card h3 { font-size: 17px; margin: 6px 0 4px; }
+.path-card p { font-size: 14px; line-height: 1.55; }
+.path-no { font-size: 14px; font-weight: 600; color: var(--muted); }
