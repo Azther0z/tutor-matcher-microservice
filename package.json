@@ -11,9 +11,9 @@
     "node": ">=22"
   },
   "scripts": {
-    "build": "npm run build -w @tutor-matcher/shared && npm run build -w auth-service && npm run build -w tutor-service && npm run build -w review-service && npm run build -w web",
+    "build": "npm run build -w @tutor-matcher/shared && npm run build -w auth-service -w wallet-service -w notification-service -w tutor-service -w review-service && npm run build -w web",
     "typecheck": "npm run build -w @tutor-matcher/shared && npm run typecheck --workspaces --if-present",
-    "lint": "eslint shared/src auth-service/src \"tutor-service/src/**/*.ts\" \"review-service/src/**/*.ts\" web",
+    "lint": "eslint shared/src auth-service/src wallet-service/src notification-service/src \"tutor-service/src/**/*.ts\" \"review-service/src/**/*.ts\" web",
     "format": "prettier --write package.json tsconfig.base.json eslint.config.mjs scripts",
     "format:check": "prettier --check package.json tsconfig.base.json eslint.config.mjs scripts",
     "test": "npm run test --workspaces --if-present && node --test tests/*.test.cjs",
@@ -32,7 +32,10 @@
     "routes:check": "node scripts/generate-traefik-routes.mjs --check",
     "test:marketplace": "npm run build -w @tutor-matcher/shared && npm test -w tutor-service && npm test -w review-service",
     "loadtest:prepare": "node loadtest/prepare-marketplace.mjs",
-    "test:marketplace:integrated": "node loadtest/marketplace-integration.mjs"
+    "test:marketplace:integrated": "node loadtest/marketplace-integration.mjs",
+    "dev:wallet": "npm run dev -w wallet-service",
+    "dev:notification": "npm run dev -w notification-service",
+    "smoke:p-broker": "node scripts/smoke-p-broker.mjs"
   },
   "devDependencies": {
     "@eslint/js": "9.39.5",
