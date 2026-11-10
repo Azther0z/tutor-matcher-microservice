@@ -36,34 +36,59 @@ export function TopupPage({ params }: { params: Promise<{ topupId: string }> }) 
   useEffect(() => { void load(); }, [load]);
   const operation = useOperation(topup?.operation, () => void load());
 
+  const label = topup
+    ? topup.manual
+      ? topup.status === "SUCCEEDED" ? "APPROVED" : topup.status === "FAILED" ? "REJECTED" : "PENDING"
+      : topup.status
+    : "";
   return (
     <>
-      <header className="section-heading"><h1>Top-up</h1><p><Link className="text-link" href="/wallet">Back to wallet</Link></p></header>
+      <header className="page-heading"><h1>Top-up</h1></header>
       {topup && !topup.manual && <DemoBanner />}
       <LoadError failure={error} onRetry={() => void load()} backHref="/wallet" backLabel="Back to wallet"/>
-      {!topup && !error && <p role="status">Loading…</p>}
+      {!topup && !error && <p role="status" className="tutor-card-meta">Loading…</p>}
       {topup && (
-        <section className="panel">
-          <div className="stat-line"><span className="tiny-label">AMOUNT</span><strong>{formatMoney(topup.amount)}</strong></div>
-          <p>Status: <StatusBadge value={topup.status} /></p>
-          <p role="status">{(topup.manual ? MANUAL_TEXT : OUTCOME_TEXT)[topup.status]}</p>
-          {topup.manual && topup.decisionReason && <Notice kind={topup.status === "FAILED" ? "error" : "info"}>Admin note: {topup.decisionReason}</Notice>}
-          {operation?.error && <p className="small-muted">{operation.error}</p>}
+        <section className="panel booking-new">
+          <StatusBadge value={label} corner />
+          <div className="booking-title">
+            <h2>{formatMoney(topup.amount)}</h2>
+            <p className="tutor-card-meta" role="status">{(topup.manual ? MANUAL_TEXT : OUTCOME_TEXT)[topup.status]}</p>
+          </div>
+          {operation?.error && <p className="tutor-card-meta">{operation.error}</p>}
           {operation?.status === "TIMEOUT" && <Notice kind="info">Still waiting. You can leave this page; the result will appear in your wallet.</Notice>}
-          {!topup.manual && (
-            <>
-              <h2>Simulated payment code</h2>
-              <div className="sensitive-box" aria-label="Simulated payment code">
-                <p><strong>Not payable.</strong> This is a demonstration code. Do not scan it with a banking app.</p>
-                <code>{topup.paymentRepresentation}</code>
+          <div className="summary-rows">
+            <div>
+              <span>Sent</span>
+              <strong>{formatTime(topup.createdAt)}</strong>
+            </div>
+            {topup.confirmedAt && (
+              <div>
+                <span>Confirmed</span>
+                <strong>{formatTime(topup.confirmedAt)}</strong>
               </div>
-            </>
-          )}
-          <p className="small-muted">Created {formatTime(topup.createdAt)}{topup.confirmedAt ? `, Confirmed ${formatTime(topup.confirmedAt)}` : ""}</p>
-          <div className="button-row">
-            {topup.status === "SUCCEEDED" && returnTo && <Link className="button" href={`/bookings/${returnTo}`}>Return to your booking</Link>}
-            {topup.status !== "SUCCEEDED" && returnTo && <Link className="button button-quiet" href={`/bookings/${returnTo}`}>Back to booking without paying</Link>}
-            <Link className="button button-quiet" href="/wallet">Go to wallet</Link>
+            )}
+            {topup.manual && topup.decisionReason && (
+              <div>
+                <span>Admin note</span>
+                <strong className="summary-note">{topup.decisionReason}</strong>
+              </div>
+            )}
+            {!topup.manual && (
+              <div>
+                <span>Simulated payment code</span>
+                <code className="summary-note">{topup.paymentRepresentation}</code>
+              </div>
+            )}
+          </div>
+          {!topup.manual && <p className="tutor-card-meta"><strong>Not payable.</strong> This is a demonstration code. Do not scan it with a banking app.</p>}
+          <div className="slot-footer flush">
+            <span className="button-row">
+              <Link className="button button-quiet" href="/wallet">Go to wallet</Link>
+              {topup.status !== "SUCCEEDED" && returnTo && <Link className="button button-quiet" href={`/bookings/${returnTo}`}>Back to booking without paying</Link>}
+            </span>
+            <span className="button-row">
+              {topup.status === "SUCCEEDED" && returnTo && <Link className="button" href={`/bookings/${returnTo}`}>Return to your booking</Link>}
+            </span>
           </div>
         </section>
       )}
