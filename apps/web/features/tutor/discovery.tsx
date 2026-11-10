@@ -10,6 +10,7 @@ import { Field, Notice, focusFirstInvalid } from "@/components/field";
 import { Dropdown } from "@/components/dropdown";
 import { LessonCalendar } from "@/components/lesson-calendar";
 import { useAuth } from "@/lib/auth-context";
+import type { Booking, BookingPage } from "@/features/booking/types";
 import { ReviewList } from "../review/reviews";
 import {
   bangkokDate,
@@ -414,6 +415,15 @@ export function SubjectDetails({
     false,
   );
   const data = resource.data;
+  // The viewer's own held (payment due) and confirmed bookings with this tutor show as unavailable for a reason.
+  const mine = useResource<BookingPage>(
+    account ? "/bookings?page=1&pageSize=50&view=STUDENT" : null,
+  );
+  const ownBookings = (mine.data?.items ?? []).filter(
+    (booking) =>
+      booking.tutorId === tutorId &&
+      (booking.status === "PAYMENT_DUE" || booking.status === "CONFIRMED"),
+  );
   useEffect(() => {
     setSelected([]);
   }, [date]);
@@ -495,6 +505,31 @@ export function SubjectDetails({
                     const label = `${String(Math.floor(i / 2)).padStart(2, "0")}:${i % 2 ? "30" : "00"}`;
                     const slot = slotByTime.get(label);
                     const on = slot ? selected.includes(slot.id) : false;
+                    const at = Date.parse(`${date}T${label}:00.000+07:00`);
+                    const own = slot
+                      ? undefined
+                      : ownBookings.find(
+                          (booking) =>
+                            Date.parse(booking.startsAt) <= at &&
+                            at < Date.parse(booking.endsAt),
+                        );
+                    if (own) {
+                      const held = own.status === "PAYMENT_DUE";
+                      return (
+                        <span
+                          key={label}
+                          className="tooltip-wrap"
+                          data-tip={held ? "Held for you. Pay to confirm." : "Your booked lesson."}
+                        >
+                          <Link
+                            className={`slot-chip slot-own ${held ? "is-held" : "is-booked"}`}
+                            href={`/bookings/${own.id}`}
+                          >
+                            {label}
+                          </Link>
+                        </span>
+                      );
+                    }
                     return (
                       <button
                         type="button"
