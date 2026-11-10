@@ -92,7 +92,7 @@ export function WalletOverviewPage() {
       <section className="panel wallet-recent" aria-label="Recent activity">
         <div className="wallet-recent-head">
           <h2>Recent activity</h2>
-          <Link className="text-link" href="/wallet/transactions">View all</Link>
+          <Link className="wallet-viewall" href="/wallet/transactions">View all</Link>
         </div>
         {recent.length === 0 ? (
           <p className="tutor-card-meta">No transactions yet.</p>
