@@ -5,13 +5,15 @@ import { usePathname, useRouter } from "next/navigation";
 import { api, ApiError, sessionToken } from "./api";
 import type { Account, AuthSession } from "./types";
 
-type AuthState = { ready: boolean; account: Account | null; authError: string | null; refresh: () => Promise<Account | null>; accept: (session: AuthSession) => void; clearLocal: () => void; signOut: () => Promise<void> };
+type AuthState = { ready: boolean; account: Account | null; signedOut: boolean; authError: string | null; refresh: () => Promise<Account | null>; accept: (session: AuthSession) => void; clearLocal: () => void; signOut: () => Promise<void> };
 const Context = createContext<AuthState | null>(null);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [account, setAccount] = useState<Account | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
+  // True after the person chose to sign out (or the session was ended on purpose), so route guards do not remember the old page.
+  const [signedOut, setSignedOut] = useState(false);
   const refresh = useCallback(async () => {
     if (!sessionToken.read()) { setAccount(null); setAuthError(null); return null; }
     try {
@@ -38,15 +40,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
   const accept = useCallback((session: AuthSession) => {
     sessionToken.write(session.token);
+    setSignedOut(false);
     setAccount(session.user);
   }, []);
-  const clearLocal = useCallback(() => { sessionToken.clear(); setAccount(null); }, []);
+  const clearLocal = useCallback(() => { sessionToken.clear(); setSignedOut(true); setAccount(null); }, []);
   const signOut = useCallback(async () => {
     try { if (sessionToken.read()) await api<void>("/auth/logout", { method: "POST", idempotencyKey: crypto.randomUUID() }); }
     catch { /* A failed logout must not keep a local token. */ }
     finally { clearLocal(); }
   }, [clearLocal]);
-  const value = useMemo(() => ({ ready, account, authError, refresh, accept, clearLocal, signOut }), [ready, account, authError, refresh, accept, clearLocal, signOut]);
+  const value = useMemo(() => ({ ready, account, signedOut, authError, refresh, accept, clearLocal, signOut }), [ready, account, signedOut, authError, refresh, accept, clearLocal, signOut]);
   return <Context.Provider value={value}>{children}</Context.Provider>;
 }
 
@@ -57,13 +60,14 @@ export function useAuth(): AuthState {
 }
 
 export function RequireAuth({ children, admin = false }: { children: React.ReactNode; admin?: boolean }) {
-  const { ready, account, authError, refresh } = useAuth();
+  const { ready, account, signedOut, authError, refresh } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   useEffect(() => {
     if (!ready) return;
-    if (!account && !authError) router.replace(`/login?returnTo=${encodeURIComponent(pathname + window.location.search)}`);
-  }, [ready, account, authError, router, pathname]);
+    // After an intentional sign-out the caller navigates to /login itself, without a returnTo.
+    if (!account && !authError && !signedOut) router.replace(`/login?returnTo=${encodeURIComponent(pathname + window.location.search)}`);
+  }, [ready, account, authError, signedOut, router, pathname]);
   if (!ready) return <p className="muted" role="status">Checking your session…</p>;
   if (authError) return <section className="panel"><h1>We couldn’t check your session</h1><p role="alert">{authError}</p><button className="button" onClick={() => void refresh()}>Retry session check</button></section>;
   if (!account) return <p className="muted" role="status">Opening sign in…</p>;
