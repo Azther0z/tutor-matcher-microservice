@@ -9,6 +9,7 @@ import { useEffect, useState } from "react";
 import { Field, Notice, focusFirstInvalid } from "@/components/field";
 import { Dropdown } from "@/components/dropdown";
 import { Avatar } from "@/components/avatar";
+import { IntroVideo } from "@/components/intro-video";
 import { LessonCalendar } from "@/components/lesson-calendar";
 import { useAuth } from "@/lib/auth-context";
 import type { Booking, BookingPage } from "@/features/booking/types";
@@ -351,19 +352,7 @@ export function TutorProfile({ tutorId }: { tutorId: string }) {
               </div>
             </div>
             {tutor.bio && <p className="submission-bio full">{tutor.bio}</p>}
-            {tutor.introVideoUrl && (
-              <div className="slot-footer flush">
-                <span />
-                <a
-                  className="button button-quiet"
-                  href={tutor.introVideoUrl}
-                  rel="noreferrer"
-                  target="_blank"
-                >
-                  Watch intro video
-                </a>
-              </div>
-            )}
+            {tutor.introVideoUrl && <IntroVideo url={tutor.introVideoUrl} />}
           </section>
           <h2 className="list-title">Online subjects</h2>
           {tutor.subjects.length === 0 && (
