@@ -549,3 +549,21 @@ fieldset.field legend { font-size: 14px; font-weight: 500; padding: 0; margin-bo
 @media (max-width: 800px) { .slot-layout { grid-template-columns: 1fr; gap: 24px; } }
 .slot-chip { transition: background 0.15s, border-color 0.15s, opacity 0.15s; }
 .slot-grid.is-loading { opacity: 0.6; }
+.review-section { margin-top: 28px; }
+.review-section h2 { font-size: 18px; margin: 0 0 4px; }
+.review-list { display: grid; }
+.review-item { display: grid; gap: 6px; padding: 16px 0; border-top: 1px solid var(--line); }
+.review-item h3 { margin: 0; font-size: 15px; }
+.review-top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; font-size: 14px; }
+.review-top time { font-size: 13px; color: var(--muted); }
+.review-stars { color: #f5c518; font-size: 14px; letter-spacing: 1px; line-height: 1; }
+.review-stars-off { color: rgba(255, 255, 255, 0.18); }
+.review-text { margin: 0; font-size: 14px; color: var(--ink); }
+.review-reply { display: grid; gap: 4px; margin-top: 6px; padding: 10px 0 2px 14px; border-left: 2px solid var(--line-strong); }
+.review-reply .review-top { font-size: 13px; }
+.review-report { font-size: 13px; color: var(--muted); }
+.review-report summary { cursor: pointer; width: fit-content; }
+.review-report summary:hover { color: var(--ink); }
+.review-report-link { font-size: 13px; color: var(--muted); width: fit-content; }
+.review-item .form { gap: 10px; margin-top: 6px; }
+.review-item .form h3 { font-size: 14px; }

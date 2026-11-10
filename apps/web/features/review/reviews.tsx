@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Field, Notice } from "@/components/field";
 import { Dropdown } from "@/components/dropdown";
 import { RequireAuth, useAuth } from "@/lib/auth-context";
+import { api, errorMessage } from "@/lib/api";
 import {
   ActionMessages,
   bangkokTime,
@@ -51,26 +52,29 @@ function ReviewCard({
     if (result) setFlagged(true);
   }
   return (
-    <article className="panel">
-      <div className="stat-line">
+    <article className="review-item">
+      <div className="review-top">
         <strong>{review.studentDisplayName}</strong>
-        <span aria-label={`${review.rating} out of 5 stars`}>
-          {review.rating}/5
-        </span>
         <time dateTime={review.createdAt}>
-          {bangkokTime(review.createdAt)} (Bangkok)
+          {bangkokTime(review.createdAt)}
         </time>
       </div>
+      <span className="review-stars" role="img" aria-label={`${review.rating} out of 5 stars`}>
+        {"★".repeat(review.rating)}
+        <span className="review-stars-off">{"★".repeat(5 - review.rating)}</span>
+      </span>
       {review.headline && <h3>{review.headline}</h3>}
-      <p style={{ whiteSpace: "pre-wrap" }}>{review.text}</p>
+      <p className="review-text" style={{ whiteSpace: "pre-wrap" }}>{review.text}</p>
       {review.reply && (
-        <blockquote>
-          <strong>Tutor reply</strong>
-          <p style={{ whiteSpace: "pre-wrap" }}>{review.reply.text}</p>
-          <time dateTime={review.reply.createdAt}>
-            {bangkokTime(review.reply.createdAt)}
-          </time>
-        </blockquote>
+        <div className="review-reply">
+          <div className="review-top">
+            <strong>Tutor reply</strong>
+            <time dateTime={review.reply.createdAt}>
+              {bangkokTime(review.reply.createdAt)}
+            </time>
+          </div>
+          <p className="review-text" style={{ whiteSpace: "pre-wrap" }}>{review.reply.text}</p>
+        </div>
       )}
       {account?.id === review.tutorUserId && !review.reply && (
         <form className="form" onSubmit={(event) => void submitReply(event)}>
@@ -86,7 +90,7 @@ function ReviewCard({
               rows={3}
             />
           </div>
-          <p>Only one reply is allowed.</p>
+          <p className="tutor-card-meta">Only one reply is allowed.</p>
           <button
             className="button"
             disabled={reply.pending || reply.uncertain}
@@ -96,8 +100,8 @@ function ReviewCard({
         </form>
       )}
       {account ? (
-        <details>
-          <summary>Report this review</summary>
+        <details className="review-report">
+          <summary>Report</summary>
           <ActionMessages action={flag} />
           {flagged ? (
             <p role="status">Your report was submitted for moderation.</p>
@@ -113,7 +117,7 @@ function ReviewCard({
                   rows={3}
                 />
               </div>
-              <p>Each person can report a review once.</p>
+              <p className="tutor-card-meta">Each person can report a review once.</p>
               <button
                 className="button button-quiet"
                 disabled={flag.pending || flag.uncertain}
@@ -124,14 +128,12 @@ function ReviewCard({
           )}
         </details>
       ) : (
-        <p>
-          <Link
-            className="text-link"
-            href={`/login?returnTo=${encodeURIComponent(`/tutors/${review.tutorId}`)}`}
-          >
-            Sign in to report a review
-          </Link>
-        </p>
+        <Link
+          className="review-report-link"
+          href={`/login?returnTo=${encodeURIComponent(`/tutors/${review.tutorId}`)}`}
+        >
+          Sign in to report
+        </Link>
       )}
     </article>
   );
@@ -143,38 +145,106 @@ export function ReviewList({
   tutorId: string;
   subjectId?: string;
 }) {
-  const [page, setPage] = useState(1);
-  const query = new URLSearchParams({
-    tutorId,
-    page: String(page),
-    pageSize: "20",
-    ...(subjectId ? { subjectId } : {}),
-  });
-  const resource = useResource<Page<Review>>(`/reviews?${query}`, false);
+  const [items, setItems] = useState<Review[]>([]);
+  const [total, setTotal] = useState<number | null>(null);
+  const [hasMore, setHasMore] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const nextPage = useRef(1);
+  const busy = useRef(false);
+  const sentinel = useRef<HTMLDivElement>(null);
+  const url = useCallback(
+    (page: number) =>
+      `/reviews?${new URLSearchParams({
+        tutorId,
+        page: String(page),
+        pageSize: "10",
+        ...(subjectId ? { subjectId } : {}),
+      })}`,
+    [tutorId, subjectId],
+  );
+  const loadMore = useCallback(async () => {
+    if (busy.current) return;
+    busy.current = true;
+    setLoading(true);
+    setError("");
+    try {
+      const result = await api<Page<Review>>(url(nextPage.current), { auth: false });
+      setItems((previous) => [...previous, ...result.items]);
+      setTotal(result.pagination.totalItems);
+      setHasMore(nextPage.current < result.pagination.totalPages);
+      nextPage.current += 1;
+    } catch (caught) {
+      setError(errorMessage(caught, "Reviews are unavailable right now."));
+      setHasMore(false);
+    } finally {
+      busy.current = false;
+      setLoading(false);
+    }
+  }, [url]);
+  // Refetch everything loaded so far, so a posted reply shows up in place without losing scroll position.
+  const reload = useCallback(async () => {
+    const pages = nextPage.current - 1;
+    const all: Review[] = [];
+    for (let page = 1; page <= Math.max(pages, 1); page += 1) {
+      const result = await api<Page<Review>>(url(page), { auth: false });
+      all.push(...result.items);
+    }
+    setItems(all);
+  }, [url]);
+  useEffect(() => {
+    nextPage.current = 1;
+    setItems([]);
+    setTotal(null);
+    setHasMore(true);
+    void loadMore();
+  }, [loadMore]);
+  useEffect(() => {
+    const node = sentinel.current;
+    if (!node || !hasMore) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) void loadMore();
+      },
+      { rootMargin: "300px" },
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [hasMore, loadMore, items.length]);
   return (
-    <section>
-      <h2>Verified lesson reviews</h2>
-      <ResourceState
-        loading={resource.loading}
-        error={resource.error}
-        retry={() => void resource.reload()}
-      />
-      {resource.data && (
-        <>
-          {resource.data.items.length === 0 ? (
-            <p className="empty-state">No reviews yet.</p>
-          ) : (
-            resource.data.items.map((review) => (
-              <ReviewCard
-                key={`${review.id}:${review.revision}`}
-                review={review}
-                reload={resource.reload}
-              />
-            ))
-          )}
-          <Pager pagination={resource.data.pagination} onPage={setPage} />
-        </>
+    <section className="review-section">
+      <h2>
+        Reviews{total !== null && total > 0 ? ` (${total})` : ""}
+      </h2>
+      {total === 0 && <p className="tutor-card-meta">No reviews yet.</p>}
+      {items.length > 0 && (
+        <div className="review-list">
+          {items.map((review) => (
+            <ReviewCard
+              key={`${review.id}:${review.revision}`}
+              review={review}
+              reload={reload}
+            />
+          ))}
+        </div>
       )}
+      {error && (
+        <Notice kind="error">
+          {error}{" "}
+          <button
+            type="button"
+            className="button button-quiet"
+            onClick={() => {
+              setHasMore(true);
+              void loadMore();
+            }}
+          >
+            Try again
+          </button>
+        </Notice>
+      )}
+      {loading && <p className="tutor-card-meta" role="status">Loading reviews…</p>}
+      {hasMore && !error && <div ref={sentinel} aria-hidden="true" style={{ height: 1 }} />}
     </section>
   );
 }
