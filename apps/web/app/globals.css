@@ -938,3 +938,5 @@ a.tutor-card:hover { background: #0b0b0b; }
 .history-side .button { min-height: 32px; padding: 4px 12px; font-size: 13px; }
 .history-side a.button-quiet { color: var(--muted); text-decoration: none; }
 .history-side a.button-quiet:hover { color: var(--ink); background: rgba(255, 255, 255, 0.05); }
+.history-status { display: flex; align-items: baseline; gap: 12px; }
+.history-status small { font-size: 13px; color: var(--muted); }

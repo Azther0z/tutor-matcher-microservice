@@ -228,16 +228,18 @@ function SubmissionHistory({
         {submission.submittedAt && (
           <small>Submitted {bangkokTime(submission.submittedAt)}</small>
         )}
-        {submission.reviewedAt && (
-          <small>Reviewed {bangkokTime(submission.reviewedAt)}</small>
-        )}
         {submission.rejectionReason && (
           <small className="status-bad">Review reason: {submission.rejectionReason}</small>
         )}
         <ActionMessages action={action} />
       </div>
       <div className="history-side">
-        <StatusBadge value={submission.state} />
+        <span className="history-status">
+          {submission.reviewedAt && (
+            <small>Reviewed {bangkokTime(submission.reviewedAt)}</small>
+          )}
+          <StatusBadge value={submission.state} />
+        </span>
         <span className="button-row">
           {submission.identificationDocumentUrl && (
             <a
