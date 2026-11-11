@@ -34,6 +34,7 @@ const SERVICES = [
   "docker-api",
   "auth-service",
   "api-gateway",
+  "internal-traefik",
   "web",
   "mongo",
   "mongo-init",
