@@ -65,7 +65,7 @@ export function TransactionsPage() {
                 <small>{formatTime(tx.createdAt)}</small>
               </span>
               <span className="wallet-tx-amount">
-                <strong className={tx.direction === "IN" ? "status-good" : ""}>
+                <strong className={tx.direction === "IN" ? "status-good" : "status-bad"}>
                   {tx.direction === "IN" ? "+" : "-"}{formatMoney(tx.amount)}
                 </strong>
                 <small>Balance {formatMoney(tx.balanceAfter)}</small>
@@ -107,7 +107,7 @@ export function TransactionDetailPage({ params }: { params: Promise<{ transactio
           <div className="summary-rows">
             <div>
               <span>Amount</span>
-              <strong className={tx.direction === "IN" ? "status-good" : ""}>{tx.direction === "IN" ? "+" : "-"}{formatMoney(tx.amount)}</strong>
+              <strong className={tx.direction === "IN" ? "status-good" : "status-bad"}>{tx.direction === "IN" ? "+" : "-"}{formatMoney(tx.amount)}</strong>
             </div>
             <div>
               <span>Balance after</span>

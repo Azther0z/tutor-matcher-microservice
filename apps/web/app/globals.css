@@ -717,6 +717,7 @@ fieldset.field legend { font-size: 14px; font-weight: 500; padding: 0; margin-bo
 .tx-card strong { font-size: 15px; }
 .tx-card small { font-size: 13px; color: var(--muted); }
 .tx-card .wallet-tx-amount strong.status-good { color: #4ade80; }
+.tx-card .wallet-tx-amount strong.status-bad { color: #f87171; }
 .message-list { gap: 12px; margin-bottom: 20px; }
 .message-row { display: flex; justify-content: space-between; gap: 16px; align-items: center; padding: 14px 18px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); text-decoration: none; transition: background 0.15s; }
 .message-row:hover { background: #0b0b0b; }

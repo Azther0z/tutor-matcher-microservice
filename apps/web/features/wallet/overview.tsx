@@ -116,7 +116,7 @@ export function WalletOverviewPage() {
                 {titleCase(tx.type)}
                 <small>{formatTime(tx.createdAt)}</small>
               </span>
-              <strong className={tx.direction === "IN" ? "status-good" : ""}>
+              <strong className={tx.direction === "IN" ? "status-good" : "status-bad"}>
                 {tx.direction === "IN" ? "+" : "-"}{formatMoney(tx.amount)}
               </strong>
             </Link>
