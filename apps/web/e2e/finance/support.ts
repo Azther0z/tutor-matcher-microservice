@@ -17,6 +17,12 @@ export const TS = "2026-11-10T03:00:00.000Z";
 
 /** Signs in with a synthetic session; the shell reads the token from tab storage and confirms it with /api/auth/me. */
 export async function signIn(page: Page, capabilities: string[] = ["STUDENT"]) {
+  // The signed-in navigation loads the wallet chip and the unread-message dot; answer them by default so they never reach the real API.
+  // Routes registered later by a test take precedence over these.
+  await page.route(/\/api\/wallet$/, (route) => json(route, 200, wallet()));
+  await page.route(/\/api\/messages\/inbox\?/, (route) => json(route, 200, page1([])));
+  await page.route(/\/api\/wallet\/topups\?/, (route) => json(route, 200, page1([])));
+  await page.route(/\/api\/wallet\/transactions\?/, (route) => json(route, 200, page1([])));
   await page.addInitScript(() => window.sessionStorage.setItem("tm.session.token", "synthetic-session-token"));
   await page.route(/\/api\/auth\/me$/, (route) => json(route, 200, {
     id: IDS.user, firstName: "Jamie", lastName: "Learner", email: "jamie@example.test", capabilities, status: "ACTIVE", revision: "0",

@@ -12,6 +12,9 @@ const account = {
 const session = { user: account, token: "synthetic-session-token", expiresAt: "2030-01-01T00:00:00.000Z" };
 
 test.beforeEach(async ({ page }) => {
+  // The signed-in navigation also loads the wallet chip and unread-message dot; answer them so they never touch the session.
+  await page.route("**/api/wallet", async (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ availableBalance: { currency: "THB", amount: "0.00" } }) }));
+  await page.route("**/api/messages/inbox?**", async (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ items: [] }) }));
   await page.route("**/api/profiles/me/student", async (route) => route.fulfill({
     status: 200,
     headers: { ETag: '"0"' },
@@ -37,8 +40,8 @@ test("signup submits required agreements and starts with student access", async 
   await page.getByLabel("Email address").fill("jamie@example.test");
   await page.getByLabel("Password", { exact: true }).fill("correct horse 123");
   await page.getByLabel("Confirm password").fill("correct horse 123");
-  await page.getByLabel(/Terms of Service/).check();
-  await page.getByLabel(/Privacy notice/).check();
+  await page.getByRole("checkbox", { name: "I agree to the Terms of Service" }).check();
+  await page.getByRole("checkbox", { name: "I have read the Privacy notice" }).check();
   await page.getByRole("button", { name: "Create account" }).click();
   await expect(page).toHaveURL(/\/account$/);
   expect(posted).toMatchObject({ firstName: "Jamie", lastName: "Learner", termsAccepted: true, privacyAccepted: true });
@@ -62,8 +65,8 @@ test("signup maps JSON Pointer validation paths to visible field errors", async 
   await page.getByLabel("Email address").fill("jamie@example.test");
   await page.getByLabel("Password", { exact: true }).fill("correct horse 123");
   await page.getByLabel("Confirm password").fill("correct horse 123");
-  await page.getByLabel(/Terms of Service/).check();
-  await page.getByLabel(/Privacy notice/).check();
+  await page.getByRole("checkbox", { name: "I agree to the Terms of Service" }).check();
+  await page.getByRole("checkbox", { name: "I have read the Privacy notice" }).check();
   await page.getByRole("button", { name: "Create account" }).click();
   await expect(page.getByText("Use your given name.")).toBeVisible();
   await expect(page.getByText("These passwords do not match.")).toBeVisible();
@@ -77,6 +80,7 @@ test("login keeps only a same-origin return path and stores session in this tab"
     await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(session) });
   });
   await page.route("**/api/profiles/me/account", async (route) => route.fulfill({ status: 200, headers: { ETag: '"0"' }, contentType: "application/json", body: JSON.stringify(account) }));
+  await page.route("**/api/auth/me", async (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(account) }));
   await page.goto("/login?returnTo=%2Faccount%3Ftab%3Dsecurity");
   await page.getByLabel("Email address").fill("jamie@example.test");
   await page.getByLabel("Password").fill("correct horse 123");
@@ -257,16 +261,17 @@ test("admin can restore a suspended account with reason and revision", async ({ 
     return route.fulfill({ status: 200, headers: { ETag: '"8"' }, contentType: "application/json", body: JSON.stringify({ ...detail, user: { ...user, status: "ACTIVE", revision: "8" }, revision: "8" }) });
   });
   await page.goto(`/admin/users/${user.id}`);
-  await page.getByLabel("Account action").click();
-  await expect(page.getByRole("option", { name: "Choose an action", exact: true })).toHaveAttribute("aria-disabled", "true");
-  await page.getByLabel("Account action").press("Home");
-  await page.getByLabel("Account action").press("Enter");
-  await expect(page.getByLabel("Account action")).toHaveText("Restore access");
-  await page.getByLabel("Reason (required)").fill("Access review completed");
-  await page.getByRole("button", { name: "Record action" }).click();
+  await page.getByRole("button", { name: "Change access" }).click();
+  const dialog = page.getByRole("dialog", { name: "Change access" });
+  const restore = dialog.getByRole("button", { name: "Restore access" });
+  await expect(restore).toHaveAttribute("aria-pressed", "false");
+  await restore.click();
+  await expect(restore).toHaveAttribute("aria-pressed", "true");
+  await dialog.getByLabel("Reason (required)").fill("Access review completed");
+  await dialog.getByRole("button", { name: "Record action" }).click();
   await expect(page.getByText(/Restored accounts must log in again/)).toBeVisible();
   expect(submitted).toEqual({ action: "RESTORE", reason: "Access review completed" });
   expect(submittedHeaders?.["if-match"]).toBe('"7"');
   expect(submittedHeaders?.["idempotency-key"]).toMatch(/^[0-9a-f-]{36}$/i);
-  await expect(page.getByText("ACTIVE", { exact: true })).toBeVisible();
+  await expect(page.getByText("Active", { exact: true })).toBeVisible();
 });

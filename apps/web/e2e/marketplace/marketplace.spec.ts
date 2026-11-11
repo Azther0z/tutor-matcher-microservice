@@ -142,6 +142,7 @@ test("application supports private draft, consent submission, withdrawal and cop
   await signedIn(page);
   const state = structuredClone(workspace);
   let posted: Record<string, unknown> | null = null;
+  let withdrawn: unknown;
   await page.route("**/api/profiles/me/tutor**", async (route) => {
     const url = new URL(route.request().url());
     const method = route.request().method();
@@ -170,6 +171,8 @@ test("application supports private draft, consent submission, withdrawal and cop
       return json(route, state.submissions[0]);
     }
     if (url.pathname.endsWith("/withdraw")) {
+      withdrawn = route.request().postDataJSON();
+      expect(route.request().headers()["if-match"]).toBe('"2"');
       state.submissions[0] = {
         ...state.submissions[0],
         state: "CANCELLED",
@@ -192,42 +195,46 @@ test("application supports private draft, consent submission, withdrawal and cop
     return json(route, { message: "Unexpected action" }, 500);
   });
   await page.goto("/teach/application");
-  await page.getByRole("button", { name: "Create application draft" }).click();
-  await page
-    .getByLabel("Headline", { exact: true })
-    .fill("Patient maths tutor");
-  await page
+  await page.getByRole("button", { name: "New application draft" }).click();
+  const editor = page.getByRole("dialog", { name: "New tutor application" });
+  await editor.getByLabel("Headline", { exact: true }).fill("Patient maths tutor");
+  await editor
     .getByLabel("Bio", { exact: true })
     .fill("I teach maths with clear examples.");
-  await page
-    .getByLabel("Identification document URL (private)")
+  await editor
+    .getByLabel("Identification document link (private)")
     .fill("https://example.test/private-id");
-  await page
-    .getByLabel("Introduction video URL")
+  await editor
+    .getByLabel("Introduction video link")
     .fill("https://example.test/intro");
-  await page.getByRole("button", { name: "Save draft", exact: true }).click();
-  const editor = page.locator("section.panel").filter({
-    has: page.getByRole("heading", { name: "Edit draft", exact: true }),
-  });
-  await expect(editor).toBeVisible();
+  await editor.getByRole("button", { name: "Save draft", exact: true }).click();
+  await expect(editor).toBeHidden();
   expect(posted).toMatchObject({
+    headline: "Patient maths tutor",
     bio: "I teach maths with clear examples.",
     identificationDocumentUrl: "https://example.test/private-id",
+    introVideoUrl: "https://example.test/intro",
   });
+  await expect(page.getByText("Patient maths tutor")).toBeVisible();
+  await page.getByRole("button", { name: "Submit", exact: true }).click();
+  const consent = page.getByRole("dialog", { name: "Submit for review" });
   await expect(
-    editor.getByRole("button", { name: "Submit saved draft" }),
+    consent.getByRole("button", { name: "Submit", exact: true }),
   ).toBeDisabled();
-  await editor.getByRole("checkbox").check();
-  await editor.getByRole("button", { name: "Submit saved draft" }).click();
+  await consent.getByRole("checkbox").check();
+  await consent.getByRole("button", { name: "Submit", exact: true }).click();
+  await expect(consent).toBeHidden();
+  await expect(page.getByRole("button", { name: "Withdraw" })).toBeVisible();
+  await page.getByRole("button", { name: "Withdraw" }).click();
   await expect(
-    page.getByRole("button", { name: "Withdraw submission" }),
+    page.getByRole("button", { name: "Copy into new draft" }),
   ).toBeVisible();
-  await page.getByRole("button", { name: "Withdraw submission" }).click();
-  await expect(
-    page.getByRole("button", { name: "Copy into a new draft" }),
-  ).toBeVisible();
-  await page.getByRole("button", { name: "Copy into a new draft" }).click();
-  await expect(editor).toBeVisible();
+  expect(state.submissions[0].state).toBe("CANCELLED");
+  expect(withdrawn).toEqual({ submissionId: draftId });
+  await page.getByRole("button", { name: "Copy into new draft" }).click();
+  await expect(page.getByRole("button", { name: "Edit", exact: true })).toBeVisible();
+  expect(state.drafts).toHaveLength(1);
+  expect(state.drafts[0].state).toBe("DRAFT");
   expect(state.submissions[0].state).toBe("CANCELLED");
 });
 
@@ -257,14 +264,15 @@ test("uncertain draft retry keeps original payload and idempotency key", async (
     );
   });
   await page.goto("/teach/application");
-  await page.getByRole("button", { name: "Create application draft" }).click();
-  await page.getByLabel("Bio", { exact: true }).fill("Original draft content");
-  await page.getByRole("button", { name: "Save draft", exact: true }).click();
+  await page.getByRole("button", { name: "New application draft" }).click();
+  const editor = page.getByRole("dialog", { name: "New tutor application" });
+  await editor.getByLabel("Bio", { exact: true }).fill("Original draft content");
+  await editor.getByRole("button", { name: "Save draft", exact: true }).click();
   await expect(
-    page.getByRole("button", { name: "Retry original action" }),
+    editor.getByRole("button", { name: "Retry original action" }),
   ).toBeVisible();
-  await page.getByLabel("Bio", { exact: true }).fill("Changed browser field");
-  await page.getByRole("button", { name: "Retry original action" }).click();
+  await editor.getByLabel("Bio", { exact: true }).fill("Changed browser field");
+  await editor.getByRole("button", { name: "Retry original action" }).click();
   await expect.poll(() => commands.length).toBe(2);
   expect(commands[1]).toEqual(commands[0]);
 });
@@ -301,16 +309,26 @@ test("admin approval displays durable activation pending and checks its status",
   );
   await page.goto(`/admin/tutor-requests/${draftId}`);
   await expect(
-    page.getByRole("link", { name: "Open private identification document" }),
-  ).toHaveAttribute("href", "https://example.test/private-id");
-  await page.getByRole("button", { name: "Save review decision" }).click();
+    page.locator('a[href="https://example.test/private-id"]'),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Review", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "Review request" });
+  await expect(dialog.getByRole("button", { name: "Approve" })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  await dialog.getByRole("button", { name: "Save decision" }).click();
+  await expect(dialog).toBeHidden();
   await expect(
-    page.getByText("Approval is saved. Auth activation is pending.", {
-      exact: false,
-    }),
+    page.locator(".summary-rows div").filter({ hasText: "Activation" }),
+  ).toContainText("Pending");
+  await expect(
+    page.locator("section.panel").getByText("still processing", { exact: false }),
   ).toBeVisible();
   await page.getByRole("button", { name: "Check processing status" }).click();
-  await expect(page.getByText("Processing finished.")).toBeVisible();
+  await expect(
+    page.locator("section.panel").getByText("Processing finished."),
+  ).toBeVisible();
 });
 
 test("unapproved students cannot access subject management controls", async ({
@@ -349,15 +367,15 @@ test("discovery preserves filters, includes saved preferences and renders genuin
   });
   await page.goto("/discover?q=algebra&sort=PRICE_ASC");
   await expect(page.getByLabel("Keyword")).toHaveValue("algebra");
-  await expect(page.getByText("No ratings yet (0 reviews)")).toBeVisible();
+  await expect(page.getByRole("img", { name: "No ratings yet" })).toBeVisible();
   await expect
     .poll(() => searches.at(-1)?.searchParams.get("preferredLearningAreas"))
     .toBe("mathematics");
-  await page.getByLabel("Max price (THB/hr)").fill("500.00");
+  await page.locator("#maximum-rate").fill("500.00");
   await page.getByRole("button", { name: "Search", exact: true }).click();
   await expect(page).toHaveURL(/maxRate=500.00/);
   await expect(
-    page.getByRole("link", { name: "View subject and availability" }),
+    page.getByRole("link", { name: "Algebra", exact: true }),
   ).toHaveAttribute("href", `/tutors/${tutorId}/subjects/${subjectId}`);
   expect(searches.at(-1)?.searchParams.get("sort")).toBe("PRICE_ASC");
 });
@@ -390,40 +408,56 @@ test("subject selection rejects gaps and preserves consecutive slots in booking 
   page,
 }) => {
   await signedIn(page);
-  const day = new Date(Date.now() + 48 * 3600 * 1000);
-  day.setUTCHours(3, 0, 0, 0);
-  const slots = [0, 1, 3].map((offset, index) => ({
-    id: `70000000-0000-4000-8000-00000000000${index + 1}`,
-    tutorId,
-    subjectIds: [subjectId],
-    startsAt: new Date(day.getTime() + offset * 1800000).toISOString(),
-    endsAt: new Date(day.getTime() + (offset + 1) * 1800000).toISOString(),
-    revision: "1",
-  }));
+  const tomorrow = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Bangkok",
+  }).format(new Date(Date.now() + 24 * 3600 * 1000));
+  // Half-hour slots at 10:00, 10:30 and 11:30 Bangkok on whichever day is requested.
+  const slotsFor = (date: string) =>
+    [0, 1, 3].map((offset, index) => {
+      const start = Date.parse(`${date}T10:00:00+07:00`) + offset * 1800000;
+      return {
+        id: `70000000-0000-4000-8000-00000000000${index + 1}`,
+        tutorId,
+        subjectIds: [subjectId],
+        startsAt: new Date(start).toISOString(),
+        endsAt: new Date(start + 1800000).toISOString(),
+        revision: "1",
+      };
+    });
   await page.route(
     `**/api/discovery/tutors/${tutorId}/subjects/${subjectId}?**`,
-    (route) =>
-      json(route, {
+    (route) => {
+      const date = new URL(route.request().url()).searchParams.get("date")!;
+      return json(route, {
         tutor,
         subject,
         rating,
-        selectedDate: "2026-11-12",
-        slots,
+        selectedDate: date,
+        slots: slotsFor(date),
         reviews: [],
-      }),
+      });
+    },
   );
   await page.goto(`/tutors/${tutorId}/subjects/${subjectId}`);
-  const choices = page.getByRole("checkbox");
-  await choices.nth(0).check();
-  await choices.nth(2).check();
+  await expect(page.getByRole("heading", { name: "Pick a date" })).toBeVisible();
+  const dayButton = page.getByRole("button", { name: tomorrow, exact: true });
+  if ((await dayButton.count()) === 0)
+    await page.getByRole("button", { name: "Next month" }).click();
+  await dayButton.click();
+  const slots = slotsFor(tomorrow);
+  const chip = (label: string) =>
+    page.getByRole("button", { name: label, exact: true });
+  await expect(chip("10:00")).toBeEnabled();
+  await chip("10:00").click();
+  await chip("11:30").click();
   await expect(
     page.getByText("Choose consecutive future half-hour slots on this day."),
   ).toBeVisible();
   await expect(
     page.getByRole("link", { name: "Continue to booking" }),
   ).toHaveCount(0);
-  await choices.nth(2).uncheck();
-  await choices.nth(1).check();
+  await chip("11:30").click();
+  await chip("10:30").click();
   const destination = new URL(
     (await page
       .getByRole("link", { name: "Continue to booking" })
@@ -435,7 +469,10 @@ test("subject selection rejects gaps and preserves consecutive slots in booking 
     `${slots[0].id},${slots[1].id}`,
   );
   expect(destination.searchParams.get("subjectId")).toBe(subjectId);
-  await expect(page.getByText("2 slots selected, 1 hours.")).toBeVisible();
+  expect(destination.searchParams.get("date")).toBe(tomorrow);
+  await expect(
+    page.getByText(`60 minutes selected on ${tomorrow}`, { exact: false }),
+  ).toBeVisible();
 });
 
 test("completed booking owner can publish one review with a stable command", async ({
@@ -541,12 +578,14 @@ test("assigned tutor replies once and signed-in users can flag with a reason", a
   await expect(
     page.getByRole("button", { name: "Post tutor reply" }),
   ).toHaveCount(0);
-  await page.getByText("Report this review", { exact: true }).click();
-  await page.getByLabel("Report reason").fill("Please check this review");
-  await page.getByRole("button", { name: "Submit report" }).click();
-  await expect(
-    page.getByText("Your report was submitted for moderation."),
-  ).toBeVisible();
+  await page.getByRole("button", { name: "Report this review" }).click();
+  const report = page.getByRole("dialog", { name: "Report this review" });
+  await report
+    .getByLabel("What is wrong with this review?")
+    .fill("Please check this review");
+  await report.getByRole("button", { name: "Submit report" }).click();
+  await expect(report).toBeHidden();
+  await expect(page.getByText("Reported", { exact: true })).toBeVisible();
 });
 
 test("moderation shows private reporter and full review, then sends reason and review revision", async ({
@@ -595,12 +634,13 @@ test("moderation shows private reporter and full review, then sends reason and r
   await page.goto("/admin/review-flags");
   await expect(page.getByText("Reported by Jamie Reporter")).toBeVisible();
   await expect(page.getByText("Reported tutor reply")).toBeVisible();
-  await page.getByLabel("Moderation decision").click();
-  await page.getByRole("option", { name: "Hide whole review and reply", exact: true }).click();
-  await page
-    .getByLabel("Moderation reason")
+  await page.getByRole("button", { name: "Decide" }).click();
+  const decision = page.getByRole("dialog", { name: "Moderation decision" });
+  await decision.getByRole("button", { name: "Hide", exact: true }).click();
+  await decision
+    .getByLabel("Reason (required)")
     .fill("The full review violates the content policy.");
-  await page.getByRole("button", { name: "Save moderation decision" }).click();
+  await decision.getByRole("button", { name: "Save decision" }).click();
   await expect(page.getByText("No review reports.")).toBeVisible();
   expect(command).toEqual({
     decision: "HIDE",
@@ -624,6 +664,13 @@ test("stale owned subject edit preserves unsaved form and sends the resource rev
     `**/api/profiles/me/tutor/subjects/${subjectId}`,
     (route) => {
       expect(route.request().headers()["if-match"]).toBe('"1"');
+      expect(route.request().postDataJSON()).toEqual({
+        name: "Algebra",
+        description: "My unsaved subject description",
+        hourlyRate: "400.00",
+        format: "ONLINE",
+        learningAreas: ["mathematics"],
+      });
       updateCount++;
       return json(
         route,
@@ -636,9 +683,8 @@ test("stale owned subject edit preserves unsaved form and sends the resource rev
     },
   );
   await page.goto("/teach/subjects");
-  const editor = page.locator("section.panel").filter({
-    has: page.getByRole("heading", { name: "Edit Algebra", exact: true }),
-  });
+  await page.getByRole("button", { name: "Edit", exact: true }).click();
+  const editor = page.getByRole("dialog", { name: "Edit subject" });
   await editor
     .getByLabel("Description", { exact: true })
     .fill("My unsaved subject description");
@@ -692,7 +738,7 @@ test("mobile discovery stays within viewport with usable search controls", async
   );
   await page.goto("/discover");
   await expect(
-    page.getByRole("link", { name: "View subject and availability" }),
+    page.getByRole("link", { name: "Algebra", exact: true }),
   ).toBeVisible();
   expect(
     await page.evaluate(
@@ -723,7 +769,12 @@ test("desktop application has usable private draft controls", async ({
   );
   await page.setViewportSize({ width: 1360, height: 1000 });
   await page.goto("/teach/application");
-  await expect(page.getByRole("heading", { name: "Edit draft" })).toBeVisible();
+  await page.getByRole("button", { name: "Edit", exact: true }).click();
+  const editor = page.getByRole("dialog", { name: "Edit draft" });
+  await expect(editor).toBeVisible();
+  await expect(editor.getByLabel("Bio", { exact: true })).toHaveValue(
+    "I teach maths with clear examples.",
+  );
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= window.innerWidth,
@@ -757,21 +808,17 @@ test("approved tutor creates a positive-rate Online subject in one to three area
     return json(route, items[0], 201);
   });
   await page.goto("/teach/subjects");
-  const editor = page
-    .locator("section.panel")
-    .filter({
-      has: page.getByRole("heading", { name: "Create a subject", exact: true }),
-    });
+  await page.getByRole("button", { name: "New subject", exact: true }).click();
+  const editor = page.getByRole("dialog", { name: "New subject" });
   await editor.getByLabel("Subject name").fill("Algebra");
   await editor.getByLabel("Description").fill(subject.description);
   await editor.getByLabel("Hourly rate (THB)").fill("400.00");
-  await editor.getByLabel("Mathematics").check();
+  await editor.getByRole("button", { name: "Mathematics" }).click();
   await editor
-    .getByRole("button", { name: "Create subject", exact: true })
+    .getByRole("button", { name: "Save subject", exact: true })
     .click();
-  await expect(
-    page.getByRole("heading", { name: "Edit Algebra", exact: true }),
-  ).toBeVisible();
+  await expect(editor).toBeHidden();
+  await expect(page.getByText("Algebra", { exact: true })).toBeVisible();
   expect(command).toEqual({
     name: "Algebra",
     description: subject.description,

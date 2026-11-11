@@ -40,6 +40,20 @@ async function signIn(page: Page, capabilities = ["STUDENT"]) {
       body: JSON.stringify({ ...account, capabilities }),
     }),
   );
+  // The header reads the wallet balance and unread messages for any signed-in account.
+  await page.route("**/api/wallet", (route) =>
+    route.fulfill({
+      json: { availableBalance: { amount: "0.00", currency: "THB" } },
+    }),
+  );
+  await page.route("**/api/messages/inbox?**", (route) =>
+    route.fulfill({
+      json: {
+        items: [],
+        pagination: { page: 1, pageSize: 100, totalItems: 0, totalPages: 0 },
+      },
+    }),
+  );
 }
 
 test("promised booking, messaging, availability, legal, support, and not-found pages exist", async ({
@@ -124,8 +138,8 @@ test("navigation follows session state and role, including at mobile width", asy
   await expect(nav.getByRole("link", { name: "Messages" })).toBeVisible();
   await expect(nav.getByRole("link", { name: "Find tutors" })).toBeVisible();
   await nav.getByRole("button", { name: "Open account menu" }).click();
-  await expect(nav.getByRole("link", { name: "Admin", exact: true })).toHaveCount(0);
-  await expect(nav.getByRole("button", { name: "Logout" })).toBeVisible();
+  await expect(nav.getByRole("button", { name: "Admin" })).toHaveCount(0);
+  await expect(nav.getByRole("menuitem", { name: "Log out" })).toBeVisible();
 });
 
 test("an incorrect current password stays on account and scopes the field error", async ({
@@ -195,14 +209,22 @@ test("auth forms validate accessibly and show notices and retry timing", async (
   const referralCode = page.getByLabel("Referral code (optional)");
   await expect(referralCode).toBeVisible();
   await expect(referralCode).toHaveJSProperty("required", false);
-  await expect(page.getByRole("link", { name: "Terms of Service" })).toHaveAttribute("href", "/terms");
-  await expect(page.getByRole("link", { name: "Privacy notice" })).toHaveAttribute("href", "/privacy");
   await expect(
     page.getByRole("checkbox", { name: /Terms of Service/ }),
   ).toBeVisible();
   await expect(
     page.getByRole("checkbox", { name: /Privacy notice/ }),
   ).toBeVisible();
+  await page.getByRole("button", { name: "Terms of Service" }).click();
+  const termsDialog = page.getByRole("dialog", { name: "Terms of Service" });
+  await expect(termsDialog).toBeVisible();
+  await termsDialog.getByRole("button", { name: "Close", exact: true }).last().click();
+  await expect(termsDialog).toBeHidden();
+  await page.getByRole("button", { name: "Privacy notice" }).click();
+  const privacyDialog = page.getByRole("dialog", { name: "Privacy notice" });
+  await expect(privacyDialog).toBeVisible();
+  await privacyDialog.getByRole("button", { name: "Close", exact: true }).last().click();
+  await expect(privacyDialog).toBeHidden();
   await page.getByRole("button", { name: "Create account" }).click();
   await expect(page.locator("#firstName")).toBeFocused();
   await expect(page.getByLabel("Password", { exact: true })).toHaveAttribute(
@@ -264,7 +286,7 @@ test("titles, notification copy, and malformed ids are user-facing", async ({
   page,
 }) => {
   await page.goto("/discover");
-  await expect(page).toHaveTitle("Find tutors · Tutor Matcher");
+  await expect(page).toHaveTitle("Find tutors | Tutor Matcher");
 
   await signIn(page);
   await page.route("**/api/notifications/preferences", (route) =>
@@ -305,9 +327,7 @@ test("titles, notification copy, and malformed ids are user-facing", async ({
   await expect(
     page.getByText("We couldn’t find that record."),
   ).toBeVisible();
-  await expect(
-    page.locator("section.panel").getByRole("link", { name: "Back to history" }),
-  ).toBeVisible();
+  await expect(page.getByRole("button", { name: "Try again" })).toHaveCount(0);
   expect(transactionCalls).toBe(0);
 });
 

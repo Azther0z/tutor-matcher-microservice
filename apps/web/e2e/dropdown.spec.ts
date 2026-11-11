@@ -98,7 +98,7 @@ test("keyboard navigation, typeahead, Escape and Tab work without submitting the
   await expect(learningArea).toHaveText("All learning areas");
   await expect(learningArea).toHaveAttribute("aria-expanded", "false");
   await expect(
-    page.getByRole("button", { name: "1 star and up" }),
+    page.getByRole("button", { name: "1 stars and up" }),
   ).toBeFocused();
   await expect(page).toHaveURL(/\/discover$/);
 });
@@ -142,8 +142,8 @@ test("a catalogue outage disables discovery filters and sorting", async ({
   const ratingButtons = page
     .getByLabel("Minimum rating")
     .getByRole("button");
-  await expect(ratingButtons).toHaveCount(5);
-  for (let index = 0; index < 5; index += 1) {
+  await expect(ratingButtons).toHaveCount(9);
+  for (let index = 0; index < 9; index += 1) {
     await expect(ratingButtons.nth(index)).toBeDisabled();
   }
   await expect(page.getByRole("listbox")).toHaveCount(0);

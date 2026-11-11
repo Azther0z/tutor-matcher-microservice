@@ -157,11 +157,7 @@ function DetailContent({ submissionId }: { submissionId: string }) {
           {submission.rejectionReason && (
             <Notice kind="error">{submission.rejectionReason}</Notice>
           )}
-          {!open && action.error && (
-            <Notice kind="error" requestId={action.requestId}>
-              {action.error}
-            </Notice>
-          )}
+          {!open && <ActionMessages action={action} />}
           <div className="slot-footer flush">
             <button
               className="button button-quiet"

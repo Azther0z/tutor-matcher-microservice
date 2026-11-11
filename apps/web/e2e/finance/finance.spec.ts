@@ -7,8 +7,8 @@ test.describe("wallet and top-up", () => {
     await page.route(/\/api\/wallet$/, (route) => json(route, 200, wallet()));
     await page.goto("/wallet");
     await expect(page.getByText("THB 1,300.00")).toBeVisible();
-    await expect(page.getByText("RESERVED FOR PAYOUTS")).toBeVisible();
-    await expect(page.getByText("PENDING EARNINGS", { exact: true })).toHaveCount(0);
+    await expect(page.getByText("Reserved for payouts")).toBeVisible();
+    await expect(page.getByText("Pending earnings", { exact: true })).toHaveCount(0);
     await expect(page.getByRole("link", { name: "Payouts" })).toHaveCount(0);
   });
 
@@ -22,12 +22,18 @@ test.describe("wallet and top-up", () => {
     const created = await record(page, /\/api\/wallet\/topups$/, (route) => json(route, 201, {
       ...topup("PENDING"), manual: true, decisionReason: null,
     }));
+    await page.route(/\/api\/wallet\/transactions\?/, (route) => json(route, 200, page1([])));
     await page.goto(`/wallet?returnToBookingId=${IDS.booking}`);
-    await page.getByLabel("Amount (THB)").fill("250.5");
+    const dialog = page.getByRole("dialog", { name: "Add funds" });
+    await dialog.getByLabel("How much do you want to add? (THB)").fill("250.5");
+    await dialog.getByRole("button", { name: "Confirm amount" }).click();
+    await expect(page.getByRole("dialog", { name: "Transfer and attach slip" })).toBeVisible();
+    await expect(page.getByText("THB 250.50", { exact: true })).toBeVisible();
     await page.getByLabel("Transfer slip").setInputFiles({ name: "slip.png", mimeType: "image/png", buffer: slipPng });
-    await page.getByRole("button", { name: "Send top-up request" }).click();
-    await expect(page.getByRole("status").filter({ hasText: "Your request is waiting for an admin." })).toBeVisible();
-    await expect(page.getByRole("link", { name: "View request" })).toHaveAttribute("href", `/wallet/topups/${IDS.topup}?returnToBookingId=${IDS.booking}`);
+    await page.getByRole("button", { name: "Send request" }).click();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await expect(page.getByRole("link", { name: /Top-up request/ })).toHaveAttribute("href", `/wallet/topups/${IDS.topup}?returnToBookingId=${IDS.booking}`);
+    await expect(page.getByRole("button", { name: /Top up/ })).toBeDisabled();
     expect(created[0].body).toMatchObject({ amount: "250.50", returnToBookingId: IDS.booking, slipContentType: "image/png", slipImage: slipPng.toString("base64") });
     expect(created[0].headers["idempotency-key"]).toMatch(/^[0-9a-f-]{36}$/i);
   });
@@ -40,12 +46,15 @@ test.describe("wallet and top-up", () => {
     await page.route(/https:\/\/promptpay\.io\/.*/, (route) => route.fulfill({ status: 200, contentType: "image/png", body: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/pWQAAAAASUVORK5CYII=", "base64") }));
     const created = await record(page, /\/api\/wallet\/topups$/, (route) => json(route, 201, { ...topup("PENDING"), manual: true }));
     await page.goto("/wallet");
-    await page.getByLabel("Transfer slip").setInputFiles({ name: "slip.png", mimeType: "image/png", buffer: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/pWQAAAAASUVORK5CYII=", "base64") });
+    await page.getByRole("button", { name: /Top up/ }).click();
+    const dialog = page.getByRole("dialog", { name: "Add funds" });
+    await expect(dialog.getByLabel("How much do you want to add? (THB)")).toBeVisible();
     for (const bad of ["0", "100000.01", "12.345", "abc", "-5"]) {
-      await page.getByLabel("Amount (THB)").fill(bad);
-      await page.getByRole("button", { name: "Send top-up request" }).click();
-      await expect(page.getByText(/from 0.01 to 100,000.00/)).toBeVisible();
+      await dialog.getByLabel("How much do you want to add? (THB)").fill(bad);
+      await expect(dialog.getByRole("button", { name: "Confirm amount" })).toBeDisabled();
     }
+    await dialog.getByLabel("How much do you want to add? (THB)").fill("100000.00");
+    await expect(dialog.getByRole("button", { name: "Confirm amount" })).toBeEnabled();
     expect(created).toHaveLength(0);
   });
 
@@ -78,8 +87,8 @@ test.describe("wallet and top-up", () => {
       { id: IDS.topup, type: "TOP_UP", amount: thb("500.00"), direction: "IN", balanceAfter: thb("1500.00"), operationId: IDS.operation, bookingId: null, payoutAccountId: null, createdAt: TS },
     ])));
     await page.goto("/wallet/transactions");
-    await expect(page.getByRole("cell", { name: "Top Up" })).toBeVisible();
-    await page.getByLabel("Type").click();
+    await expect(page.getByRole("link", { name: /Top Up/ })).toBeVisible();
+    await page.locator("#type").click();
     await page.getByRole("option", { name: "Refund", exact: true }).click();
     await expect.poll(() => seen.some((call) => call.url.includes("type=REFUND"))).toBe(true);
   });
@@ -206,13 +215,15 @@ test.describe("disputes", () => {
     const decided = await record(page, new RegExp(`/api/admin/disputes/${IDS.dispute}/decision$`), (route) => { current = detail("APPROVED", "8"); return json(route, 200, current.dispute); });
 
     await page.goto("/admin/disputes");
-    await page.getByRole("link", { name: "Review" }).click();
+    await page.getByRole("link", { name: /Booking 00000000/ }).click();
     await expect(page.getByText("Jamie Learner")).toBeVisible();
     await expect(page.getByText("Pending tutor earning")).toBeVisible();
+    await page.getByRole("button", { name: "Decide", exact: true }).click();
     await page.getByRole("button", { name: "Record decision" }).click();
     await expect(page.getByText(/Enter the reason for your decision/)).toBeVisible();
     expect(decided).toHaveLength(0);
 
+    await page.getByRole("button", { name: "Approve and refund" }).click();
     await page.getByLabel("Reason (kept in the audit trail)").fill("Evidence supports the student.");
     await page.getByRole("button", { name: "Record decision" }).click();
     await expect(page.getByText(/remaining paid amount was refunded/)).toBeVisible();

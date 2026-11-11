@@ -1,5 +1,13 @@
 import { expect, test, type Page } from "@playwright/test";
-import { IDS, json, page1, record, signIn, topup, wallet } from "../finance/support";
+import { IDS, json, page1, record, signIn as baseSignIn, topup, wallet } from "../finance/support";
+
+/** Signs in and answers the header's own wallet and inbox calls, so a signed-in page never reaches a real backend. Later routes in a test take precedence. */
+async function signIn(page: Page, capabilities: string[] = ["STUDENT"]) {
+  await baseSignIn(page, capabilities);
+  await page.route(/\/api\/wallet$/, (route) => json(route, 200, wallet()));
+  await page.route(/\/api\/messages\/inbox\?/, (route) => json(route, 200, page1([])));
+  await page.route(/\/api\/wallet\/transactions\?/, (route) => json(route, 200, page1([])));
+}
 
 const me = {
   id: IDS.user,
@@ -83,28 +91,25 @@ test.describe("header navigation follows auth state (UX-08, UX-04, UX-06)", () =
 
   test("a student sees inline links and account controls, but no admin destinations", async ({ page }) => {
     await signIn(page);
-    await page.route(/\/api\/wallet$/, (route) => json(route, 200, wallet()));
-    await page.route(/\/api\/messages\/inbox\?/, (route) => json(route, 200, page1([])));
-    await page.goto("/wallet");
+    await page.goto("/");
     const nav = page.getByRole("navigation", { name: "Main navigation" });
     for (const shown of ["Home", "Find tutors", "Bookings", "Messages"]) await expect(nav.getByRole("link", { name: shown, exact: true })).toBeVisible();
     await expect(nav.getByRole("link", { name: "Wallet balance" })).toBeVisible();
     await nav.getByRole("button", { name: "Open account menu" }).click();
-    await expect(nav.getByRole("link", { name: "Settings", exact: true })).toHaveAttribute("href", "/account");
-    await expect(nav.getByRole("link", { name: "Notifications", exact: true })).toHaveAttribute("href", "/notifications");
-    await expect(nav.getByRole("button", { name: "Logout", exact: true })).toBeVisible();
-    for (const hidden of ["Admin", "Tutor requests", "Top-up requests"]) await expect(nav.getByRole("link", { name: hidden, exact: true })).toHaveCount(0);
+    await expect(nav.getByRole("menuitem", { name: "Settings", exact: true })).toHaveAttribute("href", "/account");
+    await expect(nav.getByRole("menuitem", { name: "Notifications", exact: true })).toHaveAttribute("href", "/notifications");
+    await expect(nav.getByRole("menuitem", { name: "Log out", exact: true })).toBeVisible();
+    await expect(nav.getByRole("button", { name: "Admin" })).toHaveCount(0);
+    for (const hidden of ["Accounts", "Tutor requests", "Top-up requests"]) await expect(nav.getByRole("menuitem", { name: hidden, exact: true })).toHaveCount(0);
   });
 
   test("admin account controls include admin destinations", async ({ page }) => {
     await signIn(page, ["STUDENT", "ADMIN"]);
-    await page.route(/\/api\/wallet$/, (route) => json(route, 200, wallet()));
-    await page.route(/\/api\/messages\/inbox\?/, (route) => json(route, 200, page1([])));
-    await page.goto("/wallet");
+    await page.goto("/");
     const nav = page.getByRole("navigation", { name: "Main navigation" });
-    await nav.getByRole("button", { name: "Open account menu" }).click();
-    for (const [label, href] of [["Tutor requests", "/admin/tutor-requests"], ["Top-up requests", "/admin/topups"], ["Admin", "/admin/users"]]) {
-      await expect(nav.getByRole("link", { name: label, exact: true })).toHaveAttribute("href", href);
+    await nav.getByRole("button", { name: "Admin" }).click();
+    for (const [label, href] of [["Accounts", "/admin/users"], ["Tutor requests", "/admin/tutor-requests"], ["Top-up requests", "/admin/topups"]]) {
+      await expect(nav.getByRole("menuitem", { name: label, exact: true })).toHaveAttribute("href", href);
     }
   });
 
@@ -115,8 +120,6 @@ test.describe("header navigation follows auth state (UX-08, UX-04, UX-06)", () =
     await expect(nav.getByRole("link", { name: "Login", exact: true })).toBeVisible();
     await expect(nav.getByRole("link", { name: "Sign-up", exact: true })).toBeVisible();
     await signIn(page);
-    await page.route(/\/api\/wallet$/, (route) => json(route, 200, wallet()));
-    await page.route(/\/api\/messages\/inbox\?/, (route) => json(route, 200, page1([])));
     await page.reload();
     const mobileNav = page.getByRole("navigation", { name: "Main navigation" });
     for (const link of ["Home", "Find tutors", "Bookings", "Messages"]) await expect(mobileNav.getByRole("link", { name: link, exact: true })).toBeVisible();
@@ -124,7 +127,7 @@ test.describe("header navigation follows auth state (UX-08, UX-04, UX-06)", () =
     await expect(menu).toBeVisible();
     expect((await menu.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(40);
     await menu.click();
-    await expect(mobileNav.getByRole("button", { name: "Logout", exact: true })).toBeVisible();
+    await expect(mobileNav.getByRole("menuitem", { name: "Log out", exact: true })).toBeVisible();
   });
 
   test("the landing page and Account point to discovery", async ({ page }) => {
@@ -158,12 +161,14 @@ test.describe("login and signup around the session (UX-14, UX-33, UX-34)", () =>
     await expect(page.locator(".notice-error")).toContainText("00000000-0000-4000-8000-0000000000ad");
   });
 
-  for (const path of ["/login", "/signup"]) {
+  // A signed-in student leaves Login for tutor search and leaves Sign-up for Account.
+  for (const [path, destination] of [["/login", /\/discover$/], ["/signup", /\/account$/]] as const) {
     test(`signed-in users are sent away from ${path}`, async ({ page }) => {
       await signIn(page);
       await mockAccountPage(page, (route) => json(route, 200, me));
+      await page.route(/\/api\/discovery\//, (route) => json(route, 200, { items: [], pagination: { page: 1, pageSize: 20, totalItems: 0, totalPages: 1 } }));
       await page.goto(path);
-      await expect(page).toHaveURL(/\/account$/);
+      await expect(page).toHaveURL(destination);
     });
   }
 
@@ -177,13 +182,11 @@ test.describe("login and signup around the session (UX-14, UX-33, UX-34)", () =>
   test("header logout lands on / without retaining the session", async ({ page }) => {
     await signIn(page);
     await mockAccountPage(page, (route) => json(route, 200, me));
-    await page.route(/\/api\/wallet$/, (route) => json(route, 200, wallet()));
-    await page.route(/\/api\/messages\/inbox\?/, (route) => json(route, 200, page1([])));
     await page.route(/\/api\/auth\/logout$/, (route) => route.fulfill({ status: 204, body: "" }));
     await page.goto("/account");
     const nav = page.getByRole("navigation", { name: "Main navigation" });
     await nav.getByRole("button", { name: "Open account menu" }).click();
-    await nav.getByRole("button", { name: "Logout", exact: true }).click();
+    await nav.getByRole("menuitem", { name: "Log out", exact: true }).click();
     await expect(page).toHaveURL(/\/$/);
     await expect.poll(() => page.evaluate(() => sessionStorage.getItem("tm.session.token"))).toBeNull();
   });
@@ -209,8 +212,8 @@ test.describe("email checks and friendly validation (UX-11, UX-29, UX-31, UX-32)
     await page.getByLabel("Email address").fill("not-an-email");
     await page.getByLabel("Password", { exact: true }).fill("correct horse 123");
     await page.getByLabel("Confirm password").fill("correct horse 123");
-    await page.getByLabel(/Terms of Service/).check();
-    await page.getByLabel(/Privacy notice/).check();
+    await page.getByRole("checkbox", { name: /Terms of Service/ }).check();
+    await page.getByRole("checkbox", { name: /Privacy notice/ }).check();
     await page.getByRole("button", { name: "Create account" }).click();
     await expect(page.getByText("Enter a valid email address.")).toBeVisible();
     await expect(page.locator("#email")).toBeFocused();
@@ -232,8 +235,8 @@ test.describe("email checks and friendly validation (UX-11, UX-29, UX-31, UX-32)
     await page.getByLabel("Email address").fill("jamie@example.test");
     await page.getByLabel("Password", { exact: true }).fill("correct horse 123");
     await page.getByLabel("Confirm password").fill("correct horse 123");
-    await page.getByLabel(/Terms of Service/).check();
-    await page.getByLabel(/Privacy notice/).check();
+    await page.getByRole("checkbox", { name: /Terms of Service/ }).check();
+    await page.getByRole("checkbox", { name: /Privacy notice/ }).check();
     await page.getByRole("button", { name: "Create account" }).click();
     await expect(page.getByText("An account already uses this email address.")).toHaveCount(1);
   });
@@ -247,8 +250,8 @@ test.describe("email checks and friendly validation (UX-11, UX-29, UX-31, UX-32)
     await page.getByLabel("Email address").fill("jamie@example.test");
     await page.getByLabel("Password", { exact: true }).fill("correct horse 123");
     await page.getByLabel("Confirm password").fill("correct horse 123");
-    await page.getByLabel(/Terms of Service/).check();
-    await page.getByLabel(/Privacy notice/).check();
+    await page.getByRole("checkbox", { name: /Terms of Service/ }).check();
+    await page.getByRole("checkbox", { name: /Privacy notice/ }).check();
     await page.getByRole("button", { name: "Create account" }).click();
     await expect(page.getByText("Enter a valid email address.")).toBeVisible();
     await expect(page.getByText("Request validation failed.")).toHaveCount(0);
@@ -287,9 +290,9 @@ test.describe("wallet top-up (UX-17, UX-45)", () => {
     await page.route(/\/api\/messages\/inbox\?/, (route) => json(route, 200, page1([])));
     await page.goto("/wallet");
     await expect(page.getByText("This area is temporarily unavailable")).toBeVisible();
-    await expect(page.getByRole("button", { name: "Send top-up request" })).toBeDisabled();
-    await expect(page.getByLabel("Amount (THB)")).toBeDisabled();
-    await expect(page.getByLabel("Transfer slip")).toBeDisabled();
+    // Without a wallet there is no balance card, so there is no Top up button and no form to open.
+    await expect(page.getByRole("button", { name: /Top up/ })).toHaveCount(0);
+    await expect(page.getByRole("dialog")).toHaveCount(0);
     await expect(page.getByText("Adding funds is unavailable until your wallet loads.")).toBeVisible();
   });
 
@@ -304,11 +307,17 @@ test.describe("wallet top-up (UX-17, UX-45)", () => {
       await json(route, 201, { ...topup("PENDING"), manual: true });
     });
     await page.goto("/wallet");
-    await page.getByLabel("Amount (THB)").fill("100");
-    await page.getByLabel("Transfer slip").setInputFiles({ name: "slip.png", mimeType: "image/png", buffer: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/pWQAAAAASUVORK5CYII=", "base64") });
-    await page.getByRole("button", { name: "Send top-up request" }).dblclick();
-    await expect(page.getByRole("button", { name: "Sending…" })).toBeDisabled();
-    await expect(page.getByRole("status").filter({ hasText: "Your request is waiting for an admin." })).toBeVisible();
+    await page.getByRole("button", { name: /Top up/ }).click();
+    const dialog = page.getByRole("dialog", { name: "Add funds" });
+    await dialog.getByLabel("How much do you want to add? (THB)").fill("100");
+    await dialog.getByRole("button", { name: "Confirm amount" }).click();
+    const sendDialog = page.getByRole("dialog", { name: "Transfer and attach slip" });
+    await sendDialog.getByLabel("Transfer slip").setInputFiles({ name: "slip.png", mimeType: "image/png", buffer: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/pWQAAAAASUVORK5CYII=", "base64") });
+    await sendDialog.getByRole("button", { name: "Send request" }).dblclick();
+    await expect(sendDialog.getByRole("button", { name: "Sending…" })).toBeDisabled();
+    // The dialog closes once the request is sent, and the request shows as waiting for review.
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await expect(page.getByRole("link", { name: /Top-up request/ })).toBeVisible();
     expect(calls).toHaveLength(1);
   });
 });
@@ -346,7 +355,8 @@ test.describe("dead ends and outage states", () => {
     await page.route(/\/api\/wallet\/transactions\/abc$/, (route) => json(route, 400, { code: "VALIDATION_FAILED", message: "Request parameters are invalid.", requestId: "00000000-0000-4000-8000-0000000000b1", retryable: false, fields: [] }));
     await page.goto("/wallet/transactions/abc");
     await expect(page.getByText("We couldn’t find that record.")).toBeVisible();
-    await expect(page.getByRole("link", { name: "Back to history" }).last()).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Transaction", exact: true })).toBeVisible();
+    await expect(page.getByRole("navigation", { name: "Main navigation" }).getByRole("link", { name: "Home", exact: true })).toBeVisible();
     await expect(page.getByRole("button", { name: "Try again" })).toHaveCount(0);
   });
 
@@ -387,21 +397,24 @@ test.describe("dead ends and outage states", () => {
     const searches = await record(page, /\/api\/discovery\/tutors\?/, (route) => json(route, 200, { items: [], pagination: { page: 1, pageSize: 20, totalItems: 0, totalPages: 1 } }));
     await page.goto("/discover");
     const rating = page.getByRole("group", { name: "Minimum rating" });
-    await expect(rating.getByRole("button")).toHaveCount(5);
-    await expect(rating.getByRole("button", { name: "4 stars and up" })).toBeVisible();
-    await expect(rating.getByRole("button", { name: "1 star and up" })).toBeVisible();
+    // Half steps from 1 to 5: the first star is one whole button, the other four have a left and a right half.
+    await expect(rating.getByRole("button")).toHaveCount(9);
+    await expect(rating.getByRole("button", { name: "4 stars and up", exact: true })).toBeVisible();
+    await expect(rating.getByRole("button", { name: "4.5 stars and up", exact: true })).toBeVisible();
+    await expect(rating.getByRole("button", { name: "1 stars and up", exact: true })).toBeVisible();
     await expect(page.getByRole("combobox", { name: "Learning area" })).toBeVisible();
     await expect(page.getByRole("combobox", { name: "Sort" })).toBeVisible();
     await expect(page.locator("select#format")).toHaveCount(0);
     await expect(page.getByText(/Lessons are online/)).toBeVisible();
     await expect(page.getByRole("button", { name: "Search" })).toBeEnabled();
     const before = searches.length;
-    await page.getByLabel("Min price (THB/hr)").fill("900");
-    await page.getByLabel("Max price (THB/hr)").fill("100");
+    const price = page.getByRole("group", { name: "Price per hour (THB)" });
+    await price.getByLabel("Min", { exact: true }).fill("900");
+    await price.getByLabel("Max", { exact: true }).fill("100");
     await page.getByRole("button", { name: "Search" }).click();
     await expect(page.getByText("The maximum rate must be at least the minimum rate.")).toBeVisible();
-    await page.getByLabel("Min price (THB/hr)").fill("-5");
-    await page.getByLabel("Max price (THB/hr)").fill("");
+    await price.getByLabel("Min", { exact: true }).fill("-5");
+    await price.getByLabel("Max", { exact: true }).fill("");
     await page.getByRole("button", { name: "Search" }).click();
     await expect(page.getByText("Enter a rate of 0 or more.")).toBeVisible();
     expect(searches.length).toBe(before);
@@ -443,8 +456,13 @@ test.describe("accessibility basics (UX-24, UX-26, UX-27, UX-28)", () => {
 
   test("notifications show a notification-specific notice, not the money banner", async ({ page }) => {
     await signIn(page);
-    await page.route(/\/api\/notifications/, (route) => json(route, 200, { items: [], pagination: { page: 1, pageSize: 20, totalItems: 0, totalPages: 1 } }));
+    await page.route(/\/api\/notifications\/preferences$/, (route) => json(route, 200, {
+      bookingUpdates: { email: true, push: true }, lessonReminders: { email: true, push: true }, newMessages: { email: true, push: false },
+      walletPayments: { email: true, push: true }, productNews: { email: false, push: false }, revision: "0",
+    }, { ETag: '"0"' }));
+    await page.route(/\/api\/notifications\?/, (route) => json(route, 200, { items: [], pagination: { page: 1, pageSize: 20, totalItems: 0, totalPages: 1 } }));
     await page.goto("/notifications");
+    await expect(page.getByRole("heading", { name: "Notifications", exact: true })).toBeVisible();
     await expect(page.getByText(/No real money moves/)).toHaveCount(0);
     await expect(page.getByText(/Notifications here are simulated/)).toBeVisible();
   });
