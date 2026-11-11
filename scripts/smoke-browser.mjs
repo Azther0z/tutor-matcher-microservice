@@ -245,8 +245,8 @@ async function run() {
   await page.getByLabel("Email address").fill(syntheticEmail);
   await page.getByLabel("Password", { exact: true }).fill(initialPassword);
   await page.getByLabel("Confirm password").fill(initialPassword);
-  await page.getByLabel(/Terms of Service/).check();
-  await page.getByLabel(/Privacy notice/).check();
+  await page.getByRole("checkbox", { name: /Terms of Service/ }).check();
+  await page.getByRole("checkbox", { name: /Privacy notice/ }).check();
   await page.getByRole("button", { name: "Create account" }).click();
   await page.waitForURL(/\/account$/, { timeout: 30_000 });
   phase = "account and student profile load";
@@ -327,9 +327,10 @@ async function run() {
   await expect(page.getByText("Email or password is incorrect.")).toBeVisible();
   await page.getByLabel("Password").fill(changedPassword);
   await page.getByRole("button", { name: "Log in" }).click();
-  await page.waitForURL(/\/account$/, { timeout: 30_000 });
+  // A student who logs in without a return path lands on tutor search.
+  await page.waitForURL(/\/discover$/, { timeout: 30_000 });
   await expect(
-    page.getByRole("heading", { name: "Account settings" }),
+    page.getByRole("heading", { name: "Find a tutor" }),
   ).toBeVisible();
   assert.equal(
     await page.evaluate(() =>
@@ -338,6 +339,10 @@ async function run() {
     true,
     "A successful login must establish a tab session.",
   );
+  await page.goto(`${webUrl}/account`);
+  await expect(
+    page.getByRole("heading", { name: "Account settings" }),
+  ).toBeVisible();
   console.log(
     "Browser/Auth/Traefik/PostgreSQL smoke passed; screenshots saved under docs/evidence/saint/visual.",
   );

@@ -163,29 +163,26 @@ export async function runLiveSmoke({
     await expect(
       page.getByRole("button", { name: "Unpublish listing", exact: true }),
     ).toBeVisible();
-    const approved = page.locator("section.panel").filter({
-      has: page.getByRole("heading", {
-        name: "Current approved content",
-        exact: true,
-      }),
-    });
-    await expect(approved).toContainText("Integration Tutor");
+    const approvedProfile = () =>
+      page.locator("section.panel").filter({
+        has: page.getByRole("heading", {
+          name: "Current approved profile",
+          exact: true,
+        }),
+      });
+    await expect(approvedProfile()).toContainText("Integration Tutor");
     checks.push("real candidate login and approved/published profile");
 
     stage = "owned subject creation and editing";
     await page.goto(`${origin}/teach/subjects`);
     await expect(
-      page.getByRole("heading", {
-        name: "Edit Integration Mathematics",
-        exact: true,
-      }),
+      page.locator(".draft-row").filter({ hasText: "Integration Mathematics" }),
     ).toBeVisible();
-    const newSubject = page.locator("section.panel").filter({
-      has: page.getByRole("heading", {
-        name: "Create a subject",
-        exact: true,
-      }),
-    });
+    await page
+      .getByRole("button", { name: "New subject", exact: true })
+      .click();
+    const newSubject = page.getByRole("dialog", { name: "New subject" });
+    await expect(newSubject).toBeVisible();
     await newSubject
       .getByLabel("Subject name", { exact: true })
       .fill("Browser Practice");
@@ -195,17 +192,24 @@ export async function runLiveSmoke({
     await newSubject
       .getByLabel("Hourly rate (THB)", { exact: true })
       .fill("450.00");
-    await newSubject.getByLabel("Mathematics", { exact: true }).check();
     await newSubject
-      .getByRole("button", { name: "Create subject", exact: true })
+      .getByRole("group", { name: "Learning areas", exact: true })
+      .getByRole("button", { name: "Mathematics", exact: true })
       .click();
-    const editSubject = page.locator("section.panel").filter({
-      has: page.getByRole("heading", {
-        name: "Edit Browser Practice",
-        exact: true,
-      }),
-    });
+    await newSubject
+      .getByRole("button", { name: "Save subject", exact: true })
+      .click();
+    const subjectRow = page
+      .locator(".draft-row")
+      .filter({ hasText: "Browser Practice" });
+    await expect(subjectRow).toBeVisible();
+    await expect(newSubject).toBeHidden();
+    await subjectRow.getByRole("button", { name: "Edit", exact: true }).click();
+    const editSubject = page.getByRole("dialog", { name: "Edit subject" });
     await expect(editSubject).toBeVisible();
+    await expect(
+      editSubject.getByLabel("Subject name", { exact: true }),
+    ).toHaveValue("Browser Practice");
     await editSubject
       .getByLabel("Description", { exact: true })
       .fill("Updated through the real browser and Tutor API.");
@@ -218,22 +222,28 @@ export async function runLiveSmoke({
       .getByRole("button", { name: "Save subject", exact: true })
       .click();
     assert.equal((await savedSubject).status(), 200);
+    await expect(editSubject).toBeHidden();
+    await subjectRow.getByRole("button", { name: "Edit", exact: true }).click();
     await expect(
-      editSubject.getByLabel("Description", { exact: true }),
+      page
+        .getByRole("dialog", { name: "Edit subject" })
+        .getByLabel("Description", { exact: true }),
     ).toHaveValue("Updated through the real browser and Tutor API.");
+    await page
+      .getByRole("dialog", { name: "Edit subject" })
+      .getByRole("button", { name: "Cancel", exact: true })
+      .click();
     checks.push("real owned subject create and revision-protected edit");
 
     stage = "profile revision submission";
     await page.goto(`${origin}/teach/profile`);
     await page
-      .getByRole("button", { name: "Create profile revision", exact: true })
+      .getByRole("button", { name: "New profile revision", exact: true })
       .click();
-    const newRevision = page.locator("section.panel").filter({
-      has: page.getByRole("heading", {
-        name: "New profile revision",
-        exact: true,
-      }),
+    const newRevision = page.getByRole("dialog", {
+      name: "New profile revision",
     });
+    await expect(newRevision).toBeVisible();
     await newRevision
       .getByLabel("Headline", { exact: true })
       .fill("Browser revision awaiting review");
@@ -243,11 +253,22 @@ export async function runLiveSmoke({
     await newRevision
       .getByRole("button", { name: "Save draft", exact: true })
       .click();
-    const editor = page.locator("section.panel").filter({
-      has: page.getByRole("heading", { name: "Edit draft", exact: true }),
+    await expect(newRevision).toBeHidden();
+    const draftRow = page
+      .locator(".draft-row")
+      .filter({ hasText: "Browser revision awaiting review" });
+    await expect(draftRow).toBeVisible();
+    await draftRow.getByRole("button", { name: "Submit", exact: true }).click();
+    const consentDialog = page.getByRole("dialog", {
+      name: "Submit for review",
     });
-    await expect(editor).toBeVisible();
-    await editor.getByRole("checkbox").check();
+    await expect(consentDialog).toBeVisible();
+    const submitButton = consentDialog.getByRole("button", {
+      name: "Submit",
+      exact: true,
+    });
+    await expect(submitButton).toBeDisabled();
+    await consentDialog.getByRole("checkbox").check();
     const submittedResponse = page.waitForResponse(
       (response) =>
         response.request().method() === "POST" &&
@@ -255,23 +276,18 @@ export async function runLiveSmoke({
           new URL(response.url()).pathname,
         ),
     );
-    await editor
-      .getByRole("button", { name: "Submit saved draft", exact: true })
-      .click();
+    await submitButton.click();
     const submitted = await submittedResponse;
     assert.equal(submitted.status(), 200);
     const pendingRevision = await submitted.json();
     assert.equal(pendingRevision.kind, "REVISION");
     assert.equal(pendingRevision.state, "PENDING");
     await expect(
-      page.getByRole("button", { name: "Withdraw submission", exact: true }),
+      page.getByRole("button", { name: "Withdraw", exact: true }),
     ).toBeVisible();
     await publicPage.goto(`${origin}/tutors/${tutorId}`);
     await expect(
-      publicPage.getByRole("heading", {
-        name: "Integration Tutor",
-        exact: true,
-      }),
+      publicPage.getByText("Integration Tutor", { exact: true }),
     ).toBeVisible();
     await expect(
       publicPage.getByText("Browser revision awaiting review", { exact: true }),
@@ -289,19 +305,29 @@ export async function runLiveSmoke({
       `/admin/tutor-requests/${pendingRevision.id}`,
     );
     await expect(
-      adminPage.getByRole("link", {
-        name: "Open private identification document",
-        exact: true,
-      }),
+      adminPage
+        .locator(".summary-rows > div")
+        .filter({ hasText: "Identification document" })
+        .getByRole("link", { name: "Open", exact: true }),
     ).toBeVisible();
-    await adminPage.getByLabel("Decision", { exact: true }).click();
-    await adminPage.getByRole("option", { name: "Reject", exact: true }).click();
     await adminPage
-      .getByLabel("Reason (required for rejection)", { exact: true })
-      .fill("Synthetic revision rejected during the browser smoke.");
-    await adminPage
-      .getByRole("button", { name: "Save review decision", exact: true })
+      .getByRole("button", { name: "Review", exact: true })
       .click();
+    const reviewDialog = adminPage.getByRole("dialog", {
+      name: "Review request",
+    });
+    await expect(reviewDialog).toBeVisible();
+    await reviewDialog
+      .getByRole("group", { name: "Decision", exact: true })
+      .getByRole("button", { name: "Reject", exact: true })
+      .click();
+    await reviewDialog
+      .getByLabel("Reason (required)", { exact: true })
+      .fill("Synthetic revision rejected during the browser smoke.");
+    await reviewDialog
+      .getByRole("button", { name: "Save decision", exact: true })
+      .click();
+    await expect(reviewDialog).toBeHidden();
     await expect(
       adminPage.getByText(
         "Synthetic revision rejected during the browser smoke.",
@@ -315,20 +341,10 @@ export async function runLiveSmoke({
         { exact: true },
       ),
     ).toBeVisible();
-    await expect(
-      page.locator("section.panel").filter({
-        has: page.getByRole("heading", {
-          name: "Current approved content",
-          exact: true,
-        }),
-      }),
-    ).toContainText("Integration Tutor");
+    await expect(approvedProfile()).toContainText("Integration Tutor");
     await publicPage.reload();
     await expect(
-      publicPage.getByRole("heading", {
-        name: "Integration Tutor",
-        exact: true,
-      }),
+      publicPage.getByText("Integration Tutor", { exact: true }),
     ).toBeVisible();
     await expect(
       publicPage.getByText("Browser revision awaiting review", { exact: true }),
@@ -340,7 +356,7 @@ export async function runLiveSmoke({
     stage = "public discovery and Bangkok slot selection";
     await publicPage.goto(`${origin}/discover?q=Integration&sort=PRICE_ASC`);
     await publicPage
-      .getByRole("link", { name: "View subject and availability", exact: true })
+      .getByRole("link", { name: "Integration Mathematics", exact: true })
       .click();
     await expect(publicPage).toHaveURL(
       `${origin}/tutors/${tutorId}/subjects/${subjectId}`,
@@ -358,11 +374,17 @@ export async function runLiveSmoke({
           .includes(`/api/discovery/tutors/${tutorId}/subjects/${subjectId}`) &&
         new URL(response.url()).searchParams.get("date") === futureDate,
     );
-    await publicPage
-      .getByLabel("Lesson date (Bangkok)", { exact: true })
-      .fill(futureDate);
+    const calendarDay = publicPage.getByRole("button", {
+      name: futureDate,
+      exact: true,
+    });
+    if ((await calendarDay.count()) === 0)
+      await publicPage
+        .getByRole("button", { name: "Next month", exact: true })
+        .click();
+    await calendarDay.click();
     assert.equal((await futureAvailability).status(), 200);
-    await publicPage.getByRole("checkbox").first().check();
+    await publicPage.locator("button.slot-chip:enabled").first().click();
     const continueLink = publicPage.getByRole("link", {
       name: "Sign in and continue",
       exact: true,
@@ -387,7 +409,21 @@ export async function runLiveSmoke({
     );
 
     stage = "private moderation details and hidden public review";
+    const flagsResponse = adminPage.waitForResponse(
+      (response) =>
+        response.request().method() === "GET" &&
+        new URL(response.url()).pathname === "/api/admin/review-flags",
+    );
     await adminPage.goto(`${origin}/admin/review-flags`);
+    const flags = await (await flagsResponse).json();
+    assert.ok(
+      flags.items.some(
+        (item) =>
+          item.review.bookingId === bookingId &&
+          item.review.visibility === "HIDDEN",
+      ),
+      "The moderation projection must link the hidden review to its booking.",
+    );
     const flaggedReview = adminPage
       .locator("article.panel")
       .filter({ hasText: "Synthetic moderation test" });
@@ -395,8 +431,7 @@ export async function runLiveSmoke({
     await expect(flaggedReview).toContainText("Reported by Alice Johnson");
     await expect(flaggedReview).toContainText("Clear explanation");
     await expect(flaggedReview).toContainText("Thank you");
-    await expect(flaggedReview).toContainText("HIDDEN");
-    await expect(flaggedReview).toContainText(bookingId);
+    await expect(flaggedReview).toContainText("Hidden");
     await publicPage.goto(
       `${origin}/reviews?tutorId=${tutorId}&subjectId=${subjectId}`,
     );
