@@ -927,3 +927,14 @@ a.tutor-card:hover { background: #0b0b0b; }
 .subject-row-main small { color: var(--muted); font-size: 13px; }
 .draft-row .subject-row-main strong { white-space: normal; }
 .slot-subjects-title { margin-top: 8px !important; }
+.history-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; padding: 14px 2px; border-bottom: 1px solid var(--line); }
+.history-row:last-child { border-bottom: 0; }
+.history-main { display: grid; gap: 2px; min-width: 0; }
+.history-main strong { font-size: 15px; font-weight: 500; }
+.history-main small { font-size: 13px; color: var(--muted); }
+.history-main small.status-bad { color: #f87171; }
+.history-side { display: grid; justify-items: end; gap: 6px; flex: none; }
+.history-side .button-row { gap: 4px; }
+.history-side .button { min-height: 32px; padding: 4px 12px; font-size: 13px; }
+.history-side a.button-quiet { color: var(--muted); text-decoration: none; }
+.history-side a.button-quiet:hover { color: var(--ink); background: rgba(255, 255, 255, 0.05); }

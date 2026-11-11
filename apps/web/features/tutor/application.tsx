@@ -219,50 +219,36 @@ function SubmissionHistory({
 }) {
   const action = useAction(reload);
   return (
-    <article className="panel booking-new submission-card">
-      <StatusBadge value={submission.state} corner />
-      <div className="booking-title">
-        <h2>{submission.headline || "Tutor profile"}</h2>
-        <p className="tutor-card-meta">
+    <div className="history-row">
+      <div className="history-main">
+        <strong>{submission.headline || "Tutor profile"}</strong>
+        <small>
           {submission.kind === "APPLICATION" ? "Application" : "Profile revision"}
-        </p>
-      </div>
-      {submission.bio && <p className="submission-bio">{submission.bio}</p>}
-      <div className="summary-rows">
+        </small>
         {submission.submittedAt && (
-          <div>
-            <span>Submitted</span>
-            <strong>{bangkokTime(submission.submittedAt)}</strong>
-          </div>
+          <small>Submitted {bangkokTime(submission.submittedAt)}</small>
         )}
         {submission.reviewedAt && (
-          <div>
-            <span>Reviewed</span>
-            <strong>{bangkokTime(submission.reviewedAt)}</strong>
-          </div>
+          <small>Reviewed {bangkokTime(submission.reviewedAt)}</small>
         )}
-        {submission.identificationDocumentUrl && (
-          <div>
-            <span>Identification document</span>
+        {submission.rejectionReason && (
+          <small className="status-bad">Review reason: {submission.rejectionReason}</small>
+        )}
+        <ActionMessages action={action} />
+      </div>
+      <div className="history-side">
+        <StatusBadge value={submission.state} />
+        <span className="button-row">
+          {submission.identificationDocumentUrl && (
             <a
-              className="text-link"
+              className="button button-quiet"
               href={submission.identificationDocumentUrl}
               rel="noreferrer"
               target="_blank"
             >
-              Open
+              ID document
             </a>
-          </div>
-        )}
-      </div>
-      {submission.rejectionReason && (
-        <Notice kind="error">Review reason: {submission.rejectionReason}</Notice>
-      )}
-      <ActionMessages action={action} />
-      {(submission.state === "PENDING" ||
-        ["REJECTED", "CANCELLED"].includes(submission.state)) && (
-        <div className="slot-footer flush">
-          <span />
+          )}
           {submission.state === "PENDING" && (
             <button
               className="button button-quiet"
@@ -276,12 +262,12 @@ function SubmissionHistory({
                 )
               }
             >
-              Withdraw submission
+              Withdraw
             </button>
           )}
           {["REJECTED", "CANCELLED"].includes(submission.state) && (
             <button
-              className="button"
+              className="button button-quiet"
               disabled={action.pending || action.uncertain}
               onClick={() =>
                 void action.run(
@@ -289,12 +275,12 @@ function SubmissionHistory({
                 )
               }
             >
-              Copy into a new draft
+              Copy into new draft
             </button>
           )}
-        </div>
-      )}
-    </article>
+        </span>
+      </div>
+    </div>
   );
 }
 function ApplicationContent({ profile = false }: { profile?: boolean }) {
@@ -465,13 +451,15 @@ function ApplicationContent({ profile = false }: { profile?: boolean }) {
           {workspace.submissions.length === 0 && (
             <p className="tutor-card-meta">No submissions yet.</p>
           )}
-          {[...workspace.submissions].sort((a, b) => (b.submittedAt ?? "").localeCompare(a.submittedAt ?? "")).map((submission) => (
-            <SubmissionHistory
-              key={`${submission.id}:${submission.revision}`}
-              submission={submission}
-              reload={resource.reload}
-            />
-          ))}
+          <div className="draft-list">
+            {[...workspace.submissions].sort((a, b) => (b.submittedAt ?? "").localeCompare(a.submittedAt ?? "")).map((submission) => (
+              <SubmissionHistory
+                key={`${submission.id}:${submission.revision}`}
+                submission={submission}
+                reload={resource.reload}
+              />
+            ))}
+          </div>
         </>
       )}
     </>
